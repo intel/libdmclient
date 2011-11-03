@@ -1,0 +1,8 @@
+
+Required packages
+-----------------
+
+autoconf automake libtool gcc make sqlite-devel libxml2-devel libwbxml-devel gnutls-devel
+
+for test client:
+libsoup-devel
