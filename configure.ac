@@ -40,6 +40,17 @@ fi
 
 AM_SILENT_RULES([yes])
 
+if test "${prefix}" = "NONE"; then
+    prefix=${ac_default_prefix}
+fi
+if test "${exec_prefix}" = "NONE"; then
+    exec_prefix=${prefix}
+fi
+
+mo_install_dir=${exec_prefix}/lib/${PACKAGE}/mobjs
+AC_SUBST([MOBJS_DIR], [${mo_install_dir}])
+AC_DEFINE_UNQUOTED([MOBJS_DIR], ["${mo_install_dir}"], [management objects installation directory])
+
 AC_ARG_ENABLE([logging], [  --enable-logging enables logging], [logging=${enableval}], [logging=no])
 
 if test "x${logging}" = xyes; then
