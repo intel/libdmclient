@@ -11,15 +11,13 @@
  *****************************************************************************/
 
 #include "config.h"
-
-#include "error.h"
-
+#include "syncml_error.h"
 #include "transaction.h"
 
 /* TODO transactions are not implemented yet */
 
 
-void omadm_transaction_make(omadm_transaction* transaction, 
+void omadm_transaction_make(omadm_transaction* transaction,
 			    OMADM_DMTreeContext *dmtree)
 {
 	transaction->transaction_in_progress = false;
@@ -33,20 +31,20 @@ bool omadm_transaction_in_progress(omadm_transaction* transaction)
 
 int omadm_transaction_begin(omadm_transaction* transaction)
 {
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 int omadm_transaction_cancel(omadm_transaction* transaction)
 {
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 int omadm_transaction_commit(omadm_transaction* transaction)
 {
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
-int omadm_transaction_exists(omadm_transaction* transaction, 
+int omadm_transaction_exists(omadm_transaction* transaction,
 			     const char *uri, OMADM_NodeType *exists)
 {
 	return omadm_dmtree_exists(transaction->dm_tree, uri, exists);
@@ -78,14 +76,14 @@ int omadm_transaction_get_meta(omadm_transaction* transaction,  const char *uri,
 				     meta);
 }
 
-int omadm_transaction_set_meta(omadm_transaction* transaction, const char *uri, 
+int omadm_transaction_set_meta(omadm_transaction* transaction, const char *uri,
 			       const char *prop, const char *meta)
 {
 	return omadm_dmtree_set_meta(transaction->dm_tree, uri, prop,
 				     meta);
 }
 
-int omadm_transaction_get_access_rights(omadm_transaction* transaction,  
+int omadm_transaction_get_access_rights(omadm_transaction* transaction,
 					const char *uri, OMADM_AccessRights *rights)
 {
 	return omadm_dmtree_get_access_rights(transaction->dm_tree, uri,
@@ -97,8 +95,8 @@ int omadm_transaction_delete_node(omadm_transaction* transaction, const char *ur
 	return omadm_dmtree_delete_node(transaction->dm_tree, uri);
 }
 
-int omadm_transaction_exec_node(omadm_transaction* transaction, 
-				const char *uri, const char *data, 
+int omadm_transaction_exec_node(omadm_transaction* transaction,
+				const char *uri, const char *data,
 				const char *correlator)
 {
 	/* Not possible in a transaction */
@@ -117,15 +115,14 @@ int omadm_transaction_update_nonce(omadm_transaction* transaction,
 					 nonce, nonce_length, server_cred);
 }
 
-int omadm_transaction_find_inherited_acl(omadm_transaction* transaction, 
+int omadm_transaction_find_inherited_acl(omadm_transaction* transaction,
 					 const char *uri, char **acl)
 {
 	return omadm_dmtree_find_inherited_acl(transaction->dm_tree, uri, acl);
 }
 
-int omadm_transaction_create_non_leaf(omadm_transaction* transaction, 
+int omadm_transaction_create_non_leaf(omadm_transaction* transaction,
 				      const char *uri)
 {
 	return omadm_dmtree_create_non_leaf(transaction->dm_tree, uri);
 }
-

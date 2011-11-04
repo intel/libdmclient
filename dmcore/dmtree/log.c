@@ -14,8 +14,8 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "syncml_error.h"
 #include "log.h"
-#include "error.h"
 
 #ifdef DMC_LOGGING
 static FILE *g_log_file;
@@ -23,7 +23,7 @@ static FILE *g_log_file;
 
 int dmc_log_open(const char *log_file_name)
 {
-	int ret_val = DMC_ERR_NONE;
+	int ret_val = OMADM_SYNCML_ERROR_NONE;
 
 #ifdef DMC_LOGGING
 	if (!g_log_file)
@@ -31,7 +31,7 @@ int dmc_log_open(const char *log_file_name)
 		g_log_file = fopen(log_file_name, "w");
 
 		if (!g_log_file)
-			ret_val = DMC_ERR_OPEN;
+			ret_val = OMADM_SYNCML_ERROR_SESSION_INTERNAL;
 	}
 #endif
 

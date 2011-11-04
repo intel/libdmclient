@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file omadm_dmtree_plugin_prv.h 
+ * @file omadm_dmtree_plugin_prv.h
  *
  * @brief Header file for the inbox plugin
  *
@@ -18,7 +18,6 @@
 #include <stdint.h>
 
 #include "dyn_buf.h"
-#include "dmsettings.h"
 
 #define OMADM_NODE_PROPERTY_VERSION 		"VerNo"
 #define OMADM_NODE_PROPERTY_TIMESTAMP 		"TStamp"
@@ -28,7 +27,7 @@
 #define OMADM_NODE_PROPERTY_NAME		"Name"
 #define OMADM_NODE_PROPERTY_SIZE		"Size"
 #define OMADM_NODE_PROPERTY_TITLE		"Title"
-	
+
 enum OMADM_NodeType {
 	OMADM_NODE_NOT_EXIST,
 	OMADM_NODE_IS_INTERIOR,
@@ -47,9 +46,9 @@ enum OMADM_AccessType {
 
 typedef enum OMADM_AccessType OMADM_AccessType;
 typedef unsigned int OMADM_AccessRights;
-typedef int(*OMADM_CreateFN) (const char *, dmsettings *, void **);
+typedef int(*OMADM_CreateFN) (const char *, void **);
 typedef void (*OMADM_FreeFN) (void *);
-	
+
 typedef int(*OMADM_NodeExistsFN) (const char *, OMADM_NodeType *, void *);
 typedef int(*OMADM_GetNodeChildrenFN) (const char *, dmc_ptr_array *, void *);
 
@@ -64,9 +63,9 @@ typedef int(*OMADM_GetAccessRightsFN) (const char *, OMADM_AccessRights	*,
 typedef int(*OMADM_CreateNonLeafFN) (const char *, void *);
 
 typedef int(*OMADM_DeleteNodeFN) (const char *, void *);
-typedef int(*OMADM_ExecNodeFN) (const char *, const char *, const char *, 
+typedef int(*OMADM_ExecNodeFN) (const char *, const char *, const char *,
 				void *);
-	
+
 typedef int(*OMADM_UpdateNonceFN) (const char *, const uint8_t *, unsigned int,
 				   bool, void *);
 
@@ -90,7 +89,7 @@ struct OMADM_DMTreePlugin_ {
 };
 
 typedef OMADM_DMTreePlugin *(*OMADM_PluginCreateFN) (void);
-	
+
 typedef struct OMADM_PluginDesc OMADM_PluginDesc;
 
 struct OMADM_PluginDesc {

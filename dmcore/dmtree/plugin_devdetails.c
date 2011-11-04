@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file omadm_plugin_devdetails.c 
+ * @file omadm_plugin_devdetails.c
  *
  * @brief C file for the devdetails plugin
  *
@@ -17,6 +17,7 @@
 
 #include "error.h"
 #include "error_macros.h"
+#include "dmsettings.h"
 
 #include "config.h"
 #include "syncml_error.h"
@@ -25,12 +26,10 @@
 /* TODO: rewrite using mo_base */
 
 
-static int prv_devDetailCreateFN(const char *iServerID, 
-				 dmsettings *settings, void **oData)
+static int prv_devDetailCreateFN(const char *iServerID, void **oData)
 {
-	*oData = NULL;
-
-	return DMC_ERR_NONE;
+    *oData = NULL;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static void prv_devDetailFreeFN(void *iData)
@@ -56,7 +55,7 @@ static int prv_devDetailNodeExistsFN(const char *iURI,
 	else
 		*oNodeType = OMADM_NODE_NOT_EXIST;
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_devDetailGetAccessRightsFN(const char *iURI,
@@ -64,7 +63,7 @@ static int prv_devDetailGetAccessRightsFN(const char *iURI,
 					  oAccessRights, void *oData)
 {
 	*oAccessRights = OMADM_ACCESS_GET;
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_devDetailGetNodeChildrenFN(const char *iURI,

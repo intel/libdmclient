@@ -11,7 +11,6 @@ dmtree_src = dmtree/dmtree.c \
              dmtree/plugin_root.c \
              dmtree/plugin_devdetails.c \
              dmtree/plugin_devinfo.c \
-             dmtree/syncml_error.c \
              dmtree/dmsettings.c \
              dmtree/dmsettings_utils.c \
              dmtree/transaction.c \

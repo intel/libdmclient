@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "config.h"
-#include "error.h"
+#include "syncml_error.h"
 #include "dyn_buf.h"
 
 void dmc_buf_make(dmc_buf *buffer, unsigned int block_size)
@@ -34,7 +34,7 @@ void dmc_buf_free(dmc_buf *buffer)
 
 int dmc_buf_append(dmc_buf *buffer, const uint8_t *data, unsigned int data_size)
 {
-	int ret_val = DMC_ERR_NONE;
+	int ret_val = OMADM_SYNCML_ERROR_NONE;
 	uint8_t *block = NULL;
 	unsigned int new_size = data_size + buffer->size;
 	unsigned int new_max_size = 0;
@@ -48,10 +48,10 @@ int dmc_buf_append(dmc_buf *buffer, const uint8_t *data, unsigned int data_size)
 			buffer->buffer = block;
 			buffer->max_size = new_max_size;
 		} else
-			ret_val = DMC_ERR_OOM;
+			ret_val = OMADM_SYNCML_ERROR_DEVICE_FULL;
 	}
 
-	if (ret_val == DMC_ERR_NONE) {
+	if (ret_val == OMADM_SYNCML_ERROR_NONE) {
 		memcpy(&buffer->buffer[buffer->size], data, data_size);
 		buffer->size = new_size;
 	}
@@ -64,7 +64,7 @@ int dmc_buf_append_str(dmc_buf *buffer, const char *data)
 	int slen = strlen(data);
 
 	if (slen == 0)
-		return DMC_ERR_NONE;
+		return OMADM_SYNCML_ERROR_NONE;
 	else
 		return dmc_buf_append(buffer, (const uint8_t *) data, slen);
 }
@@ -142,7 +142,7 @@ void dmc_ptr_array_free_callback(void *array)
 int dmc_ptr_array_append(dmc_ptr_array *array, void *pointer)
 {
 	void *buffer = NULL;
-	int ret_val = DMC_ERR_NONE;
+	int ret_val = OMADM_SYNCML_ERROR_NONE;
 	unsigned int new_max_size = 0;
 
 	if (array->size == array->max_size) {
@@ -153,10 +153,10 @@ int dmc_ptr_array_append(dmc_ptr_array *array, void *pointer)
 			array->array = buffer;
 			array->max_size = new_max_size;
 		} else
-			ret_val = DMC_ERR_OOM;
+			ret_val = OMADM_SYNCML_ERROR_DEVICE_FULL;
 	}
 
-	if (ret_val == DMC_ERR_NONE) {
+	if (ret_val == OMADM_SYNCML_ERROR_NONE) {
 		array->array[array->size] = pointer;
 		++array->size;
 	}

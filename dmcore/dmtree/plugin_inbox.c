@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file plugin_inbox.c 
+ * @file plugin_inbox.c
  *
  * @brief C file for the inbox plugin
  *
@@ -14,33 +14,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "error.h"
-
 #include "config.h"
 #include "syncml_error.h"
 
 #include "plugin_inbox.h"
 
-static int prv_inboxCreateFN(const char *iServerID, dmsettings *settings, 
-			     void **oData)
+static int prv_inboxCreateFN(const char *iServerID, void **oData)
 {
-	*oData = NULL;
-	return DMC_ERR_NONE;
+    *oData = NULL;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static void prv_inboxFreeFN(void *iData)
 {
-
 }
 
-static int prv_inboxNodeExistsFN(const char *iURI, 
+static int prv_inboxNodeExistsFN(const char *iURI,
 					  OMADM_NodeType * oNodeType,
 					  void *iData)
 {
 	*oNodeType =
 	    (strcmp(iURI, "./Inbox") ==
 	     0) ? OMADM_NODE_IS_INTERIOR : OMADM_NODE_NOT_EXIST;
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_inboxGetAccessRightsFN(const char *iURI,
@@ -48,7 +44,7 @@ static int prv_inboxGetAccessRightsFN(const char *iURI,
 					       oAccessRights, void *iData)
 {
 	*oAccessRights = OMADM_ACCESS_ADD;
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_inboxSetValueFN(const char *iURI, const char *iValue,

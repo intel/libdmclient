@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "error.h"
 #include "error_macros.h"
 #include "log.h"
 #include "dyn_buf.h"
@@ -422,7 +421,7 @@ static int prv_read_non_leaf_node(dmtree_session *session, const char *uri,
 
 	*non_leaf_node = node;
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
@@ -476,7 +475,7 @@ static int prv_read_prop_node(dmtree_session *session, const char *node_uri,
 
 	*prop_node = node;
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
@@ -675,7 +674,7 @@ static int prv_find_subtree_ancestor(dmtree_session *session, const char *uri,
 	*subtree_root = str;
 	*subtree_depth = depth;
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
@@ -877,7 +876,7 @@ int dmtree_session_add(dmtree_session *session, const dmtree_node *node)
 							   subtree_root,
 							   subtree_depth);
 
-		if (DMC_ERR == DMC_ERR_NONE)
+		if (DMC_ERR == OMADM_SYNCML_ERROR_NONE)
 			DMC_FAIL(omadm_transaction_commit(
 					      &session->transaction));
 		else
@@ -1149,7 +1148,7 @@ static int prv_replace_node(dmtree_session *session, const dmtree_node *node)
 
 		DMC_ERR = prv_update_leaf_node(session, node);
 
-		if (DMC_ERR == DMC_ERR_NONE)
+		if (DMC_ERR == OMADM_SYNCML_ERROR_NONE)
 			DMC_FAIL(omadm_transaction_commit(
 					      &session->transaction));
 		else
@@ -1363,7 +1362,7 @@ int dmtree_session_create(const char *server_id, dmtree_session **session)
 
 	DMC_LOG("dm session created correctly");
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 

@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file plugin_devinfo.c 
+ * @file plugin_devinfo.c
  *
  * @brief C file for the devinfo plugin
  *
@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "error.h"
 #include "error_macros.h"
 
 #include "config.h"
@@ -26,18 +25,17 @@
 /* TODO: rewrite using mo_base */
 
 
-static int prv_devInfoCreateFN(const char *iServerID, dmsettings *settings, 
-			       void **oData)
+static int prv_devInfoCreateFN(const char *iServerID, void **oData)
 {
 	*oData = NULL;
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static void prv_devInfoFreeFN(void *iData)
 {
 }
 
-static int prv_devInfoNodeExistsFN(const char *iURI, 
+static int prv_devInfoNodeExistsFN(const char *iURI,
 				   OMADM_NodeType * oNodeType, void *oData)
 {
 	if (!strcmp(iURI, "./DevInfo"))
@@ -51,15 +49,15 @@ static int prv_devInfoNodeExistsFN(const char *iURI,
 	else
 		*oNodeType = OMADM_NODE_NOT_EXIST;
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_devInfoGetAccessRightsFN(const char *iURI,
-					OMADM_AccessRights *oAccessRights, 
+					OMADM_AccessRights *oAccessRights,
 					void *oData)
 {
 	*oAccessRights = OMADM_ACCESS_GET;
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_devInfoGetNodeChildrenFN(const char *iURI,

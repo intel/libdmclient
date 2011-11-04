@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file plugin_root.c 
+ * @file plugin_root.c
  *
  * @brief C file for the root plugin
  *
@@ -24,16 +24,14 @@
 #include "syncml_error.h"
 
 
-static int prv_rootCreateFN(const char *serverID, dmsettings* handle, void **data)
+static int prv_rootCreateFN(const char *serverID, void **oData)
 {
-	*data = handle;
-
-	return DMC_ERR_NONE;
+    return dmsettings_open((dmsettings **)oData);
 }
 
-static void prv_rootFreeFN(void *data)
+static void prv_rootFreeFN(void *iData)
 {
-
+    dmsettings_close((dmsettings *)iData);
 }
 
 static int prv_rootNodeExistsFN(const char *uri, OMADM_NodeType* node_type,
@@ -54,16 +52,16 @@ DMC_ON_ERR:
 }
 
 static int prv_rootGetAccessRightsFN(const char *uri,
-				     OMADM_AccessType *access_rights, 
+				     OMADM_AccessType *access_rights,
 				     void *data)
 {
 	*access_rights = OMADM_ACCESS_ADD | OMADM_ACCESS_GET;
-	
+
 	if (strcmp(uri, "."))
 		*access_rights |=
 			(OMADM_ACCESS_REPLACE | OMADM_ACCESS_DELETE);
-	
-	return DMC_ERR_NONE;
+
+	return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_rootGetNodeChildrenFN(const char *uri, dmc_ptr_array *children,
@@ -71,7 +69,7 @@ static int prv_rootGetNodeChildrenFN(const char *uri, dmc_ptr_array *children,
 {
 	dmsettings *settings = (dmsettings *) data;
 
-	return omadm_dmsettings_utils_get_node_children(settings, uri, 
+	return omadm_dmsettings_utils_get_node_children(settings, uri,
 							children);
 }
 
@@ -86,7 +84,7 @@ static int prv_rootSetValueFN(const char *uri, const char *value,
 			      void *data)
 {
 	dmsettings *settings = (dmsettings *) data;
-	
+
 	return omadm_dmsettings_utils_set_value(settings, uri, value);
 }
 
@@ -96,10 +94,10 @@ static int prv_rootGetMetaFN(const char *uri, const char *prop,
 	DMC_ERR_MANAGE;
 	dmsettings *settings = (dmsettings *) data;
 	char* value_copy;
-	
-	DMC_ERR = omadm_dmsettings_utils_get_meta(settings, 
+
+	DMC_ERR = omadm_dmsettings_utils_get_meta(settings,
 							 uri, prop, value);
-	if ((DMC_ERR == OMADM_SYNCML_ERROR_NOT_FOUND) && 
+	if ((DMC_ERR == DMC_ERR_NOT_FOUND) &&
 	    !strcmp(uri,".")) {
 		if (!strcmp(prop,OMADM_NODE_PROPERTY_ACL)) {
 			DMC_FAIL_NULL(value_copy, strdup("Add=*&Get=*"),

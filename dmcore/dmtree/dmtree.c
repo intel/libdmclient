@@ -19,7 +19,6 @@
 #include "config.h"
 
 #include "error_macros.h"
-#include "error.h"
 #include "log.h"
 
 #include "syncml_error.h"
@@ -103,23 +102,21 @@ int omadm_dmtree_create(const char *iServerID, OMADM_DMTreeContext **oContext)
 	DMC_ERR_MANAGE;
 	OMADM_DMTreeContext *retval;
 
-	DMC_FAIL_NULL(retval, malloc(sizeof(*retval)), DMC_ERR_OOM);
+	DMC_FAIL_NULL(retval, malloc(sizeof(*retval)), OMADM_SYNCML_ERROR_DEVICE_FULL);
 
 	dmc_ptr_array_make(&retval->plugins, 8, prv_freeOMADMPluginCB);
-
-	DMC_FAIL(dmsettings_open(&retval->settings));
 
 	retval->serverID = iServerID;
 
 	*oContext = retval;
 
-	return DMC_ERR_NONE;
+	return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
 	free(retval);
 
-	return syncml_from_dmc_err(DMC_ERR);
+	return DMC_ERR;
 }
 
 int omadm_dmtree_add_plugin(OMADM_DMTreeContext *iContext,
@@ -174,9 +171,7 @@ int omadm_dmtree_init(OMADM_DMTreeContext *iContext)
 	for (i = 0; i < dmc_ptr_array_get_size(&iContext->plugins); ++i) {
 		plugin =
 		    (OMADMPlugin *) dmc_ptr_array_get(&iContext->plugins, i);
-		DMC_FAIL(plugin->plugin->
-			      create(iContext->serverID, iContext->settings, 
-				     &plugin->data));
+		DMC_FAIL(plugin->plugin->create(iContext->serverID, &plugin->data));
 	}
 
 DMC_ON_ERR:
@@ -191,7 +186,6 @@ void omadm_dmtree_free(OMADM_DMTreeContext * oContext)
 	if (oContext)
 	{
 		dmc_ptr_array_free(&oContext->plugins);
-		dmsettings_close(oContext->settings);
 		free(oContext);
 	}
 }
@@ -395,7 +389,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int omadm_dmtree_create_non_leaf(const OMADM_DMTreeContext *iContext, 
+int omadm_dmtree_create_non_leaf(const OMADM_DMTreeContext *iContext,
 				 const char *iURI)
 {
 	DMC_ERR_MANAGE;
@@ -542,7 +536,7 @@ int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
 	DMC_ERR = omadm_dmtree_get_meta(iContext, uri,
 					  OMADM_NODE_PROPERTY_ACL, oACL);
 
-	while ((uriLen > 0) && (DMC_ERR != DMC_ERR_NONE)) {
+	while ((uriLen > 0) && (DMC_ERR != OMADM_SYNCML_ERROR_NONE)) {
 		while (uriLen > 0)
 			if (uri[--uriLen] == '/') {
 				uri[uriLen] = 0;

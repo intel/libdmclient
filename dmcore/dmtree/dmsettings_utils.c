@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file dmsettings_utils.c 
+ * @file dmsettings_utils.c
  *
  * @brief C Contains some common routines used by both the config
  *        and the root plugin.
@@ -23,6 +23,11 @@
 
 #include "dmsettings_utils.h"
 #include "syncml_error.h"
+
+int syncml_from_dmc_err(int dmcommon_error)
+{
+	return dmcommon_error;
+}
 
 int omadm_dmsettings_utils_node_exists(dmsettings *handle, const char *uri,
 				       OMADM_NodeType *node_type)
@@ -55,7 +60,7 @@ DMC_ON_ERR:
 }
 
 int omadm_dmsettings_utils_get_node_children(dmsettings *handle,
-					     const char *uri, 
+					     const char *uri,
 					     dmc_ptr_array *children)
 {
 	DMC_ERR_MANAGE;
@@ -73,7 +78,7 @@ int omadm_dmsettings_utils_get_node_children(dmsettings *handle,
 
 	for (i = 0; i < dmc_ptr_array_get_size(&utils_children); ++i) {
 		child_key = (char *) dmc_ptr_array_get(&utils_children, i);
-		DMC_FAIL_NULL(child_uri, malloc(url_length + strlen(child_key) 
+		DMC_FAIL_NULL(child_uri, malloc(url_length + strlen(child_key)
 						+ 2), DMC_ERR_OOM);
 		sprintf(child_uri,"%s/%s",uri,child_key);
 		DMC_FAIL(dmc_ptr_array_append(children, child_uri));
@@ -112,7 +117,7 @@ int omadm_dmsettings_utils_get_meta(dmsettings *handle, const char *uri,
 
 	dmsettings_settings_type settings_type;
 
-	DMC_ERR = dmsettings_get_meta(handle, uri + 1, prop, 
+	DMC_ERR = dmsettings_get_meta(handle, uri + 1, prop,
 					     &value_copy);
 
 	if (DMC_ERR == DMC_ERR_NOT_FOUND) {
@@ -124,7 +129,7 @@ int omadm_dmsettings_utils_get_meta(dmsettings *handle, const char *uri,
 						   DMC_ERR_OOM);
 			} else if (settings_type == OMADM_NODE_IS_LEAF) {
 				DMC_FAIL_NULL(value_copy,
-						   strdup("text/plain"), 
+						   strdup("text/plain"),
 						   DMC_ERR_OOM);
 			} else
 				DMC_ERR = DMC_ERR_NOT_FOUND;
@@ -138,7 +143,7 @@ int omadm_dmsettings_utils_get_meta(dmsettings *handle, const char *uri,
 				DMC_FAIL_NULL(value_copy, strdup("chr"),
 						   DMC_ERR_OOM);
 			} else
-				DMC_ERR = DMC_ERR_NOT_FOUND;	       
+				DMC_ERR = DMC_ERR_NOT_FOUND;
 		}
 	}
 
