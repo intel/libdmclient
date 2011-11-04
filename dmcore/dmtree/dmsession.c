@@ -354,27 +354,17 @@ static int prv_build_child_list(dmtree_session *session, const char *uri,
 	for (i = 0; i < dmc_ptr_array_get_size(&children); ++i) {
 		path = dmc_ptr_array_get(&children, i);
 
-		DMC_ERR = prv_check_node_access_rights(session, path,
-							      path,
-							      OMADM_COMMAND_GET,
-							      true);
-
-		if ((DMC_ERR != OMADM_SYNCML_ERROR_PERMISSION_DENIED)
-		    && (DMC_ERR != OMADM_SYNCML_ERROR_NOT_ALLOWED)) {
-
-			node_name = strrchr(path,'/');
-			if (node_name) {
-				DMC_FAIL(DMC_ERR);
-				if (!empty)
-					DMC_FAIL(dmc_buf_append_str
-						      (&buff, "/"));
-				DMC_FAIL(
-					dmc_buf_append_str(&buff,
-								       node_name+1));
-				empty = false;
-			}
-		} else
-			DMC_ERR = OMADM_SYNCML_ERROR_NONE;
+		node_name = strrchr(path,'/');
+		if (node_name) {
+			DMC_FAIL(DMC_ERR);
+			if (!empty)
+				DMC_FAIL(dmc_buf_append_str
+					      (&buff, "/"));
+			DMC_FAIL(
+				dmc_buf_append_str(&buff,
+							       node_name+1));
+			empty = false;
+		}
 	}
 
 	if (!empty) {
