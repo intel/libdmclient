@@ -14,6 +14,7 @@
 #ifndef OMADM_DMTREE_PRV_H_
 #define OMADM_DMTREE_PRV_H_
 
+#include "dyn_buf.h"
 #include "dmtree_plugin.h"
 
 typedef struct _OMADM_DMTreePluginHolder OMADM_DMTreePluginHolder;

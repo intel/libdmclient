@@ -15,9 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "error.h"
 #include "error_macros.h"
-#include "dmsettings.h"
 
 #include "config.h"
 #include "syncml_error.h"

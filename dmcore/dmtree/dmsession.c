@@ -25,10 +25,11 @@
 #include "log.h"
 #include "dyn_buf.h"
 
-#include "plugin_devdetails.h"
-#include "plugin_devinfo.h"
-#include "plugin_inbox.h"
-#include "plugin_root.h"
+// Temporary
+#include "mgtobj/DevDetails/plugin_devdetails.h"
+#include "mgtobj/DevInfo/plugin_devinfo.h"
+#include "mgtobj/Inbox/plugin_inbox.h"
+#include "mgtobj/Root/plugin_root.h"
 
 #include "dmsession.h"
 #include "transaction.h"
