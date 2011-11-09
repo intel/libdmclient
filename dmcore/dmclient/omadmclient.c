@@ -20,12 +20,13 @@
 static void prvCreatePacket1(internals_t * internP)
 {
     // this is the beginning of the session
-    SmlReplacePtr_t replaceP;
-    SmlAlertPtr_t   alertP;
+     SmlAlertPtr_t   alertP;
 
     alertP = smlAllocAlert();
     if (alertP)
     {
+        SmlReplacePtr_t replaceP;
+
         if (internP->clt_auth == 1)
         {
             alertP->data = smlString2Pcdata("1201");
@@ -36,14 +37,19 @@ static void prvCreatePacket1(internals_t * internP)
         }
         smlFreeItemList(alertP->itemList);
         alertP->itemList = NULL;
-        add_element(internP, (basicElement_t *)alertP);
+
+        replaceP = get_device_info(internP);
+        if (replaceP)
+        {
+            add_element(internP, (basicElement_t *)alertP);
+            add_element(internP, (basicElement_t *)replaceP);
+        }
+        else
+        {
+            smlFreeProtoElement((basicElement_t *)alertP);
+        }
     }
 
-    replaceP = get_device_info(internP);
-    if (replaceP)
-    {
-       add_element(internP, (basicElement_t *)replaceP);
-    }
 }
 
 static SmlSyncHdrPtr_t prvGetHeader(internals_t * internP)
