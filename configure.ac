@@ -4,7 +4,7 @@
 AC_PREREQ([2.67])
 AC_INIT([dmclient], [0.0.1], [david.navarro@intel.com])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([color-tests])
+AM_INIT_AUTOMAKE([foreign])
 LT_PREREQ([2.2])
 LT_INIT
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
@@ -61,14 +61,9 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  dmcore/Makefile
-		 externals/Makefile
-		 externals/SyncMLRTK/Makefile
-		 tests/Makefile
-		 tests/client/Makefile
-		 tests/mgtobj/DevDetails/Makefile
-		 tests/mgtobj/DevInfo/Makefile
-		 tests/mgtobj/Inbox/Makefile
-		 tests/mgtobj/Root/Makefile])
+		         externals/Makefile
+		         externals/SyncMLRTK/Makefile
+		         tests/Makefile])
 
 AC_OUTPUT
 
