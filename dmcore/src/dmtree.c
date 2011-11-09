@@ -271,12 +271,20 @@ int omadm_dmtree_exists(const OMADM_DMTreeContext * iContext,
 
 	DMC_LOGF("omadm_dmtree_node_exists <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
-			   OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    if (!strcmp(iURI, "."))
+    {
+		/* Special case for the root node. */
+		*oExists = OMADM_NODE_IS_INTERIOR;
+	}
+	else
+	{
+	    DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+			       OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->nodeExists,
-		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
-	DMC_FAIL(fn(iURI, oExists, plugin->data));
+	    DMC_FAIL_NULL(fn, plugin->plugin->nodeExists,
+		          OMADM_SYNCML_ERROR_NOT_ALLOWED);
+	    DMC_FAIL(fn(iURI, oExists, plugin->data));
+    }
 
 	DMC_LOGF("omadm_dmtree_node_exists exit <0x%x> %d",
 			    DMC_ERR, *oExists);
@@ -619,13 +627,13 @@ int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
 						  oACL);
 	}
 
-	/*
-	 * If there is no more elements in keybase, bail out (this is not
-	 * normally possible as at least the root node should have an ACL).
-	 */
-
-	if (uriLen == 0)
-		DMC_ERR = OMADM_SYNCML_ERROR_NOT_FOUND;
+    if (DMC_ERR != OMADM_SYNCML_ERROR_NONE
+        && !strcmp(uri, "."))
+    {
+		/* Special case for the root node when no root plugin is present. */
+		DMC_FAIL_NULL(*oACL, strdup("Add=*&Get=*"),
+		      OMADM_SYNCML_ERROR_DEVICE_FULL);
+	}
 
 DMC_ON_ERR:
 
