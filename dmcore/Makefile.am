@@ -1,16 +1,16 @@
-dmclient_src = dmclient/omadmclient.c \
-               dmclient/callbacks.c \
-               dmclient/codec.c \
-               dmclient/package0.c \
-               dmclient/credentials.c \
-               dmclient/sml2tree.c \
-               dmclient/utils.c
+dmclient_src = src/omadmclient.c \
+               src/callbacks.c \
+               src/codec.c \
+               src/package0.c \
+               src/credentials.c \
+               src/sml2tree.c \
+               src/utils.c
 
-dmtree_src = dmtree/dmtree.c \
-             dmtree/transaction.c \
-             dmtree/dmsession.c \
-             dmtree/dyn_buf.c \
-             dmtree/log.c
+dmtree_src = src/dmtree.c \
+             src/transaction.c \
+             src/dmsession.c \
+             src/dyn_buf.c \
+             src/log.c
 
 lib_LTLIBRARIES = libomadmclient.la
 

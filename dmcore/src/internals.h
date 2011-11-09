@@ -22,7 +22,7 @@
 #include <mgrutil.h>
 #include <syncml_error.h>
 #include <omadmclient.h>
-#include "dmtree/dmsession.h"
+#include "dmsession.h"
 
 
 #define PRV_MAX_WORKSPACE_SIZE 40000
@@ -86,7 +86,7 @@ typedef struct
 typedef struct
 {
     InstanceID_t     smlH;
-    dmtree_session *  dmtreeH;
+    dmtree_session * dmtreeH;
     int              session_id;
     int              message_id;
     int              command_id;
@@ -111,7 +111,7 @@ char * encode_b64_md5 (char * data, size_t len);
 char * encode_md5     (char * data, size_t len);
 
 
-// implemented in dmtree.c
+// implemented in sml2tree.c
 int             get_server_account (internals_t * internP, char * serverID);
 SmlReplacePtr_t get_device_info    (internals_t * internP);
 int             get_node           (internals_t * internP, SmlItemPtr_t itemP, SmlItemPtr_t resultP);

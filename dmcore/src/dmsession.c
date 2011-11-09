@@ -26,6 +26,7 @@
 #include "dyn_buf.h"
 #include "dmtree.h"
 #include "dmsession.h"
+#include "internals.h"
 
 // Temporary
 #define OMADM_DEVDETAILS_MAX_SEG_LEN 64
@@ -1221,7 +1222,6 @@ static int prv_init_dmtree(dmtree_session* session)
 	DMC_ERR_MANAGE;
 
 	OMADM_DMTreePlugin *plugin = NULL;
-	unsigned int i;
     DIR *folderP;
 
 	DMC_FAIL(omadm_dmtree_create(session->server_id, &session->dmtree));
@@ -1244,26 +1244,7 @@ static int prv_init_dmtree(dmtree_session* session)
         }
         closedir(folderP);
     }
-/*
-	DMC_FAIL_NULL(plugin, omadm_create_root_plugin(),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-	DMC_FAIL(omadm_dmtree_add_plugin(session->dmtree, "./", plugin));
-
-	i = 0;
-
-	while (g_plugin_list[i].uri) {
-		DMC_FAIL_NULL(plugin, g_plugin_list[i].createFunc(),
-				   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-		DMC_FAIL(omadm_dmtree_add_plugin(session->dmtree,
-						      g_plugin_list[i].uri, plugin));
-
-		i++;
-	}
-
-	plugin = NULL;
-*/
 	DMC_FAIL(omadm_dmtree_init(session->dmtree));
 
 DMC_ON_ERR:
