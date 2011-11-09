@@ -13,7 +13,6 @@ AC_CONFIG_MACRO_DIR([m4])
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_PROG_LIBTOOL
 
 # Checks for libraries.
 PKG_PROG_PKG_CONFIG(0.16)
@@ -22,6 +21,7 @@ PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBWBXML], [libwbxml2])
 PKG_CHECK_MODULES([GNUTLS], [gnutls])
 PKG_CHECK_MODULES([LIBSOUP], [libsoup-2.4])
+AC_CHECK_LIB(dl, dlopen)
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h])
@@ -47,6 +47,8 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=${prefix}
 fi
 
+libdir=${exec_prefix}/lib/${PACKAGE}
+
 mo_install_dir=${exec_prefix}/lib/${PACKAGE}/mobjs
 AC_SUBST([MOBJS_DIR], [${mo_install_dir}])
 AC_DEFINE_UNQUOTED([MOBJS_DIR], ["${mo_install_dir}"], [management objects installation directory])
@@ -62,7 +64,12 @@ AC_CONFIG_FILES([Makefile
 		 externals/Makefile
 		 externals/SyncMLRTK/Makefile
 		 tests/Makefile
-		 tests/client/Makefile])
+		 tests/client/Makefile
+		 tests/mgtobj/DevDetails/Makefile
+		 tests/mgtobj/DevInfo/Makefile
+		 tests/mgtobj/Inbox/Makefile
+		 tests/mgtobj/Root/Makefile])
+
 AC_OUTPUT
 
 echo \

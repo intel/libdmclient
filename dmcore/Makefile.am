@@ -12,24 +12,10 @@ dmtree_src = dmtree/dmtree.c \
              dmtree/dyn_buf.c \
              dmtree/log.c
 
-mo_root_src = dmtree/mgtobj/Root/plugin_root.c \
-              dmtree/mgtobj/Root/dmsettings.c \
-              dmtree/mgtobj/Root/dmsettings_utils.c
-
-mo_inbox_src = dmtree/mgtobj/Inbox/plugin_inbox.c
-
-mo_devdetails_src = dmtree/mgtobj/DevDetails/plugin_devdetails.c
-
-mo_devinfo_src = dmtree/mgtobj/DevInfo/plugin_devinfo.c
-
 lib_LTLIBRARIES = libomadmclient.la
 
 libomadmclient_la_SOURCES = $(dmclient_src) \
-                            $(dmtree_src) \
-                            $(mo_root_src) \
-                            $(mo_inbox_src) \
-                            $(mo_devdetails_src) \
-                            $(mo_devinfo_src)
+                            $(dmtree_src)
 
 libomadmclient_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                              -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \

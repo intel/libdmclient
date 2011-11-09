@@ -257,3 +257,17 @@ OMADM_DMTreePlugin *omadm_create_devdetails_plugin()
 
 	return retVal;
 }
+
+OMADM_PluginDesc * omadm_get_plugin_desc(void)
+{
+    OMADM_PluginDesc *plugin_desc;
+
+    plugin_desc = (OMADM_PluginDesc *)malloc(sizeof(OMADM_PluginDesc));
+    if (plugin_desc)
+    {
+        plugin_desc->uri = strdup("./DevDetail/");
+        plugin_desc->createFunc = omadm_create_devdetails_plugin;
+    }
+
+    return plugin_desc;
+}

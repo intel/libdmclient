@@ -32,6 +32,7 @@ struct _OMADM_DMTreeContext {
 int omadm_dmtree_create(const char *iServerID, OMADM_DMTreeContext **oContext);
 int omadm_dmtree_add_plugin(OMADM_DMTreeContext *iContext, const char *iURI,
 				OMADM_DMTreePlugin *iPlugin);
+void omadm_dmtree_load_plugin(OMADM_DMTreeContext *iContext, const char *iFilename);
 
 void omadm_dmtree_free_plugin(OMADM_DMTreePlugin *oPlugin);
 int omadm_dmtree_init(OMADM_DMTreeContext *iContext);

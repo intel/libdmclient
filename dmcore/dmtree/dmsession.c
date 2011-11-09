@@ -17,21 +17,21 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <dirent.h>
 
 #include "error_macros.h"
 #include "log.h"
 #include "dyn_buf.h"
+#include "dmtree.h"
+#include "dmsession.h"
 
 // Temporary
-#include "mgtobj/DevDetails/plugin_devdetails.h"
-#include "mgtobj/DevInfo/plugin_devinfo.h"
-#include "mgtobj/Inbox/plugin_inbox.h"
-#include "mgtobj/Root/plugin_root.h"
+#define OMADM_DEVDETAILS_MAX_SEG_LEN 64
+#define OMADM_DEVDETAILS_MAX_TOT_LEN 256
+#define OMADM_DEVDETAILS_MAX_DEPTH_LEN 16
 
-#include "dmsession.h"
 #include "transaction.h"
 #include "syncml_error.h"
 
@@ -39,13 +39,6 @@ struct dmtree_session_ {
 	OMADM_DMTreeContext *dmtree;
 	omadm_transaction transaction;
 	char *server_id;
-};
-
-static const OMADM_PluginDesc g_plugin_list[] = {
-        { "./DevDetail/", omadm_create_devdetails_plugin },
-        { "./DevInfo/", omadm_create_devinfo_plugin },
-        { "./Inbox/", omadm_create_inbox_plugin },
-        { NULL, NULL },
 };
 
 /* Global constants */
@@ -124,7 +117,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_validate_uri(const char *uri, bool allow_props)
+int dmtree_validate_uri(const char *uri, bool allow_props)
 {
 	DMC_ERR_MANAGE;
 
@@ -537,7 +530,7 @@ int dmtree_session_get(dmtree_session *session, const char *uri, dmtree_node **n
 
 	DMC_LOGF("%s called. URI %s", __FUNCTION__, uri);
 
-	DMC_FAIL(prv_validate_uri(uri, true));
+	DMC_FAIL(dmtree_validate_uri(uri, true));
 
 	DMC_FAIL_NULL(node_uri, strdup(uri),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
@@ -610,7 +603,7 @@ int dmtree_session_delete(dmtree_session *session, const char *uri)
 
 	DMC_LOGF("deleting %s", uri);
 
-	DMC_FAIL(prv_validate_uri(uri, false));
+	DMC_FAIL(dmtree_validate_uri(uri, false));
 
 	DMC_FAIL(omadm_transaction_exists(&session->transaction,
 					       uri, &node_exists));
@@ -803,7 +796,7 @@ int dmtree_session_add(dmtree_session *session, const dmtree_node *node)
 
 	DMC_LOGF("adding %s", node->target_uri);
 
-	DMC_FAIL(prv_validate_uri(node->target_uri, false));
+	DMC_FAIL(dmtree_validate_uri(node->target_uri, false));
 
 	if ((node->format) && (node->type) &&
 	    (!strcmp(node->format, OMADM_XML_FORMAT_VAL)) &&
@@ -1172,7 +1165,7 @@ int dmtree_session_replace(dmtree_session *session, const dmtree_node *node)
 
 	DMC_LOGF("replacing %s", node->target_uri);
 
-	DMC_FAIL(prv_validate_uri(node->target_uri, true));
+	DMC_FAIL(dmtree_validate_uri(node->target_uri, true));
 
 	prop = strstr(node->target_uri, prop_id);
 	if (prop)
@@ -1229,9 +1222,29 @@ static int prv_init_dmtree(dmtree_session* session)
 
 	OMADM_DMTreePlugin *plugin = NULL;
 	unsigned int i;
+    DIR *folderP;
 
 	DMC_FAIL(omadm_dmtree_create(session->server_id, &session->dmtree));
 
+    folderP = opendir(MOBJS_DIR);
+    if (folderP != NULL)
+    {
+        struct dirent *fileP;
+
+        while ((fileP = readdir(folderP)))
+        {
+            if (DT_REG == fileP->d_type)
+            {
+                char * filename;
+
+                filename = str_cat_3(MOBJS_DIR, "/", fileP->d_name);
+                omadm_dmtree_load_plugin(session->dmtree, filename);
+                free(filename);
+            }
+        }
+        closedir(folderP);
+    }
+/*
 	DMC_FAIL_NULL(plugin, omadm_create_root_plugin(),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
 
@@ -1250,7 +1263,7 @@ static int prv_init_dmtree(dmtree_session* session)
 	}
 
 	plugin = NULL;
-
+*/
 	DMC_FAIL(omadm_dmtree_init(session->dmtree));
 
 DMC_ON_ERR:
@@ -1280,9 +1293,9 @@ int dmtree_session_copy(dmtree_session *session, const char *source_uri,
 
 	DMC_LOGF("copying %s to %s", source_uri, target_uri);
 
-	DMC_FAIL(prv_validate_uri(source_uri, false));
+	DMC_FAIL(dmtree_validate_uri(source_uri, false));
 
-	DMC_FAIL(prv_validate_uri(target_uri, false));
+	DMC_FAIL(dmtree_validate_uri(target_uri, false));
 
 	DMC_FAIL(omadm_transaction_exists(&session->transaction,
 					       source_uri, &node_exists));

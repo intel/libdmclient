@@ -11,9 +11,10 @@
  *****************************************************************************/
 
 #ifndef OMADM_DMSESSION_H
-#define OMADM_DMSESSION_H 
+#define OMADM_DMSESSION_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "dyn_buf.h"
 
@@ -45,6 +46,8 @@ int dmtree_session_replace(dmtree_session *session, const dmtree_node *node);
 int dmtree_session_delete(dmtree_session *session, const char *uri);
 int dmtree_session_copy(dmtree_session *session, const char *source_uri,
 			const char *target_uri);
+
+int dmtree_validate_uri(const char *uri, bool allow_props);
 
 void dmtree_node_free(dmtree_node *node);
 

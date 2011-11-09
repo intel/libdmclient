@@ -97,4 +97,6 @@ struct OMADM_PluginDesc {
 	OMADM_PluginCreateFN createFunc;
 };
 
+OMADM_PluginDesc * omadm_get_plugin_desc(void);
+
 #endif				// #ifndef OMADM_DMTREE_PLUGIN_H_

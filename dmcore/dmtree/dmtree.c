@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <dlfcn.h>
 
 #include "config.h"
 
@@ -30,6 +31,7 @@ struct _OMADMPlugin {
 	char *URI;
 	OMADM_DMTreePlugin *plugin;
 	void *data;
+	void *dl_handle;
 };
 
 static void prv_freeOMADMPlugin(OMADMPlugin *oPlugin)
@@ -41,6 +43,11 @@ static void prv_freeOMADMPlugin(OMADMPlugin *oPlugin)
 		oPlugin->plugin->free(oPlugin->data);
 		free(oPlugin->plugin);
 	}
+
+    if (oPlugin->dl_handle)
+    {
+        dlclose(oPlugin->dl_handle);
+    }
 
 	free(oPlugin);
 }
@@ -158,6 +165,70 @@ DMC_ON_ERR:
 	DMC_LOGF("exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
+}
+
+void omadm_dmtree_load_plugin(OMADM_DMTreeContext *iContext,
+                              const char *iFilename)
+{
+    void * handle = NULL;
+    OMADMPlugin * plugin = NULL;
+    OMADM_PluginDesc * (*getPlugDescF)();
+    OMADM_PluginDesc * pluginDescP = NULL;
+    OMADM_DMTreePlugin * treePluginP = NULL;
+
+    if (iFilename == NULL)
+    {
+        return;
+    }
+    handle = dlopen(iFilename, RTLD_LAZY);
+    if (!handle) goto error;
+
+    getPlugDescF = dlsym(handle, "omadm_get_plugin_desc");
+    if (!getPlugDescF) goto error;
+
+    pluginDescP = getPlugDescF();
+    if (!pluginDescP) goto error;
+    if ((!pluginDescP->uri) || (!pluginDescP->createFunc)) goto error;
+
+    //TODO: use dmtree_validate_uri(pluginDescP->uri, false)
+    if (strlen(pluginDescP->uri) < 2
+     || pluginDescP->uri[0] != '.'
+     || pluginDescP->uri[1] != '/')
+    {
+	    goto error;
+    }
+
+    treePluginP = pluginDescP->createFunc();
+    if (!treePluginP) goto error;
+
+    plugin = (OMADMPlugin *) malloc(sizeof(OMADMPlugin));
+	if (!plugin) goto error;
+
+    memset(plugin, 0, sizeof(OMADMPlugin));
+    plugin->dl_handle = handle;
+    plugin->URI = pluginDescP->uri;
+    plugin->plugin = treePluginP;
+
+    if (dmc_ptr_array_append(&iContext->plugins, plugin))
+    {
+        goto error;
+    }
+
+    pluginDescP->uri = NULL;
+    handle = NULL;
+    treePluginP = NULL;
+
+error:
+    if (pluginDescP)
+    {
+        if (pluginDescP->uri)
+            free(pluginDescP->uri);
+        free(pluginDescP);
+    }
+    if (treePluginP)
+        free(treePluginP);
+    if (handle)
+        dlclose (handle);
 }
 
 int omadm_dmtree_init(OMADM_DMTreeContext *iContext)
