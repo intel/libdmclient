@@ -15,7 +15,7 @@
 
 #define PRV_CONVERT_CODE(code) if ((code) == OMADM_SYNCML_ERROR_NONE) code = OMADM_SYNCML_ERROR_SUCCESS
 
-static void prv_node_clean(dmtree_node node)
+static void prv_node_clean(dmtree_node_t node)
 {
     if (node.target_uri)
         free(node.target_uri);
@@ -29,7 +29,7 @@ static void prv_node_clean(dmtree_node node)
     // is allocated by the SyncMLRTK
 }
 
-static SmlItemPtr_t prv_convert_node_to_item(dmtree_node * nodeP)
+static SmlItemPtr_t prv_convert_node_to_item(dmtree_node_t * nodeP)
 {
     SmlItemPtr_t itemP;
 
@@ -60,11 +60,11 @@ static SmlItemListPtr_t prv_convert_array_to_list(dmc_ptr_array nodeArray)
 
     for (i =  0 ; i < dmc_ptr_array_get_size(&nodeArray) ; ++i)
     {
-        dmtree_node * node;
+        dmtree_node_t * node;
         SmlItemPtr_t itemP;
         SmlItemListPtr_t newListP;
 
-        node = (dmtree_node*)dmc_ptr_array_get(&nodeArray, i);
+        node = (dmtree_node_t*)dmc_ptr_array_get(&nodeArray, i);
         itemP = prv_convert_node_to_item(node);
         if (!itemP)
         {
@@ -84,7 +84,7 @@ static SmlItemListPtr_t prv_convert_array_to_list(dmc_ptr_array nodeArray)
 }
 
 static int prv_fill_item(SmlItemPtr_t itemP,
-                         dmtree_node * nodeP)
+                         dmtree_node_t * nodeP)
 {
     itemP->source = smlAllocSource();
     if (!itemP->source)
@@ -151,7 +151,7 @@ int get_node(internals_t * internP,
 {
     int code;
     char * uri;
-    dmtree_node * node;
+    dmtree_node_t * node;
 
     uri = smlPcdata2String(itemP->target->locURI);
     if (!uri) return OMADM_SYNCML_ERROR_NOT_FOUND;
@@ -170,9 +170,9 @@ int add_node(internals_t * internP,
              SmlItemPtr_t itemP)
 {
     int code;
-    dmtree_node node;
+    dmtree_node_t node;
 
-    memset(&node, 0, sizeof(dmtree_node));
+    memset(&node, 0, sizeof(dmtree_node_t));
     node.target_uri = smlPcdata2String(itemP->target->locURI);
     extract_from_meta(itemP->meta, &(node.format), &(node.type));
     node.data_size = itemP->data->length;
@@ -201,9 +201,9 @@ int replace_node(internals_t * internP,
                  SmlItemPtr_t itemP)
 {
     int code;
-    dmtree_node node;
+    dmtree_node_t node;
 
-    memset(&node, 0, sizeof(dmtree_node));
+    memset(&node, 0, sizeof(dmtree_node_t));
     node.target_uri = smlPcdata2String(itemP->target->locURI);
     extract_from_meta(itemP->meta, &(node.format), &(node.type));
     node.data_size = itemP->data->length;
@@ -242,4 +242,3 @@ int copy_node(internals_t * internP,
 
     return code;
 }
-

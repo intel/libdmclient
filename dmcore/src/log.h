@@ -13,11 +13,6 @@
 #ifndef DMC_LOG_H
 #define DMC_LOG_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 /* TODO: Not thread safe */
 
 int dmc_log_open(const char *log_file_name);
@@ -39,10 +34,6 @@ void dmc_log_close(void);
 	#define DMC_LOG(message)
 	#define DMC_LOGUF(message, ...)
 	#define DMC_LOGU(message)
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif

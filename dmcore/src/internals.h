@@ -22,7 +22,7 @@
 #include <mgrutil.h>
 #include <syncml_error.h>
 #include <omadmclient.h>
-#include "dmsession.h"
+#include "dmtree.h"
 
 
 #define PRV_MAX_WORKSPACE_SIZE 40000
