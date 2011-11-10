@@ -631,7 +631,7 @@ int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
         && !strcmp(uri, "."))
     {
 		/* Special case for the root node when no root plugin is present. */
-		DMC_FAIL_NULL(*oACL, strdup("Add=*&Get=*"),
+		DMC_FAIL_NULL(*oACL, strdup("Get=*"),
 		      OMADM_SYNCML_ERROR_DEVICE_FULL);
 	}
 
