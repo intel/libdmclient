@@ -17,59 +17,71 @@
 #include "dyn_buf.h"
 #include "dmtree_plugin.h"
 
-typedef struct _OMADM_DMTreeContext OMADM_DMTreeContext;
-struct _OMADM_DMTreeContext {
-	dmc_ptr_array plugins;
-	const char *serverID;
-};
+typedef struct
+{
+	char *URI;
+	OMADM_DMTreePlugin *plugin;
+	void *data;
+	void *dl_handle;
+} dmtree_plugin_t;
 
-int omadm_dmtree_create(const char *iServerID, OMADM_DMTreeContext **oContext);
-int omadm_dmtree_add_plugin(OMADM_DMTreeContext *iContext, const char *iURI,
-				OMADM_DMTreePlugin *iPlugin);
-void omadm_dmtree_load_plugin(OMADM_DMTreeContext *iContext, const char *iFilename);
+typedef struct _plugin_elem
+{
+    dmtree_plugin_t * plugin;
+    struct _plugin_elem * next;
+} plugin_elem_t;
 
-void omadm_dmtree_free_plugin(OMADM_DMTreePlugin *oPlugin);
-int omadm_dmtree_init(OMADM_DMTreeContext *iContext);
+typedef struct
+{
+    plugin_elem_t * first;
+} mo_list_t;
 
-void omadm_dmtree_free(OMADM_DMTreeContext *oContext);
 
-int omadm_dmtree_exists(const OMADM_DMTreeContext *iContext,
+int momgr_init(mo_list_t * iListP);
+void momgr_free(mo_list_t iList);
+
+int momgr_add_plugin(mo_list_t * iList, const char *iURI, OMADM_DMTreePlugin *iPlugin);
+void momgr_load_plugin(mo_list_t * iList, const char *iFilename);
+
+void momgr_free_plugin(OMADM_DMTreePlugin *oPlugin);
+
+int momgr_exists(const mo_list_t iList,
 			const char *iUri, OMADM_NodeType *oExists);
-int omadm_dmtree_supports_transactions(OMADM_DMTreeContext *context,
+int momgr_supports_transactions(const mo_list_t iList,
 					const char *uri,
 					bool *supports_transactions);
-int omadm_dmtree_get_children(const OMADM_DMTreeContext *iContext,
+int momgr_get_children(const mo_list_t iList,
 				const char *iUri,
 				dmc_ptr_array *oChildren);
 
-int omadm_dmtree_get_value(const OMADM_DMTreeContext *iContext,
+int momgr_get_value(const mo_list_t iList,
 			   const char *iUri,  char **oValue);
-int omadm_dmtree_set_value(const OMADM_DMTreeContext *iContext,
+int momgr_set_value(const mo_list_t iList,
 			   const char *iUri, const char *iValue);
 
-int omadm_dmtree_get_meta(const OMADM_DMTreeContext *iContext, const char *iUri,
+int momgr_get_meta(const mo_list_t iList, const char *iUri,
 			  const char *iProp, char **oMeta);
-int omadm_dmtree_set_meta(const OMADM_DMTreeContext *iContext, const char *iUri,
+int momgr_set_meta(const mo_list_t iList, const char *iUri,
 			  const char *iProp, const char *iMeta);
 
-int omadm_dmtree_create_non_leaf(const OMADM_DMTreeContext *iContext,
+int momgr_create_non_leaf(const mo_list_t iList,
 					const char *iUri);
 
-int omadm_dmtree_get_access_rights(const OMADM_DMTreeContext *iContext,
+int momgr_get_access_rights(const mo_list_t iList,
 					const char *iUri,
 					OMADM_AccessRights *oRights);
 
-int omadm_dmtree_delete_node(const OMADM_DMTreeContext *iContext,
+int momgr_delete_node(const mo_list_t iList,
 				const char *iUri);
-int omadm_dmtree_exec_node(const OMADM_DMTreeContext *iContext,
+int momgr_exec_node(const mo_list_t iList,
 				const char *iUri, const char *iData,
 				const char *iCorrelator);
 
-int omadm_dmtree_update_nonce(const OMADM_DMTreeContext *iContext,
+int momgr_update_nonce(const mo_list_t iList,
 				const char *iServerID, const uint8_t *iNonce,
 				unsigned int iNonceLength, bool iServerCred);
 
-int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
+int momgr_find_inherited_acl(mo_list_t iList,
 				    const char *iURI, char **oACL);
 
 #endif

@@ -30,7 +30,7 @@ typedef struct
 
 typedef struct
 {
-	OMADM_DMTreeContext *dmtree;
+	mo_list_t MOs;
 	char *server_id;
 } dmtree_t;
 

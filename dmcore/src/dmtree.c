@@ -86,15 +86,15 @@ static int prv_read_leaf_node(dmtree_t * handle, const char *uri,
 	DMC_FAIL_NULL(node->target_uri, strdup(uri),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-	DMC_FAIL(omadm_dmtree_get_meta(handle->dmtree, uri,
+	DMC_FAIL(momgr_get_meta(handle->MOs, uri,
 						 OMADM_NODE_PROPERTY_FORMAT,
 						 &node->format));
 
-	DMC_FAIL(omadm_dmtree_get_meta(handle->dmtree,
+	DMC_FAIL(momgr_get_meta(handle->MOs,
 						 uri, OMADM_NODE_PROPERTY_TYPE,
 						 &node->type));
 
-	DMC_FAIL(omadm_dmtree_get_value(handle->dmtree, uri,
+	DMC_FAIL(momgr_get_value(handle->MOs, uri,
 						  &value));
 
 	node->data_size = strlen(value);
@@ -183,7 +183,7 @@ static int prv_validate_access_rights(dmtree_t * handle, const char *uri,
 	int allowed = 0;
 	OMADM_AccessRights rights = 0;
 
-	DMC_FAIL(omadm_dmtree_get_access_rights(handle->dmtree,
+	DMC_FAIL(momgr_get_access_rights(handle->MOs,
 							  uri, &rights));
 
 	if (!strcmp(cmd_name, OMADM_COMMAND_GET))
@@ -284,7 +284,7 @@ static int prv_check_node_acl_rights(dmtree_t * handle,
 
 	/* Get ACL Value for this node and command */
 
-	DMC_FAIL(omadm_dmtree_find_inherited_acl(handle->dmtree,
+	DMC_FAIL(momgr_find_inherited_acl(handle->MOs,
 							   acl_uri, &acl));
 
 	DMC_FAIL(prv_access_granted(handle, acl, cmd_name,
@@ -334,7 +334,7 @@ static int prv_build_child_list(dmtree_t * handle, const char *uri,
 	dmc_buf_make(&buff, 128);
 	dmc_ptr_array_make(&children, 16, free);
 
-	DMC_FAIL(omadm_dmtree_get_children(handle->dmtree,
+	DMC_FAIL(momgr_get_children(handle->MOs,
 							uri, &children));
 
 	for (i = 0; i < dmc_ptr_array_get_size(&children); ++i) {
@@ -436,7 +436,7 @@ static int prv_read_prop_node(dmtree_t * handle, const char *node_uri,
 		DMC_FAIL_NULL(value, strdup(node_name),
 				   OMADM_SYNCML_ERROR_DEVICE_FULL);
 	} else {
-		DMC_ERR = omadm_dmtree_get_meta(handle->dmtree,
+		DMC_ERR = momgr_get_meta(handle->MOs,
 							    node_uri, prop,
 							    &value);
 
@@ -532,7 +532,7 @@ int dmtree_get(dmtree_t * handle, const char *uri, dmtree_node_t **node)
 	if (tmp_ptr)
 		*tmp_ptr = 0;
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree, node_uri,
+	DMC_FAIL(momgr_exists(handle->MOs, node_uri,
 					       &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
@@ -598,7 +598,7 @@ int dmtree_delete(dmtree_t * handle, const char *uri)
 
 	DMC_FAIL(dmtree_validate_uri(uri, false));
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+	DMC_FAIL(momgr_exists(handle->MOs,
 					       uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
@@ -608,7 +608,7 @@ int dmtree_delete(dmtree_t * handle, const char *uri)
 						   OMADM_COMMAND_DELETE,
 						   false));
 
-	DMC_FAIL(omadm_dmtree_delete_node(handle->dmtree,uri));
+	DMC_FAIL(momgr_delete_node(handle->MOs,uri));
 
 DMC_ON_ERR:
 
@@ -638,7 +638,7 @@ static int prv_find_subtree_ancestor(dmtree_t * handle, const char *uri,
 			(tok = strrchr(str, '/'))) {
 
 		*tok = 0;
-		DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+		DMC_FAIL(momgr_exists(handle->MOs,
 						       str, &node_exists));
 		++depth;
 	}
@@ -677,7 +677,7 @@ static int prv_update_replace_acl(dmtree_t * handle, const char *uri)
 	sprintf(acl, OMADM_REPLACE_ACL, acl_server_id, acl_server_id,
 		acl_server_id, acl_server_id);
 
-	DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
+	DMC_FAIL(momgr_set_meta(handle->MOs,
 						 uri,
 						 OMADM_NODE_PROPERTY_ACL,
 						 acl));
@@ -694,18 +694,18 @@ static int prv_update_leaf_node(dmtree_t * handle, const dmtree_node_t *node)
 {
 	DMC_ERR_MANAGE;
 
-	DMC_FAIL(omadm_dmtree_set_value(handle->dmtree,
+	DMC_FAIL(momgr_set_value(handle->MOs,
 						  node->target_uri,
 						  (char*) node->data_buffer));
 
 	if (node->format && strcmp(node->format,"chr"))
-		DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
+		DMC_FAIL(momgr_set_meta(handle->MOs,
 							 node->target_uri,
 							 OMADM_NODE_PROPERTY_FORMAT,
 							 node->format));
 
 	if (node->type && strcmp(node->type,"text/plain"))
-		DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
+		DMC_FAIL(momgr_set_meta(handle->MOs,
 							 node->target_uri,
 							 OMADM_NODE_PROPERTY_TYPE,
 							 node->type));
@@ -763,7 +763,7 @@ static int prv_add_non_leaf_node(dmtree_t * handle, const dmtree_node_t *node,
 	else
 		DMC_FAIL(DMC_ERR);
 
-	DMC_FAIL(omadm_dmtree_create_non_leaf(handle->dmtree,
+	DMC_FAIL(momgr_create_non_leaf(handle->MOs,
 							node->target_uri));
 
 DMC_ON_ERR:
@@ -798,7 +798,7 @@ int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
 		DMC_FAIL_FORCE(
 			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+	DMC_FAIL(momgr_exists(handle->MOs,
 					       node->target_uri,
 					       &node_exists));
 
@@ -1007,7 +1007,7 @@ static int prv_replace_acl_property(dmtree_t * handle,
 
 	/* Write the value */
 
-	DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
+	DMC_FAIL(momgr_set_meta(handle->MOs,
 						 uri,
 						 OMADM_NODE_PROPERTY_ACL,
 						 (char*) node->data_buffer));
@@ -1029,7 +1029,7 @@ static int prv_replace_node_property(dmtree_t * handle,
 	DMC_LOGF("Attempting to replace %s property of node %s",
 		      nv, node->target_uri);
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+	DMC_FAIL(momgr_exists(handle->MOs,
 					       uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
@@ -1074,7 +1074,7 @@ static int prv_replace_node(dmtree_t * handle, const dmtree_node_t *node)
 			DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 	}
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+	DMC_FAIL(momgr_exists(handle->MOs,
 					       node->target_uri,
 					       &node_exists));
 
@@ -1172,7 +1172,7 @@ static int prv_init_dmtree(dmtree_t* handle)
 	OMADM_DMTreePlugin *plugin = NULL;
     DIR *folderP;
 
-	DMC_FAIL(omadm_dmtree_create(handle->server_id, &handle->dmtree));
+	DMC_FAIL(momgr_init(&(handle->MOs)));
 
     folderP = opendir(MOBJS_DIR);
     if (folderP != NULL)
@@ -1186,14 +1186,12 @@ static int prv_init_dmtree(dmtree_t* handle)
                 char * filename;
 
                 filename = str_cat_3(MOBJS_DIR, "/", fileP->d_name);
-                omadm_dmtree_load_plugin(handle->dmtree, filename);
+                momgr_load_plugin(&(handle->MOs), filename);
                 free(filename);
             }
         }
         closedir(folderP);
     }
-
-	DMC_FAIL(omadm_dmtree_init(handle->dmtree));
 
 DMC_ON_ERR:
 
@@ -1226,7 +1224,7 @@ int dmtree_copy(dmtree_t * handle, const char *source_uri,
 
 	DMC_FAIL(dmtree_validate_uri(target_uri, false));
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+	DMC_FAIL(momgr_exists(handle->MOs,
 					       source_uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
@@ -1234,7 +1232,7 @@ int dmtree_copy(dmtree_t * handle, const char *source_uri,
 	else if (node_exists != OMADM_NODE_IS_LEAF)
 		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
+	DMC_FAIL(momgr_exists(handle->MOs,
 					       target_uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_IS_INTERIOR)
@@ -1310,7 +1308,7 @@ void dmtree_close(dmtree_t * handle)
 
 	if (handle)
 	{
-		omadm_dmtree_free(handle->dmtree);
+		momgr_free(handle->MOs);
 		free(handle->server_id);
 		free(handle);
 	}

@@ -26,14 +26,6 @@
 #include "momgr.h"
 
 
-typedef struct
-{
-	char *URI;
-	OMADM_DMTreePlugin *plugin;
-	void *data;
-	void *dl_handle;
-} dmtree_plugin_t;
-
 static void prv_freePlugin(dmtree_plugin_t *oPlugin)
 {
 	if (oPlugin->URI)
@@ -52,49 +44,41 @@ static void prv_freePlugin(dmtree_plugin_t *oPlugin)
 	free(oPlugin);
 }
 
-static void prv_freePluginCB(void *iPlugin)
-{
-	dmtree_plugin_t *plugin = (dmtree_plugin_t *) iPlugin;
-	prv_freePlugin(plugin);
-}
-
-static dmtree_plugin_t *prv_findPlugin(const OMADM_DMTreeContext *iContext,
+static dmtree_plugin_t *prv_findPlugin(const mo_list_t iList,
 				   const char *iURI)
 {
-	unsigned int i = 0;
-	dmtree_plugin_t *plugin = NULL;
 	dmtree_plugin_t *matchingPlugin = NULL;
 	unsigned int longest = 0;
 	unsigned int pluginURILen = 0;
+    plugin_elem_t * elem = iList.first;
 
-	for (i = 0; i < dmc_ptr_array_get_size(&iContext->plugins); ++i) {
-		plugin =
-		    (dmtree_plugin_t *) dmc_ptr_array_get(&iContext->plugins, i);
-
-		pluginURILen = strlen(plugin->URI);
+	while(elem)
+	{
+		pluginURILen = strlen(elem->plugin->URI);
 
 		if ((pluginURILen == strlen(iURI) + 1)
-		    && !strncmp(plugin->URI, iURI, pluginURILen - 1)) {
-			matchingPlugin = plugin;
+		    && !strncmp(elem->plugin->URI, iURI, pluginURILen - 1)) {
+			matchingPlugin = elem->plugin;
 			break;
-		} else if ((strstr(iURI, plugin->URI))
+		} else if ((strstr(iURI, elem->plugin->URI))
 			   && (pluginURILen > longest)) {
 			longest = pluginURILen;
-			matchingPlugin = plugin;
+			matchingPlugin = elem->plugin;
 		}
+		elem = elem->next;
 	}
 
 	return matchingPlugin;
 }
 
-int omadm_dmtree_supports_transactions(OMADM_DMTreeContext *context,
+int momgr_supports_transactions(const mo_list_t iList,
 					const char *uri,
 					bool *supports_transactions)
 {
 	DMC_ERR_MANAGE;
 	dmtree_plugin_t *plugin = NULL;
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(context, uri),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, uri),
 			   OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	*supports_transactions = plugin->plugin->supportTransactions;
@@ -104,35 +88,14 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int omadm_dmtree_create(const char *iServerID, OMADM_DMTreeContext **oContext)
+int momgr_add_plugin(mo_list_t * iList,
+			         const char *iURI,
+			         OMADM_DMTreePlugin *iPlugin)
 {
 	DMC_ERR_MANAGE;
-	OMADM_DMTreeContext *retval;
-
-	DMC_FAIL_NULL(retval, malloc(sizeof(*retval)), OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	dmc_ptr_array_make(&retval->plugins, 8, prv_freePluginCB);
-
-	retval->serverID = iServerID;
-
-	*oContext = retval;
-
-	return OMADM_SYNCML_ERROR_NONE;
-
-DMC_ON_ERR:
-
-	free(retval);
-
-	return DMC_ERR;
-}
-
-int omadm_dmtree_add_plugin(OMADM_DMTreeContext *iContext,
-			    const char *iURI,
-			    OMADM_DMTreePlugin *iPlugin)
-{
-	DMC_ERR_MANAGE;
-	dmtree_plugin_t *plugin = NULL;
 	unsigned int uriLen = strlen(iURI);
+    plugin_elem_t * newElem = NULL;
+    void * pluginData = NULL;
 
 	DMC_LOGF("uri <%s>", iURI);
 
@@ -142,39 +105,52 @@ int omadm_dmtree_add_plugin(OMADM_DMTreeContext *iContext,
 		goto DMC_ON_ERR;
 	}
 
-	DMC_FAIL_NULL(plugin, (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t)),
+    DMC_FAIL_ERR(NULL == iPlugin->create, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    DMC_FAIL(iPlugin->create("funambol", &pluginData));
+
+	DMC_FAIL_NULL(newElem, (plugin_elem_t *) malloc(sizeof(plugin_elem_t)),
+		      OMADM_SYNCML_ERROR_DEVICE_FULL);
+    memset(newElem, 0, sizeof(plugin_elem_t));
+	DMC_FAIL_NULL(newElem->plugin, (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t)),
 		      OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-	memset(plugin, 0, sizeof(dmtree_plugin_t));
+	memset(newElem->plugin, 0, sizeof(dmtree_plugin_t));
 
-	DMC_FAIL_NULL(plugin->URI, strdup(iURI),
+	DMC_FAIL_NULL(newElem->plugin->URI, strdup(iURI),
 		      OMADM_SYNCML_ERROR_DEVICE_FULL);
+	newElem->plugin->plugin = iPlugin;
+    newElem->plugin->data = pluginData;
 
-	DMC_FAIL_ERR(dmc_ptr_array_append(&iContext->plugins, plugin),
-		       OMADM_SYNCML_ERROR_DEVICE_FULL);
+    newElem->next = iList->first;
+    iList->first = newElem;
 
-	plugin->plugin = iPlugin;
-
-	plugin = NULL;
+	newElem = NULL;
 
 DMC_ON_ERR:
 
-	if (plugin)
-		prv_freePlugin(plugin);
+	if (newElem)
+	{
+	    if (newElem->plugin)
+	    {
+		    prv_freePlugin(newElem->plugin);
+	    }
+	    free(newElem);
+    }
 
 	DMC_LOGF("exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-void omadm_dmtree_load_plugin(OMADM_DMTreeContext *iContext,
-                              const char *iFilename)
+void momgr_load_plugin(mo_list_t * iList,
+                       const char *iFilename)
 {
     void * handle = NULL;
-    dmtree_plugin_t * plugin = NULL;
     OMADM_PluginDesc * (*getPlugDescF)();
     OMADM_PluginDesc * pluginDescP = NULL;
     OMADM_DMTreePlugin * treePluginP = NULL;
+    plugin_elem_t * newElem = NULL;
+    void * pluginData = NULL;
 
     if (iFilename == NULL)
     {
@@ -201,18 +177,27 @@ void omadm_dmtree_load_plugin(OMADM_DMTreeContext *iContext,
     treePluginP = pluginDescP->createFunc();
     if (!treePluginP) goto error;
 
-    plugin = (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t));
-	if (!plugin) goto error;
-
-    memset(plugin, 0, sizeof(dmtree_plugin_t));
-    plugin->dl_handle = handle;
-    plugin->URI = pluginDescP->uri;
-    plugin->plugin = treePluginP;
-
-    if (dmc_ptr_array_append(&iContext->plugins, plugin))
+    if (!treePluginP->create) goto error;
+    if (OMADM_SYNCML_ERROR_NONE != treePluginP->create("funambol", &pluginData))
     {
         goto error;
     }
+
+    newElem = (plugin_elem_t *) malloc(sizeof(plugin_elem_t));
+	if (!newElem) goto error;
+	memset(newElem, 0, sizeof(plugin_elem_t));
+    newElem->plugin = (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t));
+	if (!newElem->plugin) goto error;
+
+    memset(newElem->plugin, 0, sizeof(dmtree_plugin_t));
+    newElem->plugin->dl_handle = handle;
+    newElem->plugin->URI = pluginDescP->uri;
+    newElem->plugin->plugin = treePluginP;
+    newElem->plugin->data = pluginData;
+
+    newElem->next = iList->first;
+    iList->first = newElem;
+    newElem = NULL;
 
     pluginDescP->uri = NULL;
     handle = NULL;
@@ -229,39 +214,39 @@ error:
         free(treePluginP);
     if (handle)
         dlclose (handle);
-}
-
-int omadm_dmtree_init(OMADM_DMTreeContext *iContext)
-{
-	DMC_ERR_MANAGE;
-	unsigned int i = 0;
-	dmtree_plugin_t *plugin = NULL;
-
-	DMC_LOG("omadm_dmtree_init");
-
-	for (i = 0; i < dmc_ptr_array_get_size(&iContext->plugins); ++i) {
-		plugin =
-		    (dmtree_plugin_t *) dmc_ptr_array_get(&iContext->plugins, i);
-		DMC_FAIL(plugin->plugin->create(iContext->serverID, &plugin->data));
-	}
-
-DMC_ON_ERR:
-
-	DMC_LOGF("omadm_dmtree_init exit <0x%x>", DMC_ERR);
-
-	return DMC_ERR;
-}
-
-void omadm_dmtree_free(OMADM_DMTreeContext * oContext)
-{
-	if (oContext)
+	if (newElem)
 	{
-		dmc_ptr_array_free(&oContext->plugins);
-		free(oContext);
+	    if (newElem->plugin)
+	    {
+		    prv_freePlugin(newElem->plugin);
+	    }
+	    free(newElem);
+    }
+}
+
+int momgr_init(mo_list_t * iListP)
+{
+    if(!iListP)
+        return OMADM_SYNCML_ERROR_SESSION_INTERNAL;
+
+	iListP->first = NULL;
+
+	return OMADM_SYNCML_ERROR_NONE;
+}
+
+void momgr_free(mo_list_t iList)
+{
+	while(iList.first)
+	{
+	    plugin_elem_t * elem = iList.first;
+
+	    iList.first = elem->next;
+	    prv_freePlugin(elem->plugin);
+	    free(elem);
 	}
 }
 
-int omadm_dmtree_exists(const OMADM_DMTreeContext * iContext,
+int momgr_exists(const mo_list_t iList,
 			const char *iURI,
 			OMADM_NodeType * oExists)
 {
@@ -269,7 +254,7 @@ int omadm_dmtree_exists(const OMADM_DMTreeContext * iContext,
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_NodeExistsFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree_node_exists <%s>", iURI);
+	DMC_LOGF("momgr_node_exists <%s>", iURI);
 
     if (!strcmp(iURI, "."))
     {
@@ -278,7 +263,7 @@ int omadm_dmtree_exists(const OMADM_DMTreeContext * iContext,
 	}
 	else
 	{
-	    DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	    DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 			       OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	    DMC_FAIL_NULL(fn, plugin->plugin->nodeExists,
@@ -286,7 +271,7 @@ int omadm_dmtree_exists(const OMADM_DMTreeContext * iContext,
 	    DMC_FAIL(fn(iURI, oExists, plugin->data));
     }
 
-	DMC_LOGF("omadm_dmtree_node_exists exit <0x%x> %d",
+	DMC_LOGF("momgr_node_exists exit <0x%x> %d",
 			    DMC_ERR, *oExists);
 
 DMC_ON_ERR:
@@ -294,21 +279,21 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int omadm_dmtree_get_children(const OMADM_DMTreeContext *iContext,
+int momgr_get_children(const mo_list_t iList,
 					const char *iURI,
 					dmc_ptr_array *oChildren)
 {
 	DMC_ERR_MANAGE;
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_GetNodeChildrenFN fn = NULL;
-	unsigned int i = 0;
 	unsigned int j = 0;
 	char *childNode = NULL;
 	OMADM_NodeType exists = OMADM_NODE_NOT_EXIST;
+    plugin_elem_t * elem;
 
 	DMC_LOGF("omadm_get_node_children <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->getNodeChildren,
@@ -320,42 +305,41 @@ int omadm_dmtree_get_children(const OMADM_DMTreeContext *iContext,
 		goto DMC_ON_ERR;
 
 	/* Special case for the root node. */
+    elem = iList.first;
+	while(elem)
+	{
+		if ((strcmp(elem->plugin->URI, "./") ||
+			   (((unsigned int) (strchr(elem->plugin->URI + 2, '/') -
+				elem->plugin->URI)) != strlen(elem->plugin->URI) - 1)))
+		{
 
-	for (i = 0; i < dmc_ptr_array_get_size(&iContext->plugins); ++i) {
-		plugin =
-		    (dmtree_plugin_t *) dmc_ptr_array_get(&iContext->
-							    plugins, i);
+		    DMC_FAIL_NULL(childNode, strdup(elem->plugin->URI),
+					    OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-		if (!(strcmp(plugin->URI, "./") &&
-			   (((unsigned int) (strchr(plugin->URI + 2, '/') -
-				plugin->URI)) == strlen(plugin->URI) - 1)))
-			continue;
+		    childNode[strlen(childNode) - 1] = 0;
 
-		DMC_FAIL_NULL(childNode, strdup(plugin->URI),
-					OMADM_SYNCML_ERROR_DEVICE_FULL);
+		    for (j = 0; j < dmc_ptr_array_get_size(oChildren)
+		          && strcmp(childNode, (char *) dmc_ptr_array_get
+				    (oChildren, j)); ++j) ;
 
-		childNode[strlen(childNode) - 1] = 0;
+		    if (j == dmc_ptr_array_get_size(oChildren)) {
+			    DMC_FAIL(elem->plugin->plugin->nodeExists(childNode,
+								     &exists,
+								     elem->plugin->data));
 
-		for (j = 0; j < dmc_ptr_array_get_size(oChildren)
-		      && strcmp(childNode, (char *) dmc_ptr_array_get
-				(oChildren, j)); ++j) ;
+			    if (exists != OMADM_NODE_NOT_EXIST) {
+				    DMC_FAIL_ERR(
+					    dmc_ptr_array_append(
+						    oChildren, childNode),
+					    OMADM_SYNCML_ERROR_DEVICE_FULL);
+			    } else
+				    free(childNode);
+		    } else
+			    free(childNode);
 
-		if (j == dmc_ptr_array_get_size(oChildren)) {
-			DMC_FAIL(plugin->plugin->nodeExists(childNode,
-								 &exists,
-								 plugin->data));
-
-			if (exists != OMADM_NODE_NOT_EXIST) {
-				DMC_FAIL_ERR(
-					dmc_ptr_array_append(
-						oChildren, childNode),
-					OMADM_SYNCML_ERROR_DEVICE_FULL);
-			} else
-				free(childNode);
-		} else
-			free(childNode);
-
-		childNode = NULL;
+		    childNode = NULL;
+        }
+		elem= elem->next;
 	}
 
 DMC_ON_ERR:
@@ -368,16 +352,16 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int omadm_dmtree_get_value(const OMADM_DMTreeContext *iContext,
+int momgr_get_value(const mo_list_t iList,
 				    const char *iURI, char **oValue)
 {
 	DMC_ERR_MANAGE;
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_GetValueFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree_get_value <%s>", iURI);
+	DMC_LOGF("momgr_get_value <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->getValue,
@@ -387,21 +371,21 @@ int omadm_dmtree_get_value(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree_get_value exit <0x%x>", DMC_ERR);
+	DMC_LOGF("momgr_get_value exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_set_value(const OMADM_DMTreeContext *iContext,
+int momgr_set_value(const mo_list_t iList,
 				    const char *iURI, const char *iValue)
 {
 	DMC_ERR_MANAGE;
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_SetValueFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree_set_value <%s>", iURI);
+	DMC_LOGF("momgr_set_value <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->setValue,
@@ -411,12 +395,12 @@ int omadm_dmtree_set_value(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree_set_value exit <0x%x>", DMC_ERR);
+	DMC_LOGF("momgr_set_value exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_get_meta(const OMADM_DMTreeContext *iContext,
+int momgr_get_meta(const mo_list_t iList,
 				   const char *iURI, const char *iProp,
 				   char **oMeta)
 {
@@ -424,9 +408,9 @@ int omadm_dmtree_get_meta(const OMADM_DMTreeContext *iContext,
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_GetMetaFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree_get_meta prop <%s> <%s>", iProp, iURI);
+	DMC_LOGF("momgr_get_meta prop <%s> <%s>", iProp, iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->getMeta,
@@ -434,16 +418,16 @@ int omadm_dmtree_get_meta(const OMADM_DMTreeContext *iContext,
 
 	DMC_FAIL(fn(iURI, iProp, oMeta, plugin->data));
 
-	DMC_LOGF("omadm_dmtree_get_meta value <%s> <%s>", *oMeta);
+	DMC_LOGF("momgr_get_meta value <%s> <%s>", *oMeta);
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree_get_meta exit <%d>", DMC_ERR);
+	DMC_LOGF("momgr_get_meta exit <%d>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_set_meta(const OMADM_DMTreeContext *iContext,
+int momgr_set_meta(const mo_list_t iList,
 				   const char *iURI, const char *iProp,
 				   const char *iMeta)
 {
@@ -451,9 +435,9 @@ int omadm_dmtree_set_meta(const OMADM_DMTreeContext *iContext,
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_SetMetaFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree_set_meta <%s>", iURI);
+	DMC_LOGF("momgr_set_meta <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->setMeta,
@@ -463,12 +447,12 @@ int omadm_dmtree_set_meta(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree_set_meta exit <0x%x>", DMC_ERR);
+	DMC_LOGF("momgr_set_meta exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_create_non_leaf(const OMADM_DMTreeContext *iContext,
+int momgr_create_non_leaf(const mo_list_t iList,
 				 const char *iURI)
 {
 	DMC_ERR_MANAGE;
@@ -477,7 +461,7 @@ int omadm_dmtree_create_non_leaf(const OMADM_DMTreeContext *iContext,
 
 	DMC_LOGF("%s  <%s>", __FUNCTION__, iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->createNonLeaf,
@@ -492,7 +476,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int omadm_dmtree_get_access_rights(const OMADM_DMTreeContext *iContext,
+int momgr_get_access_rights(const mo_list_t iList,
 					const char *iURI,
 					OMADM_AccessRights *oRights)
 {
@@ -500,9 +484,9 @@ int omadm_dmtree_get_access_rights(const OMADM_DMTreeContext *iContext,
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_GetAccessRightsFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree_get_access_rights  <%s>", iURI);
+	DMC_LOGF("momgr_get_access_rights  <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->getAccessRights,
@@ -512,21 +496,21 @@ int omadm_dmtree_get_access_rights(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree_get_access_rights exit <0x%x>", DMC_ERR);
+	DMC_LOGF("momgr_get_access_rights exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_delete_node(const OMADM_DMTreeContext *iContext,
+int momgr_delete_node(const mo_list_t iList,
 				const char *iURI)
 {
 	DMC_ERR_MANAGE;
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_DeleteNodeFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree: omadm_dmtree_delete_node <%s>", iURI);
+	DMC_LOGF("omadm_dmtree: momgr_delete_node <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->deleteNode,
@@ -536,12 +520,12 @@ int omadm_dmtree_delete_node(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree: omadm_dmtree_delete_node exit <0x%x>", DMC_ERR);
+	DMC_LOGF("omadm_dmtree: momgr_delete_node exit <0x%x>", DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_exec_node(const OMADM_DMTreeContext *iContext,
+int momgr_exec_node(const mo_list_t iList,
 				const char *iURI, const char *iData,
 				const char *iCorrelator)
 {
@@ -549,9 +533,9 @@ int omadm_dmtree_exec_node(const OMADM_DMTreeContext *iContext,
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_ExecNodeFN fn = NULL;
 
-	DMC_LOGF("omadm_dmtree: omadm_dmtree_exec_node <%s>", iURI);
+	DMC_LOGF("omadm_dmtree: momgr_exec_node <%s>", iURI);
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, iURI),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->execNode,
@@ -561,13 +545,13 @@ int omadm_dmtree_exec_node(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree: omadm_dmtree_exec_node exit <0x%x>",
+	DMC_LOGF("omadm_dmtree: momgr_exec_node exit <0x%x>",
 			DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_update_nonce(const OMADM_DMTreeContext *iContext,
+int momgr_update_nonce(const mo_list_t iList,
 				       const char *iServerID,
 				       const uint8_t *iNonce,
 				       unsigned int iNonceLength,
@@ -577,9 +561,9 @@ int omadm_dmtree_update_nonce(const OMADM_DMTreeContext *iContext,
 	dmtree_plugin_t *plugin = NULL;
 	OMADM_UpdateNonceFN fn = NULL;
 
-	DMC_LOG("omadm_dmtree_update_nonce");
+	DMC_LOG("momgr_update_nonce");
 
-	DMC_FAIL_NULL(plugin, prv_findPlugin(iContext, "./CONFIG"),
+	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, "./CONFIG"),
 		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(fn, plugin->plugin->updateNonce,
@@ -590,13 +574,13 @@ int omadm_dmtree_update_nonce(const OMADM_DMTreeContext *iContext,
 
 DMC_ON_ERR:
 
-	DMC_LOGF("omadm_dmtree: omadm_dmtree_update_nonce exit <0x%x>",
+	DMC_LOGF("omadm_dmtree: momgr_update_nonce exit <0x%x>",
 		     DMC_ERR);
 
 	return DMC_ERR;
 }
 
-int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
+int momgr_find_inherited_acl(mo_list_t iList,
 					     const char *iURI, char **oACL)
 {
 	DMC_ERR_MANAGE;
@@ -604,7 +588,7 @@ int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
 	char *uri = NULL;
 	unsigned int uriLen = 0;
 
-	DMC_LOGF("omadm_dmtree_find_inherited_acl <%s>", iURI);
+	DMC_LOGF("momgr_find_inherited_acl <%s>", iURI);
 
 	*oACL = NULL;
 
@@ -612,7 +596,7 @@ int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
 		      OMADM_SYNCML_ERROR_DEVICE_FULL);
 	uriLen = strlen(uri);
 
-	DMC_ERR = omadm_dmtree_get_meta(iContext, uri,
+	DMC_ERR = momgr_get_meta(iList, uri,
 					  OMADM_NODE_PROPERTY_ACL, oACL);
 
 	while ((uriLen > 0) && (DMC_ERR != OMADM_SYNCML_ERROR_NONE)) {
@@ -622,7 +606,7 @@ int omadm_dmtree_find_inherited_acl(OMADM_DMTreeContext *iContext,
 				break;
 			}
 
-		DMC_ERR = omadm_dmtree_get_meta(iContext, uri,
+		DMC_ERR = momgr_get_meta(iList, uri,
 						  OMADM_NODE_PROPERTY_ACL,
 						  oACL);
 	}
@@ -640,7 +624,7 @@ DMC_ON_ERR:
 	if (uri)
 		free(uri);
 
-	DMC_LOGF("omadm_dmtree_find_inherited_acl <%d>", DMC_ERR);
+	DMC_LOGF("momgr_find_inherited_acl <%d>", DMC_ERR);
 
 	return DMC_ERR;
 }
