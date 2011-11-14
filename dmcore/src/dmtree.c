@@ -24,7 +24,6 @@
 #include "error_macros.h"
 #include "log.h"
 #include "dyn_buf.h"
-#include "momgr.h"
 #include "dmtree.h"
 #include "internals.h"
 
@@ -34,11 +33,6 @@
 #define OMADM_DEVDETAILS_MAX_DEPTH_LEN 16
 
 #include "syncml_error.h"
-
-struct dmtree_session_ {
-	OMADM_DMTreeContext *dmtree;
-	char *server_id;
-};
 
 /* Global constants */
 
@@ -77,7 +71,7 @@ struct dmtree_session_ {
 #define OMADM_ACL_EXEC_SET		(uint8_t) 1 << 3
 #define OMADM_ACL_REPLACE_SET		(uint8_t) 1 << 4
 
-static int prv_read_leaf_node(dmtree_session *session, const char *uri,
+static int prv_read_leaf_node(dmtree_t * handle, const char *uri,
 				dmtree_node_t **leaf_node)
 {
 	DMC_ERR_MANAGE;
@@ -92,15 +86,15 @@ static int prv_read_leaf_node(dmtree_session *session, const char *uri,
 	DMC_FAIL_NULL(node->target_uri, strdup(uri),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-	DMC_FAIL(omadm_dmtree_get_meta(session->dmtree, uri,
+	DMC_FAIL(omadm_dmtree_get_meta(handle->dmtree, uri,
 						 OMADM_NODE_PROPERTY_FORMAT,
 						 &node->format));
 
-	DMC_FAIL(omadm_dmtree_get_meta(session->dmtree,
+	DMC_FAIL(omadm_dmtree_get_meta(handle->dmtree,
 						 uri, OMADM_NODE_PROPERTY_TYPE,
 						 &node->type));
 
-	DMC_FAIL(omadm_dmtree_get_value(session->dmtree, uri,
+	DMC_FAIL(omadm_dmtree_get_value(handle->dmtree, uri,
 						  &value));
 
 	node->data_size = strlen(value);
@@ -181,7 +175,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_validate_access_rights(dmtree_session *session, const char *uri,
+static int prv_validate_access_rights(dmtree_t * handle, const char *uri,
 				      const char *cmd_name)
 {
 	DMC_ERR_MANAGE;
@@ -189,7 +183,7 @@ static int prv_validate_access_rights(dmtree_session *session, const char *uri,
 	int allowed = 0;
 	OMADM_AccessRights rights = 0;
 
-	DMC_FAIL(omadm_dmtree_get_access_rights(session->dmtree,
+	DMC_FAIL(omadm_dmtree_get_access_rights(handle->dmtree,
 							  uri, &rights));
 
 	if (!strcmp(cmd_name, OMADM_COMMAND_GET))
@@ -211,7 +205,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_access_granted(dmtree_session* session,
+static int prv_access_granted(dmtree_t* handle,
 			      const char *acl, const char *cmd_name,
 			      bool force_check, bool *granted)
 {
@@ -257,7 +251,7 @@ static int prv_access_granted(dmtree_session* session,
 
 				while (server_id) {
 					if (!strcmp(server_id,
-						    session->server_id)) {
+						    handle->server_id)) {
 						access_granted = true;
 						break;
 					}
@@ -278,7 +272,7 @@ DMC_ON_ERR:
 }
 
 
-static int prv_check_node_acl_rights(dmtree_session *session,
+static int prv_check_node_acl_rights(dmtree_t * handle,
 				     const char *acl_uri,
 				     const char *cmd_name,
 				     bool force_check)
@@ -290,10 +284,10 @@ static int prv_check_node_acl_rights(dmtree_session *session,
 
 	/* Get ACL Value for this node and command */
 
-	DMC_FAIL(omadm_dmtree_find_inherited_acl(session->dmtree,
+	DMC_FAIL(omadm_dmtree_find_inherited_acl(handle->dmtree,
 							   acl_uri, &acl));
 
-	DMC_FAIL(prv_access_granted(session, acl, cmd_name,
+	DMC_FAIL(prv_access_granted(handle, acl, cmd_name,
 					 force_check, &access_granted));
 
 	if (!access_granted)
@@ -307,7 +301,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_check_node_access_rights(dmtree_session *session,
+static int prv_check_node_access_rights(dmtree_t * handle,
 					const char *uri,
 					const char *acl_uri,
 					const char *cmd_name,
@@ -315,8 +309,8 @@ static int prv_check_node_access_rights(dmtree_session *session,
 {
 	DMC_ERR_MANAGE;
 
-	DMC_FAIL(prv_validate_access_rights(session, uri, cmd_name));
-	DMC_FAIL(prv_check_node_acl_rights(session, acl_uri, cmd_name,
+	DMC_FAIL(prv_validate_access_rights(handle, uri, cmd_name));
+	DMC_FAIL(prv_check_node_acl_rights(handle, acl_uri, cmd_name,
 						force_check));
 
 DMC_ON_ERR:
@@ -324,7 +318,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_build_child_list(dmtree_session *session, const char *uri,
+static int prv_build_child_list(dmtree_t * handle, const char *uri,
 				char **child_list)
 {
 	DMC_ERR_MANAGE;
@@ -340,7 +334,7 @@ static int prv_build_child_list(dmtree_session *session, const char *uri,
 	dmc_buf_make(&buff, 128);
 	dmc_ptr_array_make(&children, 16, free);
 
-	DMC_FAIL(omadm_dmtree_get_children(session->dmtree,
+	DMC_FAIL(omadm_dmtree_get_children(handle->dmtree,
 							uri, &children));
 
 	for (i = 0; i < dmc_ptr_array_get_size(&children); ++i) {
@@ -376,7 +370,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_read_non_leaf_node(dmtree_session *session, const char *uri,
+static int prv_read_non_leaf_node(dmtree_t * handle, const char *uri,
 					dmtree_node_t **non_leaf_node)
 {
 	DMC_ERR_MANAGE;
@@ -391,7 +385,7 @@ static int prv_read_non_leaf_node(dmtree_session *session, const char *uri,
 	DMC_FAIL_NULL(node->target_uri, strdup(uri),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-	DMC_FAIL(prv_build_child_list(session, uri, &value));
+	DMC_FAIL(prv_build_child_list(handle, uri, &value));
 
 	DMC_FAIL_NULL(node->format, strdup(OMADM_NODE_FORMAT_VAL),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
@@ -414,7 +408,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_read_prop_node(dmtree_session *session, const char *node_uri,
+static int prv_read_prop_node(dmtree_t * handle, const char *node_uri,
 			      const char *uri, const char *prop,
 			      dmtree_node_t **prop_node)
 {
@@ -442,7 +436,7 @@ static int prv_read_prop_node(dmtree_session *session, const char *node_uri,
 		DMC_FAIL_NULL(value, strdup(node_name),
 				   OMADM_SYNCML_ERROR_DEVICE_FULL);
 	} else {
-		DMC_ERR = omadm_dmtree_get_meta(session->dmtree,
+		DMC_ERR = omadm_dmtree_get_meta(handle->dmtree,
 							    node_uri, prop,
 							    &value);
 
@@ -468,7 +462,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_get_node(dmtree_session* session, OMADM_NodeType node_exists,
+static int prv_get_node(dmtree_t* handle, OMADM_NodeType node_exists,
 			const char *uri, dmtree_node_t **node)
 {
 	DMC_ERR_MANAGE;
@@ -478,12 +472,12 @@ static int prv_get_node(dmtree_session* session, OMADM_NodeType node_exists,
 	if (node_exists == OMADM_NODE_IS_LEAF) {
 		DMC_LOG("Reading leaf node");
 
-		DMC_FAIL(prv_read_leaf_node(session, uri, node));
+		DMC_FAIL(prv_read_leaf_node(handle, uri, node));
 	} else {
 
 		DMC_LOG("Building child list");
 
-		DMC_FAIL(prv_read_non_leaf_node(session, uri, node));
+		DMC_FAIL(prv_read_non_leaf_node(handle, uri, node));
 	}
 
 	DMC_LOGF("value %s format %s type %s", (*node)->data_buffer,
@@ -494,7 +488,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_get_prop(dmtree_session *session, const char *node_uri,
+static int prv_get_prop(dmtree_t * handle, const char *node_uri,
 			const char *uri, dmtree_node_t **node)
 {
 	DMC_ERR_MANAGE;
@@ -508,7 +502,7 @@ static int prv_get_prop(dmtree_session *session, const char *node_uri,
 		   !strcmp(prop_name, OMADM_NODE_PROPERTY_TITLE))
 		DMC_FAIL(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
 	else
-		DMC_FAIL(prv_read_prop_node(session, node_uri, uri,
+		DMC_FAIL(prv_read_prop_node(handle, node_uri, uri,
 						 prop_name, node));
 
 	DMC_LOGF("value %s format %s type %s", (*node)->data_buffer,
@@ -519,7 +513,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int dmtree_session_get(dmtree_session *session, const char *uri, dmtree_node_t **node)
+int dmtree_get(dmtree_t * handle, const char *uri, dmtree_node_t **node)
 {
 	DMC_ERR_MANAGE;
 
@@ -538,17 +532,17 @@ int dmtree_session_get(dmtree_session *session, const char *uri, dmtree_node_t *
 	if (tmp_ptr)
 		*tmp_ptr = 0;
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree, node_uri,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree, node_uri,
 					       &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
 		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL(prv_check_node_access_rights(session, node_uri, node_uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, node_uri, node_uri,
 						   OMADM_COMMAND_GET, false));
 
 	if (!strstr(uri, "?"))
-		DMC_FAIL(prv_get_node(session, node_exists, uri, node));
+		DMC_FAIL(prv_get_node(handle, node_exists, uri, node));
 	else if (strstr(uri, "?list=") != NULL)
 	{
 		DMC_FAIL(
@@ -556,7 +550,7 @@ int dmtree_session_get(dmtree_session *session, const char *uri, dmtree_node_t *
 		DMC_LOG("?list not supported");
 	}
 	else
-		DMC_FAIL(prv_get_prop(session, node_uri, uri, node));
+		DMC_FAIL(prv_get_prop(handle, node_uri, uri, node));
 
 DMC_ON_ERR:
 
@@ -568,13 +562,13 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_read_and_add_node(dmtree_session *session, const char *uri,
+static int prv_read_and_add_node(dmtree_t * handle, const char *uri,
 				 dmc_ptr_array *list)
 {
 	DMC_ERR_MANAGE;
 	dmtree_node_t* node;
 
-	DMC_FAIL(prv_read_leaf_node(session, uri, &node));
+	DMC_FAIL(prv_read_leaf_node(handle, uri, &node));
 
 	DMC_FAIL_ERR(dmc_ptr_array_append(list, node),
 			    OMADM_SYNCML_ERROR_DEVICE_FULL);
@@ -588,7 +582,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int dmtree_session_delete(dmtree_session *session, const char *uri)
+int dmtree_delete(dmtree_t * handle, const char *uri)
 {
 	DMC_ERR_MANAGE;
 	OMADM_NodeType node_exists;
@@ -604,17 +598,17 @@ int dmtree_session_delete(dmtree_session *session, const char *uri)
 
 	DMC_FAIL(dmtree_validate_uri(uri, false));
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 					       uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
 		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL(prv_check_node_access_rights(session, uri, uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, uri, uri,
 						   OMADM_COMMAND_DELETE,
 						   false));
 
-	DMC_FAIL(omadm_dmtree_delete_node(session->dmtree,uri));
+	DMC_FAIL(omadm_dmtree_delete_node(handle->dmtree,uri));
 
 DMC_ON_ERR:
 
@@ -623,7 +617,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_find_subtree_ancestor(dmtree_session *session, const char *uri,
+static int prv_find_subtree_ancestor(dmtree_t * handle, const char *uri,
 				     char **subtree_parent, char **subtree_root,
 				     OMADM_NodeType *subtree_parent_type,
 				     unsigned int *subtree_depth)
@@ -644,7 +638,7 @@ static int prv_find_subtree_ancestor(dmtree_session *session, const char *uri,
 			(tok = strrchr(str, '/'))) {
 
 		*tok = 0;
-		DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+		DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 						       str, &node_exists));
 		++depth;
 	}
@@ -666,12 +660,12 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_update_replace_acl(dmtree_session *session, const char *uri)
+static int prv_update_replace_acl(dmtree_t * handle, const char *uri)
 {
 	DMC_ERR_MANAGE;
 
 	char *acl = NULL;
-	const char *acl_server_id = session->server_id;
+	const char *acl_server_id = handle->server_id;
 
 	/* Set the ACL to Add/Delete/Replace/Get for this server */
 
@@ -683,7 +677,7 @@ static int prv_update_replace_acl(dmtree_session *session, const char *uri)
 	sprintf(acl, OMADM_REPLACE_ACL, acl_server_id, acl_server_id,
 		acl_server_id, acl_server_id);
 
-	DMC_FAIL(omadm_dmtree_set_meta(session->dmtree,
+	DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
 						 uri,
 						 OMADM_NODE_PROPERTY_ACL,
 						 acl));
@@ -696,22 +690,22 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_update_leaf_node(dmtree_session *session, const dmtree_node_t *node)
+static int prv_update_leaf_node(dmtree_t * handle, const dmtree_node_t *node)
 {
 	DMC_ERR_MANAGE;
 
-	DMC_FAIL(omadm_dmtree_set_value(session->dmtree,
+	DMC_FAIL(omadm_dmtree_set_value(handle->dmtree,
 						  node->target_uri,
 						  (char*) node->data_buffer));
 
 	if (node->format && strcmp(node->format,"chr"))
-		DMC_FAIL(omadm_dmtree_set_meta(session->dmtree,
+		DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
 							 node->target_uri,
 							 OMADM_NODE_PROPERTY_FORMAT,
 							 node->format));
 
 	if (node->type && strcmp(node->type,"text/plain"))
-		DMC_FAIL(omadm_dmtree_set_meta(session->dmtree,
+		DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
 							 node->target_uri,
 							 OMADM_NODE_PROPERTY_TYPE,
 							 node->type));
@@ -721,7 +715,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_add_leaf_node(dmtree_session *session, const dmtree_node_t *node,
+static int prv_add_leaf_node(dmtree_t * handle, const dmtree_node_t *node,
 			     const char *subtree_parent, const char *subtree_root,
 			     unsigned int subtree_depth)
 {
@@ -730,7 +724,7 @@ static int prv_add_leaf_node(dmtree_session *session, const dmtree_node_t *node,
 	if (!node->data_buffer)
 		DMC_FAIL(OMADM_SYNCML_ERROR_COMMAND_FAILED);
 
-	DMC_ERR = prv_check_node_acl_rights(session, subtree_parent,
+	DMC_ERR = prv_check_node_acl_rights(handle, subtree_parent,
 							OMADM_COMMAND_REPLACE,
 							false);
 
@@ -741,35 +735,35 @@ static int prv_add_leaf_node(dmtree_session *session, const dmtree_node_t *node,
 		   highest implicit non-leaf node that we are adding */
 
 		if (subtree_depth > 1)
-			DMC_FAIL(prv_update_replace_acl(session,
+			DMC_FAIL(prv_update_replace_acl(handle,
 								subtree_root));
 	}
 	else
 		DMC_FAIL(DMC_ERR);
 
-	DMC_FAIL(prv_update_leaf_node(session, node));
+	DMC_FAIL(prv_update_leaf_node(handle, node));
 
 DMC_ON_ERR:
 
 	return DMC_ERR;
 }
 
-static int prv_add_non_leaf_node(dmtree_session *session, const dmtree_node_t *node,
+static int prv_add_non_leaf_node(dmtree_t * handle, const dmtree_node_t *node,
 					const char *subtree_parent,
 					const char *subtree_root)
 {
 	DMC_ERR_MANAGE;
 
-	DMC_ERR = prv_check_node_acl_rights(session, subtree_parent,
+	DMC_ERR = prv_check_node_acl_rights(handle, subtree_parent,
 							OMADM_COMMAND_REPLACE,
 							false);
 
 	if (DMC_ERR == OMADM_SYNCML_ERROR_PERMISSION_DENIED)
-		DMC_FAIL(prv_update_replace_acl(session, subtree_root));
+		DMC_FAIL(prv_update_replace_acl(handle, subtree_root));
 	else
 		DMC_FAIL(DMC_ERR);
 
-	DMC_FAIL(omadm_dmtree_create_non_leaf(session->dmtree,
+	DMC_FAIL(omadm_dmtree_create_non_leaf(handle->dmtree,
 							node->target_uri));
 
 DMC_ON_ERR:
@@ -777,7 +771,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int dmtree_session_add(dmtree_session *session, const dmtree_node_t *node)
+int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
 {
 	DMC_ERR_MANAGE;
 	OMADM_NodeType node_exists;
@@ -804,7 +798,7 @@ int dmtree_session_add(dmtree_session *session, const dmtree_node_t *node)
 		DMC_FAIL_FORCE(
 			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 					       node->target_uri,
 					       &node_exists));
 
@@ -816,7 +810,7 @@ int dmtree_session_add(dmtree_session *session, const dmtree_node_t *node)
 	 * If this is a leaf node we cannot add.
 	 */
 
-	DMC_FAIL(prv_find_subtree_ancestor(session, node->target_uri,
+	DMC_FAIL(prv_find_subtree_ancestor(handle, node->target_uri,
 						&subtree_parent, &subtree_root,
 						&node_exists,
 						&subtree_depth));
@@ -827,18 +821,18 @@ int dmtree_session_add(dmtree_session *session, const dmtree_node_t *node)
 	if (node_exists == OMADM_NODE_IS_LEAF)
 		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-	DMC_FAIL(prv_check_node_access_rights(session, node->target_uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, node->target_uri,
 						   subtree_parent,
 						   OMADM_COMMAND_ADD, false));
 
 	non_leaf_node = node->format && !strcmp(OMADM_NODE_FORMAT_VAL, node->format);
 
 	if (non_leaf_node)
-		DMC_FAIL(prv_add_non_leaf_node(session, node,
+		DMC_FAIL(prv_add_non_leaf_node(handle, node,
 						    subtree_parent,
 						    subtree_root));
 	else
-		DMC_FAIL(prv_add_leaf_node(session, node,
+		DMC_FAIL(prv_add_leaf_node(handle, node,
 						subtree_parent,
 						subtree_root,
 						subtree_depth));
@@ -979,7 +973,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_replace_acl_property(dmtree_session *session,
+static int prv_replace_acl_property(dmtree_t * handle,
 				    const dmtree_node_t *node, const char *uri,
 				    OMADM_NodeType node_exists)
 {
@@ -1005,7 +999,7 @@ static int prv_replace_acl_property(dmtree_session *session,
 	} else
 		acl_uri = uri;
 
-	DMC_FAIL(prv_check_node_access_rights(session, uri, acl_uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, uri, acl_uri,
 						   OMADM_COMMAND_REPLACE,
 						   false));
 
@@ -1013,7 +1007,7 @@ static int prv_replace_acl_property(dmtree_session *session,
 
 	/* Write the value */
 
-	DMC_FAIL(omadm_dmtree_set_meta(session->dmtree,
+	DMC_FAIL(omadm_dmtree_set_meta(handle->dmtree,
 						 uri,
 						 OMADM_NODE_PROPERTY_ACL,
 						 (char*) node->data_buffer));
@@ -1025,7 +1019,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_replace_node_property(dmtree_session *session,
+static int prv_replace_node_property(dmtree_t * handle,
 				     const dmtree_node_t *node, const char *uri,
 				     const char *nv)
 {
@@ -1035,7 +1029,7 @@ static int prv_replace_node_property(dmtree_session *session,
 	DMC_LOGF("Attempting to replace %s property of node %s",
 		      nv, node->target_uri);
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 					       uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
@@ -1052,7 +1046,7 @@ static int prv_replace_node_property(dmtree_session *session,
 		DMC_FAIL_FORCE(
 			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
 	else if (!strcmp(nv,OMADM_NODE_PROPERTY_ACL))
-		DMC_FAIL(prv_replace_acl_property(session, node, uri,
+		DMC_FAIL(prv_replace_acl_property(handle, node, uri,
 						       node_exists));
 	else
 		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
@@ -1062,7 +1056,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-static int prv_replace_node(dmtree_session *session, const dmtree_node_t *node)
+static int prv_replace_node(dmtree_t * handle, const dmtree_node_t *node)
 {
 	DMC_ERR_MANAGE;
 	OMADM_NodeType node_exists;
@@ -1080,7 +1074,7 @@ static int prv_replace_node(dmtree_session *session, const dmtree_node_t *node)
 			DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 	}
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 					       node->target_uri,
 					       &node_exists));
 
@@ -1089,21 +1083,21 @@ static int prv_replace_node(dmtree_session *session, const dmtree_node_t *node)
 	else if (node_exists != OMADM_NODE_IS_LEAF)
 		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-	DMC_FAIL(prv_check_node_access_rights(session, node->target_uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, node->target_uri,
 						   node->target_uri,
 						   OMADM_COMMAND_REPLACE, false));
 
 	DMC_LOGF("replacing %s value to", node->target_uri,
 		node->data_buffer);
 
-	DMC_FAIL(prv_update_leaf_node(session, node));
+	DMC_FAIL(prv_update_leaf_node(handle, node));
 
 DMC_ON_ERR:
 
 	return DMC_ERR;
 }
 
-int dmtree_session_replace(dmtree_session *session, const dmtree_node_t *node)
+int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node)
 {
 	DMC_ERR_MANAGE;
 	char *uri_copy = NULL;
@@ -1129,11 +1123,11 @@ int dmtree_session_replace(dmtree_session *session, const dmtree_node_t *node)
 				   OMADM_SYNCML_ERROR_DEVICE_FULL);
 		uri_copy[prop - node->target_uri] = 0;
 		nv = prop + (sizeof(prop_id) - 1);
-		DMC_FAIL(prv_replace_node_property(session, node, uri_copy,
+		DMC_FAIL(prv_replace_node_property(handle, node, uri_copy,
 							nv));
 	}
 	else
-		DMC_FAIL(prv_replace_node(session, node));
+		DMC_FAIL(prv_replace_node(handle, node));
 
 DMC_ON_ERR:
 
@@ -1144,22 +1138,22 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int dmtree_session_device_info(dmtree_session *session,
+int dmtree_get_device_info(dmtree_t * handle,
 			      dmc_ptr_array *device_info)
 {
 	DMC_ERR_MANAGE;
 
 	DMC_LOG("Retrieving device info.");
 
-	DMC_FAIL(prv_read_and_add_node(session, "./DevInfo/Mod",
+	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/Mod",
 					    device_info));
-	DMC_FAIL(prv_read_and_add_node(session, "./DevInfo/Man",
+	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/Man",
 					    device_info));
-	DMC_FAIL(prv_read_and_add_node(session, "./DevInfo/DevId",
+	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/DevId",
 					    device_info));
-	DMC_FAIL(prv_read_and_add_node(session, "./DevInfo/Lang",
+	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/Lang",
 					    device_info));
-	DMC_FAIL(prv_read_and_add_node(session, "./DevInfo/DmV",
+	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/DmV",
 					    device_info));
 
 DMC_ON_ERR:
@@ -1171,14 +1165,14 @@ DMC_ON_ERR:
 
 /* TODO.  Might be better to move dmtree initialisation code into dmtree.c */
 
-static int prv_init_dmtree(dmtree_session* session)
+static int prv_init_dmtree(dmtree_t* handle)
 {
 	DMC_ERR_MANAGE;
 
 	OMADM_DMTreePlugin *plugin = NULL;
     DIR *folderP;
 
-	DMC_FAIL(omadm_dmtree_create(session->server_id, &session->dmtree));
+	DMC_FAIL(omadm_dmtree_create(handle->server_id, &handle->dmtree));
 
     folderP = opendir(MOBJS_DIR);
     if (folderP != NULL)
@@ -1192,14 +1186,14 @@ static int prv_init_dmtree(dmtree_session* session)
                 char * filename;
 
                 filename = str_cat_3(MOBJS_DIR, "/", fileP->d_name);
-                omadm_dmtree_load_plugin(session->dmtree, filename);
+                omadm_dmtree_load_plugin(handle->dmtree, filename);
                 free(filename);
             }
         }
         closedir(folderP);
     }
 
-	DMC_FAIL(omadm_dmtree_init(session->dmtree));
+	DMC_FAIL(omadm_dmtree_init(handle->dmtree));
 
 DMC_ON_ERR:
 
@@ -1211,7 +1205,7 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int dmtree_session_copy(dmtree_session *session, const char *source_uri,
+int dmtree_copy(dmtree_t * handle, const char *source_uri,
 		       const char *target_uri)
 {
 	DMC_ERR_MANAGE;
@@ -1232,7 +1226,7 @@ int dmtree_session_copy(dmtree_session *session, const char *source_uri,
 
 	DMC_FAIL(dmtree_validate_uri(target_uri, false));
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 					       source_uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_NOT_EXIST)
@@ -1240,13 +1234,13 @@ int dmtree_session_copy(dmtree_session *session, const char *source_uri,
 	else if (node_exists != OMADM_NODE_IS_LEAF)
 		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-	DMC_FAIL(omadm_dmtree_exists(session->dmtree,
+	DMC_FAIL(omadm_dmtree_exists(handle->dmtree,
 					       target_uri, &node_exists));
 
 	if (node_exists == OMADM_NODE_IS_INTERIOR)
 		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-	DMC_FAIL(prv_check_node_access_rights(session, source_uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, source_uri,
 						   source_uri,
 						   OMADM_COMMAND_GET,
 						   false));
@@ -1254,16 +1248,16 @@ int dmtree_session_copy(dmtree_session *session, const char *source_uri,
 	cmd_name =  (node_exists == OMADM_NODE_NOT_EXIST) ? OMADM_COMMAND_ADD :
 		OMADM_COMMAND_REPLACE;
 
-	DMC_FAIL(prv_check_node_access_rights(session, target_uri,
+	DMC_FAIL(prv_check_node_access_rights(handle, target_uri,
 						   target_uri, cmd_name,
 						   false));
 
-	DMC_FAIL(prv_read_leaf_node(session, source_uri, &leaf_node));
+	DMC_FAIL(prv_read_leaf_node(handle, source_uri, &leaf_node));
 	free(leaf_node->target_uri);
 	leaf_node->target_uri = NULL;
 	DMC_FAIL_NULL(leaf_node->target_uri, strdup(target_uri),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-	DMC_FAIL(prv_update_leaf_node(session, leaf_node));
+	DMC_FAIL(prv_update_leaf_node(handle, leaf_node));
 
 DMC_ON_ERR:
 
@@ -1274,13 +1268,13 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-int dmtree_session_create(const char *server_id, dmtree_session **session)
+int dmtree_open(const char *server_id, dmtree_t **handleP)
 {
 	DMC_ERR_MANAGE;
 
-	dmtree_session *retval = NULL;
+	dmtree_t *retval = NULL;
 
-	DMC_LOGF("Creating dm session with server %s", server_id);
+	DMC_LOGF("Creating dm handle with server %s", server_id);
 
 	DMC_FAIL_ERR(prv_check_acl_server(server_id),
 			    OMADM_SYNCML_ERROR_SESSION_INTERNAL);
@@ -1295,30 +1289,30 @@ int dmtree_session_create(const char *server_id, dmtree_session **session)
 
 	DMC_FAIL(prv_init_dmtree(retval));
 
-	*session = retval;
+	*handleP = retval;
 
-	DMC_LOG("dm session created correctly");
+	DMC_LOG("dm handle created correctly");
 
 	return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
-	DMC_LOGF("Failed to create dm session with error %d", DMC_ERR);
+	DMC_LOGF("Failed to create dm handle with error %d", DMC_ERR);
 
-	dmtree_session_free(retval);
+	dmtree_close(retval);
 
 	return DMC_ERR;
 }
 
-void dmtree_session_free(dmtree_session *session)
+void dmtree_close(dmtree_t * handle)
 {
-	DMC_LOG("Freeing dm session");
+	DMC_LOG("Freeing dm handle");
 
-	if (session)
+	if (handle)
 	{
-		omadm_dmtree_free(session->dmtree);
-		free(session->server_id);
-		free(session);
+		omadm_dmtree_free(handle->dmtree);
+		free(handle->server_id);
+		free(handle);
 	}
 }
 

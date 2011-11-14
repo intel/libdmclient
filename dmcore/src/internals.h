@@ -86,7 +86,7 @@ typedef struct
 typedef struct
 {
     InstanceID_t     smlH;
-    dmtree_session * dmtreeH;
+    dmtree_t *       dmtreeH;
     int              session_id;
     int              message_id;
     int              command_id;

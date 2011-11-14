@@ -17,12 +17,6 @@
 #include "dyn_buf.h"
 #include "dmtree_plugin.h"
 
-typedef struct _OMADM_DMTreePluginHolder OMADM_DMTreePluginHolder;
-struct _OMADM_DMTreePluginHolder {
-	char *URI;
-	OMADM_DMTreePlugin plugin;
-};
-
 typedef struct _OMADM_DMTreeContext OMADM_DMTreeContext;
 struct _OMADM_DMTreeContext {
 	dmc_ptr_array plugins;

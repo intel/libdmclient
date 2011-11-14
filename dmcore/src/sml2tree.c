@@ -131,7 +131,7 @@ SmlReplacePtr_t get_device_info(internals_t * internP)
     }
 
     dmc_ptr_array_make(&device_info, 5, (dmc_ptr_array_des)dmtree_node_free);
-    if (OMADM_SYNCML_ERROR_NONE == dmtree_session_device_info(internP->dmtreeH, &device_info))
+    if (OMADM_SYNCML_ERROR_NONE == dmtree_get_device_info(internP->dmtreeH, &device_info))
     {
         replaceP = smlAllocReplace();
         if (replaceP)
@@ -156,7 +156,7 @@ int get_node(internals_t * internP,
     uri = smlPcdata2String(itemP->target->locURI);
     if (!uri) return OMADM_SYNCML_ERROR_NOT_FOUND;
 
-    code = dmtree_session_get(internP->dmtreeH, uri, &node);
+    code = dmtree_get(internP->dmtreeH, uri, &node);
     if (OMADM_SYNCML_ERROR_NONE == code)
     {
         code = prv_fill_item(resultP, node);
@@ -178,7 +178,7 @@ int add_node(internals_t * internP,
     node.data_size = itemP->data->length;
     node.data_buffer = (uint8_t *)(itemP->data->content);
 
-    code = dmtree_session_add(internP->dmtreeH, &node);
+    code = dmtree_add(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
 
     prv_node_clean(node);
@@ -191,7 +191,7 @@ int delete_node(internals_t * internP,
 {
     int code;
 
-    code = dmtree_session_delete(internP->dmtreeH, smlPcdata2String(itemP->target->locURI));
+    code = dmtree_delete(internP->dmtreeH, smlPcdata2String(itemP->target->locURI));
     PRV_CONVERT_CODE(code);
 
     return code;
@@ -209,7 +209,7 @@ int replace_node(internals_t * internP,
     node.data_size = itemP->data->length;
     node.data_buffer = (uint8_t *)(itemP->data->content);
 
-    code = dmtree_session_replace(internP->dmtreeH, &node);
+    code = dmtree_replace(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
 
     prv_node_clean(node);
@@ -234,7 +234,7 @@ int copy_node(internals_t * internP,
         return OMADM_SYNCML_ERROR_NOT_FOUND;
     }
 
-    code = dmtree_session_copy(internP->dmtreeH, src_uri, dst_uri);
+    code = dmtree_copy(internP->dmtreeH, src_uri, dst_uri);
     PRV_CONVERT_CODE(code);
 
     free(dst_uri);

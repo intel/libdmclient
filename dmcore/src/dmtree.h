@@ -17,8 +17,7 @@
 #include <stdbool.h>
 
 #include "dyn_buf.h"
-
-typedef struct dmtree_session_ dmtree_session;
+#include "momgr.h"
 
 typedef struct
 {
@@ -29,19 +28,22 @@ typedef struct
 	uint8_t *data_buffer;
 } dmtree_node_t;
 
-int dmtree_session_create(const char *server_id, dmtree_session **session);
-void dmtree_session_free(dmtree_session *session);
+typedef struct
+{
+	OMADM_DMTreeContext *dmtree;
+	char *server_id;
+} dmtree_t;
 
-int dmtree_session_device_info(dmtree_session *session,
-				dmc_ptr_array *device_info);
+int dmtree_open(const char *server_id, dmtree_t ** handleP);
+void dmtree_close(dmtree_t * handle);
 
-int dmtree_session_get(dmtree_session *session, const char *uri,
-                        dmtree_node_t **node);
-int dmtree_session_add(dmtree_session *session, const dmtree_node_t *node);
-int dmtree_session_replace(dmtree_session *session, const dmtree_node_t *node);
-int dmtree_session_delete(dmtree_session *session, const char *uri);
-int dmtree_session_copy(dmtree_session *session, const char *source_uri,
-			const char *target_uri);
+int dmtree_get_device_info(dmtree_t * handle, dmc_ptr_array *device_info);
+
+int dmtree_get(dmtree_t * handle, const char *uri, dmtree_node_t **node);
+int dmtree_add(dmtree_t * handle, const dmtree_node_t *node);
+int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node);
+int dmtree_delete(dmtree_t * handle, const char *uri);
+int dmtree_copy(dmtree_t * handle, const char *source_uri,	const char *target_uri);
 
 int dmtree_validate_uri(const char *uri, bool allow_props);
 

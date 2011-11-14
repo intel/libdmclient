@@ -200,7 +200,7 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
 
     memset(internP, 0, sizeof(internals_t));
 
-    if (OMADM_SYNCML_ERROR_NONE != dmtree_session_create(serverID, &(internP->dmtreeH)))
+    if (OMADM_SYNCML_ERROR_NONE != dmtree_open(serverID, &(internP->dmtreeH)))
     {
         goto error;
     }
@@ -293,7 +293,7 @@ void omadmclient_session_close(dmclt_session sessionH)
 
     if (internP->dmtreeH)
     {
-        dmtree_session_free(internP->dmtreeH);
+        dmtree_close(internP->dmtreeH);
     }
     if (internP->smlH)
     {
