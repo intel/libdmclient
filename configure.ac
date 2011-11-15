@@ -56,7 +56,7 @@ AC_DEFINE_UNQUOTED([MOBJS_DIR], ["${mo_install_dir}"], [management objects insta
 AC_ARG_ENABLE([logging], [  --enable-logging enables logging], [logging=${enableval}], [logging=no])
 
 if test "x${logging}" = xyes; then
-   AC_DEFINE([DMCOMMON_LOGGING], 1, [logging enabled])
+   AC_DEFINE([DMC_LOGGING], 1, [logging enabled])
 fi
 
 AC_CONFIG_FILES([Makefile
