@@ -44,31 +44,15 @@
 
 #define OMADM_COMMAND_ADD 		"Add="
 #define OMADM_COMMAND_GET 		"Get="
-#define OMADM_COMMAND_REPLACE 		"Replace="
-#define OMADM_COMMAND_EXECUTE		"Exec="
-#define OMADM_COMMAND_DELETE		"Delete="
-
-#define OMADM_TNDS_STRUCT		(uint8_t) 1
-#define OMADM_TNDS_STRUCT_DATA		(uint8_t) 2
-#define OMADM_TNDS_ALL			(uint8_t) 3
-
-#define OMADM_PROP_ALL			(uint32_t) 0xFFFFFFFF
-#define OMADM_PROP_NONE			(uint32_t) 0
-#define OMADM_PROP_ACL			(uint32_t) 1 << 0
-#define OMADM_PROP_FORMAT		(uint32_t) 1 << 1
-#define OMADM_PROP_NAME			(uint32_t) 1 << 2
-#define OMADM_PROP_SIZE			(uint32_t) 1 << 3
-#define OMADM_PROP_TITLE		(uint32_t) 1 << 4
-#define OMADM_PROP_TSTAMP		(uint32_t) 1 << 5
-#define OMADM_PROP_TYPE			(uint32_t) 1 << 6
-#define OMADM_PROP_VERNO		(uint32_t) 1 << 7
-#define OMADM_PROP_VALUE		(uint32_t) 1 << 8
+#define OMADM_COMMAND_REPLACE 	"Replace="
+#define OMADM_COMMAND_EXECUTE	"Exec="
+#define OMADM_COMMAND_DELETE	"Delete="
 
 #define OMADM_ACL_GET_SET		(uint8_t) 1 << 0
 #define OMADM_ACL_ADD_SET		(uint8_t) 1 << 1
-#define OMADM_ACL_DELETE_SET		(uint8_t) 1 << 2
+#define OMADM_ACL_DELETE_SET	(uint8_t) 1 << 2
 #define OMADM_ACL_EXEC_SET		(uint8_t) 1 << 3
-#define OMADM_ACL_REPLACE_SET		(uint8_t) 1 << 4
+#define OMADM_ACL_REPLACE_SET	(uint8_t) 1 << 4
 
 static int prv_read_leaf_node(dmtree_t * handle, const char *uri,
 				dmtree_node_t **leaf_node)
