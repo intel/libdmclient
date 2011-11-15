@@ -19,7 +19,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <dirent.h>
 
 #include "error_macros.h"
 #include "log.h"
@@ -1163,46 +1162,6 @@ DMC_ON_ERR:
 	return DMC_ERR;
 }
 
-/* TODO.  Might be better to move dmtree initialisation code into dmtree.c */
-
-static int prv_init_dmtree(dmtree_t* handle)
-{
-	DMC_ERR_MANAGE;
-
-	OMADM_DMTreePlugin *plugin = NULL;
-    DIR *folderP;
-
-	DMC_FAIL(momgr_init(&(handle->MOs)));
-
-    folderP = opendir(MOBJS_DIR);
-    if (folderP != NULL)
-    {
-        struct dirent *fileP;
-
-        while ((fileP = readdir(folderP)))
-        {
-            if (DT_REG == fileP->d_type)
-            {
-                char * filename;
-
-                filename = str_cat_3(MOBJS_DIR, "/", fileP->d_name);
-                momgr_load_plugin(&(handle->MOs), filename);
-                free(filename);
-            }
-        }
-        closedir(folderP);
-    }
-
-DMC_ON_ERR:
-
-	DMC_LOGF("Initialised DM Tree with: Error... %d", DMC_ERR);
-
-	if (plugin)
-		free(plugin);
-
-	return DMC_ERR;
-}
-
 int dmtree_copy(dmtree_t * handle, const char *source_uri,
 		       const char *target_uri)
 {
@@ -1285,7 +1244,7 @@ int dmtree_open(const char *server_id, dmtree_t **handleP)
 	DMC_FAIL_NULL(retval->server_id, strdup(server_id),
 			   OMADM_SYNCML_ERROR_DEVICE_FULL);
 
-	DMC_FAIL(prv_init_dmtree(retval));
+	DMC_FAIL(momgr_init(&(retval->MOs)));
 
 	*handleP = retval;
 
@@ -1308,7 +1267,7 @@ void dmtree_close(dmtree_t * handle)
 
 	if (handle)
 	{
-		momgr_free(handle->MOs);
+		momgr_free(&(handle->MOs));
 		free(handle->server_id);
 		free(handle);
 	}

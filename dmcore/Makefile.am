@@ -8,6 +8,7 @@ dmclient_src = src/omadmclient.c \
 
 dmtree_src = src/momgr.c \
              src/dmtree.c \
+             src/defaultroot.c \
              src/dyn_buf.c \
              src/log.c
 

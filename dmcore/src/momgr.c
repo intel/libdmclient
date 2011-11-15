@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <dirent.h>
 
 #include "config.h"
 
@@ -25,15 +26,17 @@
 #include "syncml_error.h"
 #include "momgr.h"
 
+// defined in defaultroot.c
+OMADM_DMTreePlugin * getDefaultRootPlugin();
 
 static void prv_freePlugin(dmtree_plugin_t *oPlugin)
 {
 	if (oPlugin->URI)
 		free(oPlugin->URI);
 
-	if (oPlugin->plugin) {
-		oPlugin->plugin->free(oPlugin->data);
-		free(oPlugin->plugin);
+	if (oPlugin->interface) {
+		oPlugin->interface->free(oPlugin->data);
+		free(oPlugin->interface);
 	}
 
     if (oPlugin->dl_handle)
@@ -71,6 +74,41 @@ static dmtree_plugin_t *prv_findPlugin(const mo_list_t iList,
 	return matchingPlugin;
 }
 
+static void prv_removePlugin(mo_list_t * iListP,
+				             const char *iURI)
+{
+    plugin_elem_t * elem = iListP->first;
+    plugin_elem_t * target = NULL;
+
+    if (elem)
+    {
+        if (strcmp(iURI, elem->plugin->URI))
+        {
+            while ((elem->next)
+                && (strcmp(iURI, elem->next->plugin->URI)))
+            {
+                elem = elem->next;
+            }
+            if (elem->next)
+            {
+                target = elem->next;
+                elem->next = elem->next->next;
+            }
+        }
+        else
+        {
+            target = elem;
+            iListP->first = iListP->first->next;
+        }
+
+        if (target)
+        {
+            prv_freePlugin(target->plugin);
+            free(target);
+        }
+    }
+}
+
 int momgr_supports_transactions(const mo_list_t iList,
 					const char *uri,
 					bool *supports_transactions)
@@ -79,9 +117,9 @@ int momgr_supports_transactions(const mo_list_t iList,
 	dmtree_plugin_t *plugin = NULL;
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, uri),
-			   OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+			   OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	*supports_transactions = plugin->plugin->supportTransactions;
+	*supports_transactions = plugin->interface->supportTransactions;
 
 DMC_ON_ERR:
 
@@ -105,6 +143,7 @@ int momgr_add_plugin(mo_list_t * iList,
 		goto DMC_ON_ERR;
 	}
 
+    DMC_FAIL_ERR(NULL == iPlugin, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
     DMC_FAIL_ERR(NULL == iPlugin->create, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
     DMC_FAIL(iPlugin->create("funambol", &pluginData));
 
@@ -118,9 +157,10 @@ int momgr_add_plugin(mo_list_t * iList,
 
 	DMC_FAIL_NULL(newElem->plugin->URI, strdup(iURI),
 		      OMADM_SYNCML_ERROR_DEVICE_FULL);
-	newElem->plugin->plugin = iPlugin;
+	newElem->plugin->interface = iPlugin;
     newElem->plugin->data = pluginData;
 
+    prv_removePlugin(iList, iURI);
     newElem->next = iList->first;
     iList->first = newElem;
 
@@ -192,9 +232,10 @@ void momgr_load_plugin(mo_list_t * iList,
     memset(newElem->plugin, 0, sizeof(dmtree_plugin_t));
     newElem->plugin->dl_handle = handle;
     newElem->plugin->URI = pluginDescP->uri;
-    newElem->plugin->plugin = treePluginP;
+    newElem->plugin->interface = treePluginP;
     newElem->plugin->data = pluginData;
 
+    prv_removePlugin(iList, newElem->plugin->URI);
     newElem->next = iList->first;
     iList->first = newElem;
     newElem = NULL;
@@ -226,21 +267,53 @@ error:
 
 int momgr_init(mo_list_t * iListP)
 {
+    int error = OMADM_SYNCML_ERROR_NONE;
+    DIR *folderP;
+
     if(!iListP)
         return OMADM_SYNCML_ERROR_SESSION_INTERNAL;
 
 	iListP->first = NULL;
 
-	return OMADM_SYNCML_ERROR_NONE;
+    folderP = opendir(MOBJS_DIR);
+    if (folderP != NULL)
+    {
+        struct dirent *fileP;
+
+        while ((fileP = readdir(folderP)))
+        {
+            if (DT_REG == fileP->d_type)
+            {
+                char * filename;
+
+                filename = str_cat_3(MOBJS_DIR, "/", fileP->d_name);
+                momgr_load_plugin(iListP, filename);
+                free(filename);
+            }
+        }
+        closedir(folderP);
+    }
+
+    // Check if we have a root plugin
+    if (NULL == prv_findPlugin(*iListP, "."))
+    {
+        error = momgr_add_plugin(iListP, "./", getDefaultRootPlugin());
+        if (OMADM_SYNCML_ERROR_NONE != error)
+        {
+            momgr_free(iListP);
+        }
+    }
+
+	return error;
 }
 
-void momgr_free(mo_list_t iList)
+void momgr_free(mo_list_t * iListP)
 {
-	while(iList.first)
+	while(iListP->first)
 	{
-	    plugin_elem_t * elem = iList.first;
+	    plugin_elem_t * elem = iListP->first;
 
-	    iList.first = elem->next;
+	    iListP->first = elem->next;
 	    prv_freePlugin(elem->plugin);
 	    free(elem);
 	}
@@ -256,20 +329,12 @@ int momgr_exists(const mo_list_t iList,
 
 	DMC_LOGF("momgr_node_exists <%s>", iURI);
 
-    if (!strcmp(iURI, "."))
-    {
-		/* Special case for the root node. */
-		*oExists = OMADM_NODE_IS_INTERIOR;
-	}
-	else
-	{
-	    DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-			       OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
+		       OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	    DMC_FAIL_NULL(fn, plugin->plugin->nodeExists,
-		          OMADM_SYNCML_ERROR_NOT_ALLOWED);
-	    DMC_FAIL(fn(iURI, oExists, plugin->data));
-    }
+    DMC_FAIL_NULL(fn, plugin->interface->nodeExists,
+	          OMADM_SYNCML_ERROR_NOT_ALLOWED);
+    DMC_FAIL(fn(iURI, oExists, plugin->data));
 
 	DMC_LOGF("momgr_node_exists exit <0x%x> %d",
 			    DMC_ERR, *oExists);
@@ -294,9 +359,9 @@ int momgr_get_children(const mo_list_t iList,
 	DMC_LOGF("omadm_get_node_children <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->getNodeChildren,
+	DMC_FAIL_NULL(fn, plugin->interface->getNodeChildren,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, oChildren, plugin->data));
@@ -323,7 +388,7 @@ int momgr_get_children(const mo_list_t iList,
 				    (oChildren, j)); ++j) ;
 
 		    if (j == dmc_ptr_array_get_size(oChildren)) {
-			    DMC_FAIL(elem->plugin->plugin->nodeExists(childNode,
+			    DMC_FAIL(elem->plugin->interface->nodeExists(childNode,
 								     &exists,
 								     elem->plugin->data));
 
@@ -362,9 +427,9 @@ int momgr_get_value(const mo_list_t iList,
 	DMC_LOGF("momgr_get_value <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->getValue,
+	DMC_FAIL_NULL(fn, plugin->interface->getValue,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, oValue, plugin->data));
@@ -386,9 +451,9 @@ int momgr_set_value(const mo_list_t iList,
 	DMC_LOGF("momgr_set_value <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->setValue,
+	DMC_FAIL_NULL(fn, plugin->interface->setValue,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, iValue, plugin->data));
@@ -411,9 +476,9 @@ int momgr_get_meta(const mo_list_t iList,
 	DMC_LOGF("momgr_get_meta prop <%s> <%s>", iProp, iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->getMeta,
+	DMC_FAIL_NULL(fn, plugin->interface->getMeta,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, iProp, oMeta, plugin->data));
@@ -438,9 +503,9 @@ int momgr_set_meta(const mo_list_t iList,
 	DMC_LOGF("momgr_set_meta <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->setMeta,
+	DMC_FAIL_NULL(fn, plugin->interface->setMeta,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, iProp, iMeta, plugin->data));
@@ -462,9 +527,9 @@ int momgr_create_non_leaf(const mo_list_t iList,
 	DMC_LOGF("%s  <%s>", __FUNCTION__, iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->createNonLeaf,
+	DMC_FAIL_NULL(fn, plugin->interface->createNonLeaf,
 			   OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, plugin->data));
@@ -487,9 +552,9 @@ int momgr_get_access_rights(const mo_list_t iList,
 	DMC_LOGF("momgr_get_access_rights  <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->getAccessRights,
+	DMC_FAIL_NULL(fn, plugin->interface->getAccessRights,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, oRights, plugin->data));
@@ -511,9 +576,9 @@ int momgr_delete_node(const mo_list_t iList,
 	DMC_LOGF("omadm_dmtree: momgr_delete_node <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->deleteNode,
+	DMC_FAIL_NULL(fn, plugin->interface->deleteNode,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, plugin->data));
@@ -536,9 +601,9 @@ int momgr_exec_node(const mo_list_t iList,
 	DMC_LOGF("omadm_dmtree: momgr_exec_node <%s>", iURI);
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, iURI),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->execNode,
+	DMC_FAIL_NULL(fn, plugin->interface->execNode,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn(iURI, iData, iCorrelator, plugin->data));
@@ -564,9 +629,9 @@ int momgr_update_nonce(const mo_list_t iList,
 	DMC_LOG("momgr_update_nonce");
 
 	DMC_FAIL_NULL(plugin, prv_findPlugin(iList, "./CONFIG"),
-		      OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+		      OMADM_SYNCML_ERROR_NOT_FOUND);
 
-	DMC_FAIL_NULL(fn, plugin->plugin->updateNonce,
+	DMC_FAIL_NULL(fn, plugin->interface->updateNonce,
 		      OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
 	DMC_FAIL(fn
@@ -609,14 +674,6 @@ int momgr_find_inherited_acl(mo_list_t iList,
 		DMC_ERR = momgr_get_meta(iList, uri,
 						  OMADM_NODE_PROPERTY_ACL,
 						  oACL);
-	}
-
-    if (DMC_ERR != OMADM_SYNCML_ERROR_NONE
-        && !strcmp(uri, "."))
-    {
-		/* Special case for the root node when no root plugin is present. */
-		DMC_FAIL_NULL(*oACL, strdup("Get=*"),
-		      OMADM_SYNCML_ERROR_DEVICE_FULL);
 	}
 
 DMC_ON_ERR:

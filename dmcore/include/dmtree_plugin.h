@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*!
- * @file omadm_dmtree_plugin_prv.h
+ * @file dmtree_plugin.h
  *
  * @brief Header file for the inbox plugin
  *

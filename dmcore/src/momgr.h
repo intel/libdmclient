@@ -20,7 +20,7 @@
 typedef struct
 {
 	char *URI;
-	OMADM_DMTreePlugin *plugin;
+	OMADM_DMTreePlugin *interface;
 	void *data;
 	void *dl_handle;
 } dmtree_plugin_t;
@@ -38,7 +38,7 @@ typedef struct
 
 
 int momgr_init(mo_list_t * iListP);
-void momgr_free(mo_list_t iList);
+void momgr_free(mo_list_t * iList);
 
 int momgr_add_plugin(mo_list_t * iList, const char *iURI, OMADM_DMTreePlugin *iPlugin);
 void momgr_load_plugin(mo_list_t * iList, const char *iFilename);
