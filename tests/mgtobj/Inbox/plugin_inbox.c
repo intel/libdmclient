@@ -7,87 +7,72 @@
 /*!
  * @file plugin_inbox.c
  *
- * @brief C file for the inbox plugin
+ * @brief C file for the inbox test plugin
  *
  */
 
 #include <stdlib.h>
 #include <string.h>
+#include <omadmtree_mo.h>
 
 #include "config.h"
 #include "syncml_error.h"
 
-#include "plugin_inbox.h"
-
-static int prv_inboxCreateFN(const char *iServerID, void **oData)
+static int prv_inboxInitFN(void **oData)
 {
     *oData = NULL;
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
-static void prv_inboxFreeFN(void *iData)
+static void prv_inboxCloseFN(void *iData)
 {
 }
 
-static int prv_inboxNodeExistsFN(const char *iURI,
-					  OMADM_NodeType * oNodeType,
-					  void *iData)
+static int prv_inboxIsNodeFN(const char *iURI,
+			                 omadmtree_node_type_t *oNodeType,
+				             void *iData)
 {
-	*oNodeType =
-	    (strcmp(iURI, "./Inbox") ==
-	     0) ? OMADM_NODE_IS_INTERIOR : OMADM_NODE_NOT_EXIST;
+	*oNodeType = (strcmp(iURI, "./Inbox") == 0) ? OMADM_NODE_IS_INTERIOR : OMADM_NODE_NOT_EXIST;
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
-static int prv_inboxGetAccessRightsFN(const char *iURI,
-					       OMADM_AccessRights *
-					       oAccessRights, void *iData)
+static int prv_inboxSetFN(const dmtree_node_t * nodeP,
+                          void * data)
 {
-	*oAccessRights = OMADM_ACCESS_ADD;
-	return OMADM_SYNCML_ERROR_NONE;
+    return OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED;
 }
 
-static int prv_inboxSetValueFN(const char *iURI, const char *iValue,
-					void *oData)
+static int prv_inboxGetACLFN(const char *iURI,
+                               char **oValue,
+                               void *iData)
 {
-	return OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED;
+	if (!strcmp(iURI, "./Inbox"))
+	{
+	    *oValue = strdup("Add=*");
+    }
+    else
+    {
+        *oValue = NULL;
+    }
+
+    return OMADM_SYNCML_ERROR_NONE;
 }
 
-static int prv_inboxSetMetaFN(const char *iURI, const char *iProp,
-				       const char *iValue, void *oData)
-{
-	return OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED;
-}
 
-OMADM_DMTreePlugin *omadm_create_inbox_plugin()
+omadm_mo_interface_t * omadm_get_mo_interface()
 {
-	OMADM_DMTreePlugin *retVal = NULL;
+	omadm_mo_interface_t *retVal = NULL;
 
-	retVal =  malloc(sizeof(*retVal));
+	retVal = malloc(sizeof(*retVal));
 	if (retVal) {
 		memset(retVal, 0, sizeof(*retVal));
-		retVal->create = prv_inboxCreateFN;
-		retVal->free = prv_inboxFreeFN;
-		retVal->nodeExists = prv_inboxNodeExistsFN;
-		retVal->getAccessRights = prv_inboxGetAccessRightsFN;
-		retVal->setValue = prv_inboxSetValueFN;
-		retVal->setMeta = prv_inboxSetMetaFN;
-		retVal->supportTransactions = true;
+		retVal->uri = strdup("./Inbox/");
+		retVal->initFunc = prv_inboxInitFN;
+		retVal->closeFunc = prv_inboxCloseFN;
+		retVal->isNodeFunc = prv_inboxIsNodeFN;
+		retVal->setFunc = prv_inboxSetFN;
+		retVal->getACLFunc = prv_inboxGetACLFN;
 	}
 
 	return retVal;
-}
-
-OMADM_PluginDesc * omadm_get_plugin_desc(void)
-{
-    OMADM_PluginDesc *plugin_desc;
-
-    plugin_desc = (OMADM_PluginDesc *)malloc(sizeof(OMADM_PluginDesc));
-    if (plugin_desc)
-    {
-        plugin_desc->uri = strdup("./Inbox/");
-        plugin_desc->createFunc = omadm_create_inbox_plugin;
-    }
-
-    return plugin_desc;
 }

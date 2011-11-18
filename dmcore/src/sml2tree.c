@@ -15,87 +15,92 @@
 
 #define PRV_CONVERT_CODE(code) if ((code) == OMADM_SYNCML_ERROR_NONE) code = OMADM_SYNCML_ERROR_SUCCESS
 
-static void prv_node_clean(dmtree_node_t node)
+static void prv_node_clean(dmtree_node_t node,
+                           bool full)
 {
-    if (node.target_uri)
-        free(node.target_uri);
+    if (node.uri)
+        free(node.uri);
 
     if (node.format)
         free(node.format);
 
     if (node.type)
         free(node.type);
+
+    if (full && node.data_buffer)
+        free(node.data_buffer);
     // we free data_buffer manually since most of the time it
     // is allocated by the SyncMLRTK
 }
 
-static SmlItemPtr_t prv_convert_node_to_item(dmtree_node_t * nodeP)
-{
-    SmlItemPtr_t itemP;
-
-    itemP = smlAllocItem();
-    if (itemP)
-    {
-        itemP->source = smlAllocSource();
-        if (!itemP->source)
-        {
-            smlFreeItemPtr(itemP);
-            itemP = NULL;
-            goto error;
-        }
-        itemP->source->locURI = smlString2Pcdata((String_t)(nodeP->target_uri));
-        itemP->data = smlString2Pcdata((String_t)(nodeP->data_buffer));
-
-        itemP->meta = convert_to_meta(nodeP->format, nodeP->type);
-    }
-
-error:
-    return itemP;
-}
-
-static SmlItemListPtr_t prv_convert_array_to_list(dmc_ptr_array nodeArray)
-{
-    SmlItemListPtr_t listP = NULL;
-    unsigned int i;
-
-    for (i =  0 ; i < dmc_ptr_array_get_size(&nodeArray) ; ++i)
-    {
-        dmtree_node_t * node;
-        SmlItemPtr_t itemP;
-        SmlItemListPtr_t newListP;
-
-        node = (dmtree_node_t*)dmc_ptr_array_get(&nodeArray, i);
-        itemP = prv_convert_node_to_item(node);
-        if (!itemP)
-        {
-            continue;
-        }
-
-        newListP = (SmlItemListPtr_t) malloc(sizeof(SmlItemList_t));
-        if (newListP)
-        {
-            newListP->item = itemP;
-            newListP->next = listP;
-            listP = newListP;
-        }
-    }
-
-    return listP;
-}
-
 static int prv_fill_item(SmlItemPtr_t itemP,
-                         dmtree_node_t * nodeP)
+                         dmtree_node_t node)
 {
     itemP->source = smlAllocSource();
     if (!itemP->source)
     {
         return OMADM_SYNCML_ERROR_COMMAND_FAILED;
     }
-    itemP->source->locURI = smlString2Pcdata(nodeP->target_uri);
-    itemP->data = smlString2Pcdata((char *)(nodeP->data_buffer));
-    itemP->meta = convert_to_meta(nodeP->format, nodeP->type);
+    itemP->source->locURI = smlString2Pcdata(node.uri);
+    itemP->data = smlString2Pcdata((char *)(node.data_buffer));
+    itemP->meta = convert_to_meta(node.format, node.type);
 
     return OMADM_SYNCML_ERROR_SUCCESS;
+}
+
+static int prv_get(internals_t * internP,
+                   const char * uri,
+                   SmlItemPtr_t resultP)
+{
+    int code = OMADM_SYNCML_ERROR_COMMAND_FAILED;
+    dmtree_node_t node;
+
+    node.uri = strdup(uri);
+    if (node.uri)
+    {
+        code = dmtree_get(internP->dmtreeH, &node);
+        if (OMADM_SYNCML_ERROR_NONE == code)
+        {
+            code = prv_fill_item(resultP, node);
+            prv_node_clean(node, true);
+        }
+    }
+    return code;
+}
+
+static int prv_get_to_list(internals_t * internP,
+                           const char * uri,
+                           SmlItemListPtr_t * listP)
+{
+    int code = OMADM_SYNCML_ERROR_COMMAND_FAILED;
+    SmlItemPtr_t itemP = NULL;
+
+    itemP = smlAllocItem();
+    if (itemP)
+    {
+        code = prv_get(internP, uri, itemP);
+
+        if (OMADM_SYNCML_ERROR_SUCCESS == code)
+        {
+            SmlItemListPtr_t newListP;
+
+            newListP = (SmlItemListPtr_t) malloc(sizeof(SmlItemList_t));
+            if (newListP)
+            {
+                newListP->item = itemP;
+                newListP->next = *listP;
+                *listP = newListP;
+
+                code = OMADM_SYNCML_ERROR_SUCCESS;
+            }
+        }
+        if (OMADM_SYNCML_ERROR_SUCCESS != code)
+        {
+            smlFreeItemPtr(itemP);
+        }
+    }
+
+    return code;
 }
 
 int get_server_account (internals_t * internP,
@@ -123,25 +128,33 @@ int get_server_account (internals_t * internP,
 SmlReplacePtr_t get_device_info(internals_t * internP)
 {
     SmlReplacePtr_t replaceP = NULL;
-    dmc_ptr_array device_info;
+    SmlItemListPtr_t listP = NULL;
 
     if (internP == NULL)
     {
         goto error;
     }
 
-    dmc_ptr_array_make(&device_info, 5, (dmc_ptr_array_des)dmtree_node_free);
-    if (OMADM_SYNCML_ERROR_NONE == dmtree_get_device_info(internP->dmtreeH, &device_info))
+    if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/Mod", &listP))
+        goto error;
+    if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/Man", &listP))
+        goto error;
+    if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/DevId", &listP))
+        goto error;
+    if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/Lang", &listP))
+        goto error;
+    if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/DmV", &listP))
+        goto error;
+
+    replaceP = smlAllocReplace();
+    if (replaceP)
     {
-        replaceP = smlAllocReplace();
-        if (replaceP)
-        {
-            replaceP->itemList = prv_convert_array_to_list(device_info);
-        }
-        dmc_ptr_array_free(&device_info);
+        replaceP->itemList = listP;
+        listP = NULL;
     }
 
 error:
+    if (listP) smlFreeItemList(listP);
     return replaceP;
 }
 
@@ -151,17 +164,11 @@ int get_node(internals_t * internP,
 {
     int code;
     char * uri;
-    dmtree_node_t * node;
 
     uri = smlPcdata2String(itemP->target->locURI);
     if (!uri) return OMADM_SYNCML_ERROR_NOT_FOUND;
 
-    code = dmtree_get(internP->dmtreeH, uri, &node);
-    if (OMADM_SYNCML_ERROR_NONE == code)
-    {
-        code = prv_fill_item(resultP, node);
-        dmtree_node_free(node);
-    }
+    code = prv_get(internP, uri, resultP);
 
     return code;
 }
@@ -173,15 +180,15 @@ int add_node(internals_t * internP,
     dmtree_node_t node;
 
     memset(&node, 0, sizeof(dmtree_node_t));
-    node.target_uri = smlPcdata2String(itemP->target->locURI);
+    node.uri = smlPcdata2String(itemP->target->locURI);
     extract_from_meta(itemP->meta, &(node.format), &(node.type));
     node.data_size = itemP->data->length;
-    node.data_buffer = (uint8_t *)(itemP->data->content);
+    node.data_buffer = itemP->data->content;
 
     code = dmtree_add(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
 
-    prv_node_clean(node);
+    prv_node_clean(node, false);
 
     return code;
 }
@@ -204,15 +211,15 @@ int replace_node(internals_t * internP,
     dmtree_node_t node;
 
     memset(&node, 0, sizeof(dmtree_node_t));
-    node.target_uri = smlPcdata2String(itemP->target->locURI);
+    node.uri = smlPcdata2String(itemP->target->locURI);
     extract_from_meta(itemP->meta, &(node.format), &(node.type));
     node.data_size = itemP->data->length;
-    node.data_buffer = (uint8_t *)(itemP->data->content);
+    node.data_buffer = itemP->data->content;
 
     code = dmtree_replace(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
 
-    prv_node_clean(node);
+    prv_node_clean(node, false);
 
     return code;
 }

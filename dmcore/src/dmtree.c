@@ -1,9 +1,7 @@
 /******************************************************************************
  * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
  * Copyright (c) 2007 PalmSource, Inc (an ACCESS company). All rights reserved.
- * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
- * Copyright (c) 2007, ACCESS Systems Americas, Inc. All rights reserved.
- * Copyright (C) 2011  Intel Corporation. All rights reserved.
+ * Copyright (c) 2011  Intel Corporation. All rights reserved.
  *****************************************************************************/
 
 /*!
@@ -22,7 +20,6 @@
 
 #include "error_macros.h"
 #include "log.h"
-#include "dyn_buf.h"
 #include "dmtree.h"
 #include "internals.h"
 
@@ -40,13 +37,14 @@
 #define OMADM_DMTNDS_XML_TYPE_VAL	"application/vnd.syncml.dmtnds+xml"
 #define OMADM_DMTNDS_WBXML_TYPE_VAL	"application/vnd.syncml.dmtnds+wbxml"
 
-#define OMADM_REPLACE_ACL		"Add=%s&Delete=%s&Replace=%s&Get=%s"
-
 #define OMADM_COMMAND_ADD 		"Add="
 #define OMADM_COMMAND_GET 		"Get="
 #define OMADM_COMMAND_REPLACE 	"Replace="
 #define OMADM_COMMAND_EXECUTE	"Exec="
 #define OMADM_COMMAND_DELETE	"Delete="
+
+#define OMADM_TOKEN_PROP "?prop="
+#define OMADM_TOKEN_LIST "?list="
 
 #define OMADM_ACL_GET_SET		(uint8_t) 1 << 0
 #define OMADM_ACL_ADD_SET		(uint8_t) 1 << 1
@@ -54,89 +52,77 @@
 #define OMADM_ACL_EXEC_SET		(uint8_t) 1 << 3
 #define OMADM_ACL_REPLACE_SET	(uint8_t) 1 << 4
 
-static int prv_read_leaf_node(dmtree_t * handle, const char *uri,
-				dmtree_node_t **leaf_node)
-{
-	DMC_ERR_MANAGE;
-	dmtree_node_t *node;
-	char *value = NULL;
-
-	DMC_FAIL_NULL(node, malloc(sizeof(*node)),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	memset(node, 0, sizeof(*node));
-
-	DMC_FAIL_NULL(node->target_uri, strdup(uri),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	DMC_FAIL(momgr_get_meta(handle->MOs, uri,
-						 OMADM_NODE_PROPERTY_FORMAT,
-						 &node->format));
-
-	DMC_FAIL(momgr_get_meta(handle->MOs,
-						 uri, OMADM_NODE_PROPERTY_TYPE,
-						 &node->type));
-
-	DMC_FAIL(momgr_get_value(handle->MOs, uri,
-						  &value));
-
-	node->data_size = strlen(value);
-	node->data_buffer = (uint8_t *) value;
-
-	*leaf_node = node;
-	node = NULL;
-
-DMC_ON_ERR:
-
-	dmtree_node_free(node);
-
-	return DMC_ERR;
-}
-
-int dmtree_validate_uri(const char *uri, bool allow_props)
+int dmtree_validate_uri(const char *uri,
+                        char ** oNodeURI,
+                        char ** oPropId)
 {
 	DMC_ERR_MANAGE;
 
 	unsigned int segments = 1;
 	char *uri_ptr;
 	char *old_uri_ptr;
-	char *prop_ptr;
 	unsigned int seg_len;
-	unsigned int uri_len = strlen(uri);
-	const char *question;
+	unsigned int uri_len;
 
-	if (uri_len > OMADM_DEVDETAILS_MAX_TOT_LEN)
-		DMC_FAIL(OMADM_SYNCML_ERROR_URI_TOO_LONG);
+    DMC_FAIL_ERR(!uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+    DMC_FAIL_ERR(oPropId && !oNodeURI, OMADM_SYNCML_ERROR_COMMAND_FAILED);
 
-	if (strcmp(uri, ".")) {
-		if (uri_len < 2)
-			DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
-		else if ((strncmp(uri, "./", 2) && strncmp(uri, ".?", 2))
-			 || (uri[uri_len - 1] == '/'))
-			DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
-		else {
-			question = strchr(uri, '?');
-			if (question) {
-				if (!allow_props)
-					DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
-				else if (*(question - 1) == '/')
-					DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
+    if (oNodeURI) *oNodeURI = NULL;
+    if (oPropId) *oPropId = NULL;
+
+    uri_len = strlen(uri);
+	DMC_FAIL_ERR(uri_len > OMADM_DEVDETAILS_MAX_TOT_LEN, OMADM_SYNCML_ERROR_URI_TOO_LONG);
+
+	if (strcmp(uri, "."))
+	{
+		DMC_FAIL_ERR(uri_len < 2, OMADM_SYNCML_ERROR_NOT_FOUND);
+		if ((strncmp(uri, "./", 2) && strncmp(uri, ".?", 2))
+		|| (uri[uri_len - 1] == '/'))
+		{
+			DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_FOUND);
+		}
+		else
+		{
+		    const char * question;
+
+		    question = strchr(uri, '?');
+		    if (question)
+			{
+                char *prop_str;
+
+				DMC_FAIL_ERR(!oPropId, OMADM_SYNCML_ERROR_NOT_ALLOWED);
+				DMC_FAIL_ERR(*(question - 1) == '/', OMADM_SYNCML_ERROR_NOT_FOUND);
+
+                DMC_FAIL_ERR(!strstr(uri, OMADM_TOKEN_LIST), OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
+
+                DMC_FAIL_NULL(*oNodeURI, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                DMC_FAIL_NULL(prop_str, strstr(*oNodeURI, OMADM_TOKEN_PROP), OMADM_SYNCML_ERROR_NOT_FOUND);
+
+                *oNodeURI[prop_str - *oNodeURI] = 0;
+                DMC_FAIL_NULL(*oPropId, strdup(prop_str + strlen(OMADM_TOKEN_PROP)), OMADM_SYNCML_ERROR_DEVICE_FULL);
 			}
 		}
+	}
+    if (oNodeURI && !*oNodeURI)
+	{
+	    DMC_FAIL_NULL(*oNodeURI, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
 	}
 
 	/* Let's count the segments */
 
 	uri_ptr = strchr(uri, '/');
-
-	while (uri_ptr) {
+	while (uri_ptr)
+	{
 		++segments;
 		old_uri_ptr = uri_ptr + 1;
 		uri_ptr = strchr(old_uri_ptr, '/');
 
 		if (uri_ptr)
 			seg_len = (unsigned int) (uri_ptr - old_uri_ptr);
-		else {
+		else
+		{
+		    char * prop_ptr;
+
 			prop_ptr = strchr(old_uri_ptr, '?');
 			if (prop_ptr)
 				seg_len = (unsigned int) (prop_ptr - old_uri_ptr);
@@ -144,753 +130,70 @@ int dmtree_validate_uri(const char *uri, bool allow_props)
 				seg_len = strlen(old_uri_ptr);
 		}
 
-		if (seg_len > OMADM_DEVDETAILS_MAX_SEG_LEN)
-			DMC_FAIL(OMADM_SYNCML_ERROR_URI_TOO_LONG);
+		DMC_FAIL_ERR(seg_len > OMADM_DEVDETAILS_MAX_SEG_LEN, OMADM_SYNCML_ERROR_URI_TOO_LONG);
 	}
 
-	if (segments > OMADM_DEVDETAILS_MAX_DEPTH_LEN)
-		DMC_FAIL(OMADM_SYNCML_ERROR_URI_TOO_LONG);
+	DMC_FAIL_ERR(segments > OMADM_DEVDETAILS_MAX_DEPTH_LEN, OMADM_SYNCML_ERROR_URI_TOO_LONG);
+
+	DMC_LOGF("%s exitted with error %d",__FUNCTION__, DMC_ERR);
+    return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
+    if (oNodeURI && *oNodeURI)
+    {
+        free(*oNodeURI);
+        *oNodeURI = NULL;
+    }
+    if (oPropId && *oPropId)
+    {
+        free(*oPropId);
+        *oPropId = NULL;
+    }
 	DMC_LOGF("%s exitted with error %d",__FUNCTION__, DMC_ERR);
 
 	return DMC_ERR;
 }
 
-static int prv_validate_access_rights(dmtree_t * handle, const char *uri,
-				      const char *cmd_name)
+static int prv_check_acl_command(char *command)
 {
-	DMC_ERR_MANAGE;
-
-	int allowed = 0;
-	OMADM_AccessRights rights = 0;
-
-	DMC_FAIL(momgr_get_access_rights(handle->MOs,
-							  uri, &rights));
-
-	if (!strcmp(cmd_name, OMADM_COMMAND_GET))
-		allowed = rights & OMADM_ACCESS_GET;
-	else if (!strcmp(cmd_name, OMADM_COMMAND_ADD))
-		allowed = rights & OMADM_ACCESS_ADD;
-	else if (!strcmp(cmd_name, OMADM_COMMAND_REPLACE))
-		allowed = rights & OMADM_ACCESS_REPLACE;
-	else if (!strcmp(cmd_name, OMADM_COMMAND_DELETE))
-		allowed = rights & OMADM_ACCESS_DELETE;
-	else if (!strcmp(cmd_name, OMADM_COMMAND_EXECUTE))
-		allowed = rights & OMADM_ACCESS_EXEC;
-
-	if (!allowed)
-		DMC_ERR = OMADM_SYNCML_ERROR_NOT_ALLOWED;
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_access_granted(dmtree_t* handle,
-			      const char *acl, const char *cmd_name,
-			      bool force_check, bool *granted)
-{
-	DMC_ERR_MANAGE;
-	char *cmd_begin;
-	char *cmd_end;
-	bool access_granted;
-	char *acl_copy = NULL;
-	const char *server_id;
-	char *save_ptr = NULL;
-
-	/* ACL checks may need to be disabled when adding TNDS docs */
-
-	if (force_check)
-		access_granted = true;
-	else
+	if (strcmp(command, "Get"))
 	{
-		access_granted = false;
-
-		DMC_FAIL_NULL(acl_copy, strdup(acl),
-				   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-		cmd_begin = strstr(acl_copy, cmd_name);
-		if (cmd_begin)
-		{
-			/* ACL contains this command */
-
-			cmd_begin += strlen(cmd_name);
-			cmd_end = strstr(cmd_begin, "&");
-			if (cmd_end)
-				*cmd_end = 0;
-
-			/* Check if "*" */
-
-			if (!strcmp(cmd_begin, "*"))
-				access_granted = true;
-			else
-			{
-				/* Look for iServerId
-				   It's list separated by "+" */
-
-				server_id = strtok_r(cmd_begin, "+", &save_ptr);
-
-				while (server_id) {
-					if (!strcmp(server_id,
-						    handle->server_id)) {
-						access_granted = true;
-						break;
-					}
-					server_id = strtok_r(NULL, "+", &save_ptr);
-				}
-			}
-		}
-	}
-
-	*granted = access_granted;
-
-DMC_ON_ERR:
-
-	if (acl_copy)
-		free(acl_copy);
-
-	return DMC_ERR;
-}
-
-
-static int prv_check_node_acl_rights(dmtree_t * handle,
-				     const char *acl_uri,
-				     const char *cmd_name,
-				     bool force_check)
-{
-	DMC_ERR_MANAGE;
-
-	char *acl = NULL;
-	bool access_granted;
-
-	/* Get ACL Value for this node and command */
-
-	DMC_FAIL(momgr_find_inherited_acl(handle->MOs,
-							   acl_uri, &acl));
-
-	DMC_FAIL(prv_access_granted(handle, acl, cmd_name,
-					 force_check, &access_granted));
-
-	if (!access_granted)
-		DMC_ERR = OMADM_SYNCML_ERROR_PERMISSION_DENIED;
-
-DMC_ON_ERR:
-
-	if (acl)
-		free(acl);
-
-	return DMC_ERR;
-}
-
-static int prv_check_node_access_rights(dmtree_t * handle,
-					const char *uri,
-					const char *acl_uri,
-					const char *cmd_name,
-					bool force_check)
-{
-	DMC_ERR_MANAGE;
-
-	DMC_FAIL(prv_validate_access_rights(handle, uri, cmd_name));
-	DMC_FAIL(prv_check_node_acl_rights(handle, acl_uri, cmd_name,
-						force_check));
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_build_child_list(dmtree_t * handle, const char *uri,
-				char **child_list)
-{
-	DMC_ERR_MANAGE;
-	dmc_buf buff;
-	bool empty = true;
-	const char *path;
-	const char *node_name;
-	unsigned int i = 0;
-	dmc_ptr_array children;
-
-	DMC_LOGF("%s called for <%s>", __FUNCTION__, uri);
-
-	dmc_buf_make(&buff, 128);
-	dmc_ptr_array_make(&children, 16, free);
-
-	DMC_FAIL(momgr_get_children(handle->MOs,
-							uri, &children));
-
-	for (i = 0; i < dmc_ptr_array_get_size(&children); ++i) {
-		path = dmc_ptr_array_get(&children, i);
-
-		node_name = strrchr(path,'/');
-		if (node_name) {
-			DMC_FAIL(DMC_ERR);
-			if (!empty)
-				DMC_FAIL(dmc_buf_append_str
-					      (&buff, "/"));
-			DMC_FAIL(
-				dmc_buf_append_str(&buff,
-							       node_name+1));
-			empty = false;
-		}
-	}
-
-	if (!empty) {
-		DMC_FAIL(dmc_buf_zero_terminate(&buff));
-		*child_list = (char*) dmc_buf_adopt(&buff);
-	} else
-		DMC_FAIL_NULL(*child_list, strdup(""),
-				   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-DMC_ON_ERR:
-
-	dmc_ptr_array_free(&children);
-	dmc_buf_free(&buff);
-
-	DMC_LOGF("%s exit.  Error <%d>", __FUNCTION__, DMC_ERR);
-
-	return DMC_ERR;
-}
-
-static int prv_read_non_leaf_node(dmtree_t * handle, const char *uri,
-					dmtree_node_t **non_leaf_node)
-{
-	DMC_ERR_MANAGE;
-	dmtree_node_t *node;
-	char *value = NULL;
-
-	DMC_FAIL_NULL(node, malloc(sizeof(*node)),
-				OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	memset(node, 0, sizeof(*node));
-
-	DMC_FAIL_NULL(node->target_uri, strdup(uri),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	DMC_FAIL(prv_build_child_list(handle, uri, &value));
-
-	DMC_FAIL_NULL(node->format, strdup(OMADM_NODE_FORMAT_VAL),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	DMC_FAIL_NULL(node->type, strdup("text/plain"),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	node->data_size = strlen(value);
-	node->data_buffer = (uint8_t *) value;
-
-	*non_leaf_node = node;
+        if (strcmp(command, "Add"))
+        {
+            if (strcmp(command, "Replace"))
+            {
+                if (strcmp(command, "Delete"))
+                {
+		            if (strcmp(command, "Exec"))
+		            {
+				        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+                    }
+                }
+            }
+        }
+    }
 
 	return OMADM_SYNCML_ERROR_NONE;
-
-DMC_ON_ERR:
-
-	free(value);
-	dmtree_node_free(node);
-
-	return DMC_ERR;
 }
 
-static int prv_read_prop_node(dmtree_t * handle, const char *node_uri,
-			      const char *uri, const char *prop,
-			      dmtree_node_t **prop_node)
+static int prv_check_server_id(const char *server)
 {
-	DMC_ERR_MANAGE;
-	dmtree_node_t *node;
-	char *value = NULL;
-	const char *node_name;
+    if ((NULL == server) || (*server == 0))
+        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
 
-	DMC_FAIL_NULL(node, malloc(sizeof(*node)),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	memset(node, 0, sizeof(*node));
-
-	DMC_FAIL_NULL(node->target_uri, strdup(uri),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	DMC_FAIL_NULL(node->format, strdup("chr"),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	DMC_FAIL_NULL(node->type, strdup("text/plain"),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	if (!strcmp(prop, OMADM_NODE_PROPERTY_NAME)) {
-		node_name = strcmp(node_uri, ".") ? strrchr(node_uri, '/') + 1 : ".";
-		DMC_FAIL_NULL(value, strdup(node_name),
-				   OMADM_SYNCML_ERROR_DEVICE_FULL);
-	} else {
-		DMC_ERR = momgr_get_meta(handle->MOs,
-							    node_uri, prop,
-							    &value);
-
-		if (DMC_ERR == OMADM_SYNCML_ERROR_NOT_FOUND)
-			DMC_FAIL_NULL(value, strdup(""),
-					   OMADM_SYNCML_ERROR_DEVICE_FULL);
-		else
-			DMC_FAIL(DMC_ERR);
+	while (*server)
+	{
+		if (!isascii((int)*server) ||
+		    !isprint((int)*server) ||
+		    isspace((int)*server) ||
+		    *server == '=' ||
+		    *server == '&' || *server == '*' || *server == '+')
+			    return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+		++server;
 	}
-
-	node->data_size = strlen(value);
-	node->data_buffer = (uint8_t *) value;
-
-	*prop_node = node;
 
 	return OMADM_SYNCML_ERROR_NONE;
-
-DMC_ON_ERR:
-
-	free(value);
-	dmtree_node_free(node);
-
-	return DMC_ERR;
-}
-
-static int prv_get_node(dmtree_t* handle, OMADM_NodeType node_exists,
-			const char *uri, dmtree_node_t **node)
-{
-	DMC_ERR_MANAGE;
-
-	DMC_LOGF("reading node %s", uri);
-
-	if (node_exists == OMADM_NODE_IS_LEAF) {
-		DMC_LOG("Reading leaf node");
-
-		DMC_FAIL(prv_read_leaf_node(handle, uri, node));
-	} else {
-
-		DMC_LOG("Building child list");
-
-		DMC_FAIL(prv_read_non_leaf_node(handle, uri, node));
-	}
-
-	DMC_LOGF("value %s format %s type %s", (*node)->data_buffer,
-		      (*node)->format, (*node)->type);
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_get_prop(dmtree_t * handle, const char *node_uri,
-			const char *uri, dmtree_node_t **node)
-{
-	DMC_ERR_MANAGE;
-	char *prop_name = strstr(uri, "=") + 1;
-
-	DMC_LOGF("reading property %s", uri);
-
-	if (!strcmp(prop_name, OMADM_NODE_PROPERTY_SIZE) ||
-		   !strcmp(prop_name, OMADM_NODE_PROPERTY_VERSION) ||
-		   !strcmp(prop_name, OMADM_NODE_PROPERTY_SIZE) ||
-		   !strcmp(prop_name, OMADM_NODE_PROPERTY_TITLE))
-		DMC_FAIL(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-	else
-		DMC_FAIL(prv_read_prop_node(handle, node_uri, uri,
-						 prop_name, node));
-
-	DMC_LOGF("value %s format %s type %s", (*node)->data_buffer,
-		      (*node)->format, (*node)->type);
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-int dmtree_get(dmtree_t * handle, const char *uri, dmtree_node_t **node)
-{
-	DMC_ERR_MANAGE;
-
-	OMADM_NodeType node_exists;
-	char *node_uri = NULL;
-	char *tmp_ptr;
-
-	DMC_LOGF("%s called. URI %s", __FUNCTION__, uri);
-
-	DMC_FAIL(dmtree_validate_uri(uri, true));
-
-	DMC_FAIL_NULL(node_uri, strdup(uri),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	tmp_ptr = strstr(node_uri, "?");
-	if (tmp_ptr)
-		*tmp_ptr = 0;
-
-	DMC_FAIL(momgr_exists(handle->MOs, node_uri,
-					       &node_exists));
-
-	if (node_exists == OMADM_NODE_NOT_EXIST)
-		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
-
-	DMC_FAIL(prv_check_node_access_rights(handle, node_uri, node_uri,
-						   OMADM_COMMAND_GET, false));
-
-	if (!strstr(uri, "?"))
-		DMC_FAIL(prv_get_node(handle, node_exists, uri, node));
-	else if (strstr(uri, "?list=") != NULL)
-	{
-		DMC_FAIL(
-			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-		DMC_LOG("?list not supported");
-	}
-	else
-		DMC_FAIL(prv_get_prop(handle, node_uri, uri, node));
-
-DMC_ON_ERR:
-
-	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
-
-	if (node_uri)
-		free(node_uri);
-
-	return DMC_ERR;
-}
-
-static int prv_read_and_add_node(dmtree_t * handle, const char *uri,
-				 dmc_ptr_array *list)
-{
-	DMC_ERR_MANAGE;
-	dmtree_node_t* node;
-
-	DMC_FAIL(prv_read_leaf_node(handle, uri, &node));
-
-	DMC_FAIL_ERR(dmc_ptr_array_append(list, node),
-			    OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	node = NULL;
-
-DMC_ON_ERR:
-
-	dmtree_node_free(node);
-
-	return DMC_ERR;
-}
-
-int dmtree_delete(dmtree_t * handle, const char *uri)
-{
-	DMC_ERR_MANAGE;
-	OMADM_NodeType node_exists;
-
-	DMC_LOGF("%s called.", __FUNCTION__);
-
-	if (!uri)
-		DMC_FAIL(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-
-	/* TODO: Copy strip everything uri */
-
-	DMC_LOGF("deleting %s", uri);
-
-	DMC_FAIL(dmtree_validate_uri(uri, false));
-
-	DMC_FAIL(momgr_exists(handle->MOs,
-					       uri, &node_exists));
-
-	if (node_exists == OMADM_NODE_NOT_EXIST)
-		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
-
-	DMC_FAIL(prv_check_node_access_rights(handle, uri, uri,
-						   OMADM_COMMAND_DELETE,
-						   false));
-
-	DMC_FAIL(momgr_delete_node(handle->MOs,uri));
-
-DMC_ON_ERR:
-
-	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
-
-	return DMC_ERR;
-}
-
-static int prv_find_subtree_ancestor(dmtree_t * handle, const char *uri,
-				     char **subtree_parent, char **subtree_root,
-				     OMADM_NodeType *subtree_parent_type,
-				     unsigned int *subtree_depth)
-{
-	DMC_ERR_MANAGE;
-
-	char *str = NULL;
-	char *tok = NULL;
-	char *parent;
-	OMADM_NodeType node_exists = OMADM_NODE_NOT_EXIST;
-	unsigned int depth = 0;
-
-	DMC_FAIL_NULL(str, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	/* Find the highest implicit parent interior node with no ACL */
-
-	while ((node_exists == OMADM_NODE_NOT_EXIST) &&
-			(tok = strrchr(str, '/'))) {
-
-		*tok = 0;
-		DMC_FAIL(momgr_exists(handle->MOs,
-						       str, &node_exists));
-		++depth;
-	}
-
-	DMC_FAIL_NULL(parent, strdup(str), OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	*subtree_parent = parent;
-	*subtree_parent_type = node_exists;
-	if (tok) *tok = '/';
-	*subtree_root = str;
-	*subtree_depth = depth;
-
-	return OMADM_SYNCML_ERROR_NONE;
-
-DMC_ON_ERR:
-
-	free(str);
-
-	return DMC_ERR;
-}
-
-static int prv_update_replace_acl(dmtree_t * handle, const char *uri)
-{
-	DMC_ERR_MANAGE;
-
-	char *acl = NULL;
-	const char *acl_server_id = handle->server_id;
-
-	/* Set the ACL to Add/Delete/Replace/Get for this server */
-
-	DMC_FAIL_NULL(acl,
-			   malloc(strlen(OMADM_REPLACE_ACL) +
-				  (4 * strlen(acl_server_id))),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-	sprintf(acl, OMADM_REPLACE_ACL, acl_server_id, acl_server_id,
-		acl_server_id, acl_server_id);
-
-	DMC_FAIL(momgr_set_meta(handle->MOs,
-						 uri,
-						 OMADM_NODE_PROPERTY_ACL,
-						 acl));
-
-DMC_ON_ERR:
-
-	if (acl)
-		free(acl);
-
-	return DMC_ERR;
-}
-
-static int prv_update_leaf_node(dmtree_t * handle, const dmtree_node_t *node)
-{
-	DMC_ERR_MANAGE;
-
-	DMC_FAIL(momgr_set_value(handle->MOs,
-						  node->target_uri,
-						  (char*) node->data_buffer));
-
-	if (node->format && strcmp(node->format,"chr"))
-		DMC_FAIL(momgr_set_meta(handle->MOs,
-							 node->target_uri,
-							 OMADM_NODE_PROPERTY_FORMAT,
-							 node->format));
-
-	if (node->type && strcmp(node->type,"text/plain"))
-		DMC_FAIL(momgr_set_meta(handle->MOs,
-							 node->target_uri,
-							 OMADM_NODE_PROPERTY_TYPE,
-							 node->type));
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_add_leaf_node(dmtree_t * handle, const dmtree_node_t *node,
-			     const char *subtree_parent, const char *subtree_root,
-			     unsigned int subtree_depth)
-{
-	DMC_ERR_MANAGE;
-
-	if (!node->data_buffer)
-		DMC_FAIL(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-
-	DMC_ERR = prv_check_node_acl_rights(handle, subtree_parent,
-							OMADM_COMMAND_REPLACE,
-							false);
-
-	if (DMC_ERR == OMADM_SYNCML_ERROR_PERMISSION_DENIED)
-	{
-		/* We may be implicitly adding non-leaf nodes. If we are
-		   we need to add replace rights to this server for the
-		   highest implicit non-leaf node that we are adding */
-
-		if (subtree_depth > 1)
-			DMC_FAIL(prv_update_replace_acl(handle,
-								subtree_root));
-	}
-	else
-		DMC_FAIL(DMC_ERR);
-
-	DMC_FAIL(prv_update_leaf_node(handle, node));
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_add_non_leaf_node(dmtree_t * handle, const dmtree_node_t *node,
-					const char *subtree_parent,
-					const char *subtree_root)
-{
-	DMC_ERR_MANAGE;
-
-	DMC_ERR = prv_check_node_acl_rights(handle, subtree_parent,
-							OMADM_COMMAND_REPLACE,
-							false);
-
-	if (DMC_ERR == OMADM_SYNCML_ERROR_PERMISSION_DENIED)
-		DMC_FAIL(prv_update_replace_acl(handle, subtree_root));
-	else
-		DMC_FAIL(DMC_ERR);
-
-	DMC_FAIL(momgr_create_non_leaf(handle->MOs,
-							node->target_uri));
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
-{
-	DMC_ERR_MANAGE;
-	OMADM_NodeType node_exists;
-	bool non_leaf_node;
-	char *subtree_parent = NULL;
-	char *subtree_root = NULL;
-	unsigned int subtree_depth = 0;
-
-	DMC_LOGF("%s called.", __FUNCTION__);
-
-	if (!node || !node->target_uri)
-		DMC_FAIL(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-
-	/* TODO: Copy node and strip everything */
-
-	DMC_LOGF("adding %s", node->target_uri);
-
-	DMC_FAIL(dmtree_validate_uri(node->target_uri, false));
-
-	if ((node->format) && (node->type) &&
-	    (!strcmp(node->format, OMADM_XML_FORMAT_VAL)) &&
-	    (!strcmp(node->type, OMADM_DMTNDS_XML_TYPE_VAL) ||
-	     !strcmp(node->type, OMADM_DMTNDS_WBXML_TYPE_VAL)))
-		DMC_FAIL_FORCE(
-			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-
-	DMC_FAIL(momgr_exists(handle->MOs,
-					       node->target_uri,
-					       &node_exists));
-
-	if (node_exists != OMADM_NODE_NOT_EXIST)
-		DMC_FAIL(OMADM_SYNCML_ERROR_ALREADY_EXISTS);
-
-	/*
-	 * Need to check the type of the subtree_parent.
-	 * If this is a leaf node we cannot add.
-	 */
-
-	DMC_FAIL(prv_find_subtree_ancestor(handle, node->target_uri,
-						&subtree_parent, &subtree_root,
-						&node_exists,
-						&subtree_depth));
-
-	DMC_LOGF("Adding subtree depth %u rooted at '%s' to '%s'.",
-		      subtree_depth, subtree_root, subtree_parent);
-
-	if (node_exists == OMADM_NODE_IS_LEAF)
-		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
-
-	DMC_FAIL(prv_check_node_access_rights(handle, node->target_uri,
-						   subtree_parent,
-						   OMADM_COMMAND_ADD, false));
-
-	non_leaf_node = node->format && !strcmp(OMADM_NODE_FORMAT_VAL, node->format);
-
-	if (non_leaf_node)
-		DMC_FAIL(prv_add_non_leaf_node(handle, node,
-						    subtree_parent,
-						    subtree_root));
-	else
-		DMC_FAIL(prv_add_leaf_node(handle, node,
-						subtree_parent,
-						subtree_root,
-						subtree_depth));
-
-DMC_ON_ERR:
-
-	free(subtree_parent);
-	free(subtree_root);
-
-	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
-
-	return DMC_ERR;
-}
-
-static int prv_check_acl_command(char *command, uint8_t *cmd_field)
-{
-	DMC_ERR_MANAGE;
-
-	if (!strcmp(command, "Get")) {
-		if (*cmd_field & OMADM_ACL_GET_SET)
-			DMC_ERR = OMADM_SYNCML_ERROR_COMMAND_FAILED;
-		else
-			*cmd_field |= OMADM_ACL_GET_SET;
-	}
-	else if (!strcmp(command, "Add")) {
-		if (*cmd_field & OMADM_ACL_ADD_SET)
-			DMC_ERR = OMADM_SYNCML_ERROR_COMMAND_FAILED;
-		else
-			*cmd_field |= OMADM_ACL_ADD_SET;
-	}
-	else if (!strcmp(command, "Delete")) {
-		if (*cmd_field & OMADM_ACL_DELETE_SET)
-			DMC_ERR = OMADM_SYNCML_ERROR_COMMAND_FAILED;
-		else
-			*cmd_field |= OMADM_ACL_DELETE_SET;
-	}
-	else if (!strcmp(command, "Exec")) {
-		if (*cmd_field & OMADM_ACL_EXEC_SET)
-			DMC_ERR = OMADM_SYNCML_ERROR_COMMAND_FAILED;
-		else
-			*cmd_field |= OMADM_ACL_EXEC_SET;
-	}
-	else if (!strcmp(command, "Replace")) {
-		if (*cmd_field & OMADM_ACL_REPLACE_SET)
-			DMC_ERR = OMADM_SYNCML_ERROR_COMMAND_FAILED;
-		else
-			*cmd_field |= OMADM_ACL_REPLACE_SET;
-	}
-	else
-		DMC_ERR = OMADM_SYNCML_ERROR_COMMAND_FAILED;
-
-	return DMC_ERR;
-}
-
-static int prv_check_acl_server(const char *server)
-{
-	DMC_ERR_MANAGE;
-
-	if (*server == 0)
-		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-
-	if (strcmp(server, "*"))
-		while (*server) {
-			if (!isascii((int)*server) ||
-			    !isprint((int)*server) ||
-			    isspace((int)*server) ||
-			    *server == '=' ||
-			    *server == '&' || *server == '*' || *server == '+')
-				DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-			++server;
-		}
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
 }
 
 static int prv_check_acl_syntax(const char *acl)
@@ -903,179 +206,309 @@ static int prv_check_acl_syntax(const char *acl)
 	char *cmd_sep = NULL;
 	char *svr_sep = NULL;
 	char *cur_server;
-	uint8_t cmd_field = 0;
 
-	DMC_FAIL_NULL(acl_copy, strdup(acl),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
+	DMC_FAIL_NULL(acl_copy, strdup(acl), OMADM_SYNCML_ERROR_DEVICE_FULL);
 	cur_entry = acl_copy;
 
 	/* Check entry list */
-
-	while (cur_entry && *cur_entry) {
+	while (cur_entry && *cur_entry)
+	{
 		entry_sep = strchr(cur_entry, '&');
-		if (entry_sep)
-			*entry_sep = 0;
+		if (entry_sep) *entry_sep = 0;
 
 		/* Get command name */
-
-		cmd_sep = strchr(cur_entry, '=');
-		if (!cmd_sep)
-			DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_COMMAND_FAILED);
+		DMC_FAIL_NULL(cmd_sep, strchr(cur_entry, '='), OMADM_SYNCML_ERROR_COMMAND_FAILED);
 		*cmd_sep = 0;
-		DMC_FAIL(prv_check_acl_command(cur_entry, &cmd_field));
+		DMC_FAIL(prv_check_acl_command(cur_entry));
 
 		/* Check server list */
-
 		cur_server = cmd_sep + 1;
-		if (*cur_server == 0)
-			DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-		do {
-			/* Get server id */
+		DMC_FAIL_ERR(*cur_server == 0, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+	    if (strcmp(cur_server, "*"))
+	    {
+	        do
+	        {
+		        /* Get server id */
+		        svr_sep = strchr(cur_server, '+');
+		        if (svr_sep) *svr_sep = 0;
 
-			svr_sep = strchr(cur_server, '+');
-			if (svr_sep)
-				*svr_sep = 0;
+		        DMC_FAIL(prv_check_server_id(cur_server));
 
-			DMC_FAIL(prv_check_acl_server(cur_server));
-
-			/* Go next server */
-
-			cur_server = svr_sep ? svr_sep + 1 : NULL;
-
-		} while (cur_server);
-
+		        /* Go next server */
+		        cur_server = svr_sep ? svr_sep + 1 : NULL;
+            } while (cur_server);
+        }
 		/* Go next entry */
-
 		cur_entry = entry_sep ? entry_sep + 1 : NULL;
 	}
 
 DMC_ON_ERR:
 
-	free(acl_copy);
+	if(acl_copy) free(acl_copy);
 
 	return DMC_ERR;
 }
 
-static int prv_replace_acl_property(dmtree_t * handle,
-				    const dmtree_node_t *node, const char *uri,
-				    OMADM_NodeType node_exists)
+static int prv_get_inherited_acl(dmtree_t * handle,
+			                     const char *node_uri,
+			                     char ** oACL)
 {
-	DMC_ERR_MANAGE;
-	char *slash;
-	char *parent_uri = NULL;
-	const char *acl_uri;
+    DMC_ERR_MANAGE;
 
-	if (node_exists == OMADM_NODE_IS_LEAF) {
-		DMC_FAIL_NULL(parent_uri, strdup(uri),
-				   OMADM_SYNCML_ERROR_DEVICE_FULL);
-		slash = strrchr(parent_uri,'/');
-		if (!slash) {
-			/*
-			 * This should never happen as leaf nodes by definition
-			 * must have a parent.
-			 */
+    char *uri = NULL;
+	unsigned int uriLen = 0;
 
-			DMC_FAIL(OMADM_SYNCML_ERROR_SESSION_INTERNAL);
-		}
-		*slash = 0;
-		acl_uri = parent_uri;
-	} else
-		acl_uri = uri;
+    *oACL = NULL;
 
-	DMC_FAIL(prv_check_node_access_rights(handle, uri, acl_uri,
-						   OMADM_COMMAND_REPLACE,
-						   false));
+    DMC_FAIL_NULL(uri, strdup(node_uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+	uriLen = strlen(uri);
 
-	DMC_FAIL(prv_check_acl_syntax((char*) node->data_buffer));
+	while ((uriLen > 0) && (NULL == *oACL))
+	{
+    	DMC_FAIL(momgr_get_ACL(handle->MOs, uri, oACL));
 
-	/* Write the value */
-
-	DMC_FAIL(momgr_set_meta(handle->MOs,
-						 uri,
-						 OMADM_NODE_PROPERTY_ACL,
-						 (char*) node->data_buffer));
-
-DMC_ON_ERR:
-
-	free(parent_uri);
-
-	return DMC_ERR;
-}
-
-static int prv_replace_node_property(dmtree_t * handle,
-				     const dmtree_node_t *node, const char *uri,
-				     const char *nv)
-{
-	DMC_ERR_MANAGE;
-	OMADM_NodeType node_exists;
-
-	DMC_LOGF("Attempting to replace %s property of node %s",
-		      nv, node->target_uri);
-
-	DMC_FAIL(momgr_exists(handle->MOs,
-					       uri, &node_exists));
-
-	if (node_exists == OMADM_NODE_NOT_EXIST)
-		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
-
-	if (!strcmp(nv,OMADM_NODE_PROPERTY_TITLE))
-		DMC_FAIL_FORCE(
-			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-	else if (!strcmp(nv,OMADM_NODE_PROPERTY_NAME))
-		/*
-		 * TODO: This is temporary.
-		 * We need to support renaming of the nodes.
-		 */
-		DMC_FAIL_FORCE(
-			OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-	else if (!strcmp(nv,OMADM_NODE_PROPERTY_ACL))
-		DMC_FAIL(prv_replace_acl_property(handle, node, uri,
-						       node_exists));
-	else
-		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
-
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_replace_node(dmtree_t * handle, const dmtree_node_t *node)
-{
-	DMC_ERR_MANAGE;
-	OMADM_NodeType node_exists;
-
-	DMC_LOGF("Attempting to replace value of node %s",
-		      node->target_uri);
-
-	if ((node->format) && (node->type) &&
-	    (!strcmp(node->format, OMADM_XML_FORMAT_VAL))) {
-		if (!strcmp(node->type, OMADM_DMTNDS_XML_TYPE_VAL) ||
-		    !strcmp(node->type, OMADM_DMTNDS_WBXML_TYPE_VAL))
-			DMC_FAIL_FORCE(
-				OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-		else
-			DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
+		while (uriLen > 0)
+			if (uri[--uriLen] == '/')
+			{
+				uri[uriLen] = 0;
+				break;
+			}
 	}
 
-	DMC_FAIL(momgr_exists(handle->MOs,
-					       node->target_uri,
-					       &node_exists));
+DMC_ON_ERR:
 
-	if (node_exists == OMADM_NODE_NOT_EXIST)
-		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
-	else if (node_exists != OMADM_NODE_IS_LEAF)
-		DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
+	if (uri) free(uri);
 
-	DMC_FAIL(prv_check_node_access_rights(handle, node->target_uri,
-						   node->target_uri,
-						   OMADM_COMMAND_REPLACE, false));
+	return DMC_ERR;
+}
 
-	DMC_LOGF("replacing %s value to", node->target_uri,
-		node->data_buffer);
+static int prv_check_access_rights(dmtree_t * handle,
+				                     const char *acl,
+				                     const char *cmd_name)
+{
+	DMC_ERR_MANAGE;
 
-	DMC_FAIL(prv_update_leaf_node(handle, node));
+    char * cmd_begin;
+    char * cmd_end;
+
+	DMC_FAIL_NULL(cmd_begin, strstr(acl, cmd_name), OMADM_SYNCML_ERROR_PERMISSION_DENIED);
+
+	/* ACL contains this command */
+	cmd_begin += strlen(cmd_name);
+	cmd_end = strstr(cmd_begin, "&");
+	if (cmd_end) *cmd_end = 0;
+
+	/* Check if "*" */
+	if (strcmp(cmd_begin, "*"))
+	{
+		char * server;
+
+		/* Look for server_id in list separated by "+" */
+		DMC_FAIL_NULL(server, strstr(cmd_begin, handle->server_id), OMADM_SYNCML_ERROR_PERMISSION_DENIED);
+
+		if (((server > cmd_begin) && (*(server-1) != '+'))
+		 || ((server[strlen(handle->server_id)] != 0) && (server[strlen(handle->server_id)] != '+')))
+	    {
+	        DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_PERMISSION_DENIED);
+		}
+	}
 
 DMC_ON_ERR:
+
+	return DMC_ERR;
+}
+
+static int prv_check_node_acl_rights(dmtree_t * handle,
+				                     const char *node_uri,
+				                     const char *cmd_name)
+{
+	DMC_ERR_MANAGE;
+
+	char *acl = NULL;
+
+    DMC_FAIL(prv_get_inherited_acl(handle, node_uri, &acl));
+    DMC_FAIL_ERR(!acl, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+    DMC_FAIL(prv_check_access_rights(handle, acl, cmd_name));
+
+DMC_ON_ERR:
+
+    if (acl) free(acl);
+
+	return DMC_ERR;
+}
+
+int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
+{
+	DMC_ERR_MANAGE;
+
+	omadmtree_node_type_t node_exists;
+	char * uri = NULL;
+	char * prop_id = NULL;
+
+    DMC_FAIL_ERR(!node || !node->uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+
+	DMC_LOGF("%s called. URI %s", __FUNCTION__, node->uri);
+
+    node->format = NULL;
+    node->type = NULL;
+    node->data_buffer = NULL;
+    node->data_size = 0;
+
+	DMC_FAIL(dmtree_validate_uri(node->uri, &uri, &prop_id));
+
+	if (prop_id)
+	{
+		DMC_FAIL(momgr_exists(handle->MOs, uri, &node_exists));
+	    DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+        DMC_FAIL(prv_check_node_acl_rights(handle, uri, OMADM_COMMAND_GET));
+
+	    if (!strcmp(prop_id, OMADM_NODE_PROPERTY_NAME))
+		{
+		    char * name;
+
+		    name = strrchr(uri, '/');
+		    if (!name) name = uri;
+		    else name++;
+
+            DMC_FAIL_NULL(node->data_buffer, strdup(name), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            node->data_size = strlen(node->data_buffer);
+		}
+	    else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
+	    {
+		    DMC_FAIL(momgr_get_ACL(handle->MOs, uri, &(node->data_buffer)));
+		    node->data_size = strlen(node->data_buffer);
+		    node->format = strdup("chr");
+		    node->type = strdup("text/plain");
+	    }
+	    else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_TITLE))
+	    {
+		   DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
+	    }
+	    else
+	    {
+		    DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
+	    }
+	    node->format = strdup("chr");
+		node->type = strdup("text/plain");
+	}
+	else
+	{
+        DMC_FAIL(momgr_exists(handle->MOs, node->uri, &node_exists));
+	    DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+    	DMC_FAIL(prv_check_node_acl_rights(handle, node->uri, OMADM_COMMAND_GET));
+        DMC_FAIL(momgr_get_value(handle->MOs, node));
+	}
+
+DMC_ON_ERR:
+
+	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
+
+	if (uri) free(uri);
+	if (prop_id) free(prop_id);
+
+	return DMC_ERR;
+}
+
+int dmtree_delete(dmtree_t * handle, const char *uri)
+{
+	DMC_ERR_MANAGE;
+	omadmtree_node_type_t node_exists;
+
+	DMC_LOGF("%s called.", __FUNCTION__);
+
+	DMC_FAIL_ERR(!uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+
+	DMC_LOGF("deleting %s", uri);
+
+	DMC_FAIL(dmtree_validate_uri(uri, NULL, NULL));
+
+	DMC_FAIL(momgr_exists(handle->MOs, uri, &node_exists));
+
+	DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+
+	DMC_FAIL(prv_check_node_acl_rights(handle, uri, OMADM_COMMAND_DELETE));
+
+	DMC_FAIL(momgr_delete_node(handle->MOs, uri));
+
+DMC_ON_ERR:
+
+	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
+
+	return DMC_ERR;
+}
+
+int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
+{
+	DMC_ERR_MANAGE;
+	omadmtree_node_type_t node_exists;
+	char *parent_uri = NULL;
+	char *parent_acl = NULL;
+	char * token = NULL;
+	char * new_acl = NULL;
+	char * tmp_str = NULL;
+	int error;
+
+	DMC_LOGF("%s called.", __FUNCTION__);
+
+	DMC_FAIL_ERR(!node || !node->uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+
+	DMC_LOGF("adding %s", node->uri);
+
+	DMC_FAIL(dmtree_validate_uri(node->uri, NULL, NULL));
+
+	if ((node->format) && (node->type) &&
+	    (!strcmp(node->format, OMADM_XML_FORMAT_VAL)) &&
+	    (!strcmp(node->type, OMADM_DMTNDS_XML_TYPE_VAL) ||
+	     !strcmp(node->type, OMADM_DMTNDS_WBXML_TYPE_VAL)))
+		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
+
+	DMC_FAIL(momgr_exists(handle->MOs, node->uri, &node_exists));
+
+	DMC_FAIL_ERR((node_exists != OMADM_NODE_NOT_EXIST), OMADM_SYNCML_ERROR_ALREADY_EXISTS);
+
+    DMC_FAIL_NULL(parent_uri, strdup(node->uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+	DMC_FAIL_NULL(token, strrchr(parent_uri, '/'), OMADM_SYNCML_ERROR_COMMAND_FAILED);
+	*token = 0;
+    // If the parent is a leaf node we cannot add. Neither if it does not exist.
+	DMC_FAIL(momgr_exists(handle->MOs, parent_uri, &node_exists));
+	DMC_FAIL_ERR((node_exists != OMADM_NODE_IS_INTERIOR), OMADM_SYNCML_ERROR_NOT_FOUND);
+
+    DMC_FAIL(prv_get_inherited_acl(handle, parent_uri, &parent_acl));
+    DMC_FAIL_ERR(!parent_acl, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+    DMC_FAIL(prv_check_access_rights(handle, parent_acl, OMADM_COMMAND_ADD));
+
+    DMC_FAIL(momgr_set_value(handle->MOs, node));
+
+    // if parent's ACL does not allow replace, set node's ACL to give creating
+    // server Add, Delete and Replace rights
+    error = prv_check_access_rights(handle, parent_acl, OMADM_COMMAND_REPLACE);
+    switch(error)
+    {
+    case OMADM_SYNCML_ERROR_NONE:
+        // OK
+        break;
+    case OMADM_SYNCML_ERROR_PERMISSION_DENIED:
+        {
+            DMC_FAIL_NULL(new_acl, str_cat_3(OMADM_COMMAND_ADD, handle->server_id, "&"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            DMC_FAIL_NULL(tmp_str, str_cat_2(new_acl, OMADM_COMMAND_DELETE), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            free(new_acl);
+            new_acl = NULL;
+            DMC_FAIL_NULL(new_acl, str_cat_5(tmp_str, handle->server_id, "&", OMADM_COMMAND_REPLACE, handle->server_id), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            DMC_FAIL(momgr_set_ACL(handle->MOs, node->uri, new_acl));
+        }
+        break;
+    default:
+        DMC_FAIL(error);
+    }
+
+DMC_ON_ERR:
+
+	if (parent_uri) free(parent_uri);
+	if (parent_acl) free(parent_acl);
+	if (new_acl) free(new_acl);
+	if (tmp_str) free(tmp_str);
+
+	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
 
 	return DMC_ERR;
 }
@@ -1083,65 +516,58 @@ DMC_ON_ERR:
 int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node)
 {
 	DMC_ERR_MANAGE;
-	char *uri_copy = NULL;
-	char *prop;
-	const char *nv;
-	const char prop_id[] = "?prop=";
+	omadmtree_node_type_t node_exists;
+	char *uri = NULL;
+	char *prop_id = NULL;
 
 	DMC_LOGF("%s called.", __FUNCTION__);
 
-	if (!node || !node->target_uri)
+	if (!node || !node->uri || !node->data_buffer)
 		DMC_FAIL(OMADM_SYNCML_ERROR_COMMAND_FAILED);
 
-	/* TODO: Copy node and strip everything */
+	DMC_LOGF("replacing %s", node->uri);
 
-	DMC_LOGF("replacing %s", node->target_uri);
+	DMC_FAIL(dmtree_validate_uri(node->uri, &uri, &prop_id));
 
-	DMC_FAIL(dmtree_validate_uri(node->target_uri, true));
-
-	prop = strstr(node->target_uri, prop_id);
-	if (prop)
+	if (prop_id)
 	{
-		DMC_FAIL_NULL(uri_copy, strdup(node->target_uri),
-				   OMADM_SYNCML_ERROR_DEVICE_FULL);
-		uri_copy[prop - node->target_uri] = 0;
-		nv = prop + (sizeof(prop_id) - 1);
-		DMC_FAIL(prv_replace_node_property(handle, node, uri_copy,
-							nv));
+		DMC_FAIL(momgr_exists(handle->MOs, uri, &node_exists));
+	    DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+        DMC_FAIL(prv_check_node_acl_rights(handle, uri, OMADM_COMMAND_REPLACE));
+
+	    if (!strcmp(prop_id, OMADM_NODE_PROPERTY_NAME))
+		{
+            DMC_FAIL_ERR(!strstr(node->data_buffer, "/"), OMADM_SYNCML_ERROR_COMMAND_FAILED);
+            DMC_FAIL(momgr_rename_node(handle->MOs, uri, node->data_buffer));
+		}
+	    else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
+	    {
+            DMC_FAIL(prv_check_acl_syntax(node->data_buffer));
+		    DMC_FAIL(momgr_set_ACL(handle->MOs, uri, node->data_buffer));
+	    }
+	    else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_TITLE))
+	    {
+		   DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
+	    }
+	    else
+	    {
+		    DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
+	    }
 	}
 	else
-		DMC_FAIL(prv_replace_node(handle, node));
+	{
+        DMC_FAIL(momgr_exists(handle->MOs, node->uri, &node_exists));
+	    DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+    	DMC_FAIL(prv_check_node_acl_rights(handle, node->uri, OMADM_COMMAND_REPLACE));
+        DMC_FAIL(momgr_set_value(handle->MOs, node));
+	}
 
 DMC_ON_ERR:
 
-	free(uri_copy);
+	if (uri) free(uri);
+	if (prop_id) free(prop_id);
 
 	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
-
-	return DMC_ERR;
-}
-
-int dmtree_get_device_info(dmtree_t * handle,
-			      dmc_ptr_array *device_info)
-{
-	DMC_ERR_MANAGE;
-
-	DMC_LOG("Retrieving device info.");
-
-	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/Mod",
-					    device_info));
-	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/Man",
-					    device_info));
-	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/DevId",
-					    device_info));
-	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/Lang",
-					    device_info));
-	DMC_FAIL(prv_read_and_add_node(handle, "./DevInfo/DmV",
-					    device_info));
-
-DMC_ON_ERR:
-
-	DMC_LOGF("Device Info retrieved with error %d", DMC_ERR);
 
 	return DMC_ERR;
 }
@@ -1149,64 +575,8 @@ DMC_ON_ERR:
 int dmtree_copy(dmtree_t * handle, const char *source_uri,
 		       const char *target_uri)
 {
-	DMC_ERR_MANAGE;
-	OMADM_NodeType node_exists;
-	const char *cmd_name;
-	dmtree_node_t *leaf_node = NULL;
-
-	DMC_LOGF("%s called.", __FUNCTION__);
-
-	if (!source_uri || !target_uri)
-		DMC_FAIL(OMADM_SYNCML_ERROR_COMMAND_FAILED);
-
-	/* TODO: Copy strip everything uri */
-
-	DMC_LOGF("copying %s to %s", source_uri, target_uri);
-
-	DMC_FAIL(dmtree_validate_uri(source_uri, false));
-
-	DMC_FAIL(dmtree_validate_uri(target_uri, false));
-
-	DMC_FAIL(momgr_exists(handle->MOs,
-					       source_uri, &node_exists));
-
-	if (node_exists == OMADM_NODE_NOT_EXIST)
-		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_FOUND);
-	else if (node_exists != OMADM_NODE_IS_LEAF)
-		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
-
-	DMC_FAIL(momgr_exists(handle->MOs,
-					       target_uri, &node_exists));
-
-	if (node_exists == OMADM_NODE_IS_INTERIOR)
-		DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
-
-	DMC_FAIL(prv_check_node_access_rights(handle, source_uri,
-						   source_uri,
-						   OMADM_COMMAND_GET,
-						   false));
-
-	cmd_name =  (node_exists == OMADM_NODE_NOT_EXIST) ? OMADM_COMMAND_ADD :
-		OMADM_COMMAND_REPLACE;
-
-	DMC_FAIL(prv_check_node_access_rights(handle, target_uri,
-						   target_uri, cmd_name,
-						   false));
-
-	DMC_FAIL(prv_read_leaf_node(handle, source_uri, &leaf_node));
-	free(leaf_node->target_uri);
-	leaf_node->target_uri = NULL;
-	DMC_FAIL_NULL(leaf_node->target_uri, strdup(target_uri),
-			   OMADM_SYNCML_ERROR_DEVICE_FULL);
-	DMC_FAIL(prv_update_leaf_node(handle, leaf_node));
-
-DMC_ON_ERR:
-
-	dmtree_node_free(leaf_node);
-
-	DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
-
-	return DMC_ERR;
+    // Ignore for now
+    return OMADM_SYNCML_ERROR_COMMAND_NOT_IMPLEMENTED;
 }
 
 int dmtree_open(const char *server_id, dmtree_t **handleP)
@@ -1215,9 +585,10 @@ int dmtree_open(const char *server_id, dmtree_t **handleP)
 
 	dmtree_t *retval = NULL;
 
+dmc_log_open("/tmp/testlog");
 	DMC_LOGF("Creating dm handle with server %s", server_id);
 
-	DMC_FAIL_ERR(prv_check_acl_server(server_id),
+	DMC_FAIL_ERR(prv_check_server_id(server_id),
 			    OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
 	DMC_FAIL_NULL(retval, malloc(sizeof(*retval)),
@@ -1262,8 +633,8 @@ void dmtree_node_free(dmtree_node_t *node)
 	if (node == NULL)
 		return;
 
-	if (node->target_uri)
-		free(node->target_uri);
+	if (node->uri)
+		free(node->uri);
 
 	if (node->format)
 		free(node->format);

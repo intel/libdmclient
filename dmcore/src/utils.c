@@ -20,7 +20,7 @@ SmlPcdataPtr_t convert_to_meta(char * format,
     SmlPcdataPtr_t metaP = NULL;
     SmlMetInfMetInfPtr_t metInfP;
 
-    if (format == NULL || type == NULL)
+    if (format == NULL && type == NULL)
     {
         return NULL;
     }
@@ -28,8 +28,8 @@ SmlPcdataPtr_t convert_to_meta(char * format,
     metInfP = smlAllocMetInfMetInf();
     if (!metInfP) return NULL;
 
-    metInfP->type = smlString2Pcdata(type);
-    metInfP->format = smlString2Pcdata(format);
+    if (type) metInfP->type = smlString2Pcdata(type);
+    if (format) metInfP->format = smlString2Pcdata(format);
 
     metaP = smlAllocPcdata();
     if (!metaP)

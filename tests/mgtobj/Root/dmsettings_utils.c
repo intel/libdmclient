@@ -26,11 +26,19 @@
 
 int syncml_from_dmc_err(int dmcommon_error)
 {
-	return dmcommon_error;
+    switch (dmcommon_error)
+    {
+    case DMC_ERR_NONE:
+        return OMADM_SYNCML_ERROR_NONE;
+    case DMC_ERR_NOT_FOUND:
+        return OMADM_SYNCML_ERROR_NOT_FOUND;
+    default:
+	    return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+    }
 }
 
 int omadm_dmsettings_utils_node_exists(dmsettings *handle, const char *uri,
-				       OMADM_NodeType *node_type)
+				       omadmtree_node_type_t *node_type)
 {
 	DMC_ERR_MANAGE;
 	dmsettings_settings_type settings_type;
@@ -145,6 +153,10 @@ int omadm_dmsettings_utils_get_meta(dmsettings *handle, const char *uri,
 			} else
 				DMC_ERR = DMC_ERR_NOT_FOUND;
 		}
+		else if (!strcmp(prop, OMADM_NODE_PROPERTY_ACL))
+		{
+		    DMC_ERR = DMC_ERR_NONE;
+	    }
 	}
 
 	DMC_FAIL(DMC_ERR);

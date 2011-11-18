@@ -27,6 +27,7 @@ moinbox_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
 moinbox_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
 
 moroot_la_SOURCES = mgtobj/Root/plugin_root.c \
+                    mgtobj/Root/dyn_buf.c \
                     mgtobj/Root/dmsettings.c \
                     mgtobj/Root/dmsettings_utils.c
 moroot_la_CPPFLAGS = -Wall -Wextra -Wcast-align \

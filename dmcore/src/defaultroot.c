@@ -1,9 +1,7 @@
 /******************************************************************************
  * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
  * Copyright (c) 2007 PalmSource, Inc (an ACCESS company). All rights reserved.
- * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
- * Copyright (c) 2007, ACCESS Systems Americas, Inc. All rights reserved.
- * Copyright (C) 2011  Intel Corporation. All rights reserved.
+ * Copyright (c) 2011  Intel Corporation. All rights reserved.
  *****************************************************************************/
 
 /*!
@@ -17,20 +15,20 @@
 #include <string.h>
 
 #include "config.h"
-#include "dmtree_plugin.h"
+#include "omadmtree_mo.h"
 #include "syncml_error.h"
 
-static int prv_create(const char *unused, void ** dataP)
+static int prv_init(void ** dataP)
 {
     *dataP = NULL;
     return OMADM_SYNCML_ERROR_NONE;
 }
 
-static void prv_free(void *unused)
+static void prv_close(void *unused)
 {
 }
 
-static int prv_nodeExists(const char *uri, OMADM_NodeType* node_type, void *data)
+static int prv_isNode(const char *uri, omadmtree_node_type_t* node_type, void *data)
 {
     if (!strcmp(uri,"."))
     {
@@ -44,69 +42,49 @@ static int prv_nodeExists(const char *uri, OMADM_NodeType* node_type, void *data
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
-static int prv_getMeta(const char *uri, const char *prop, char **value, void *data)
+static int prv_getACL(const char * uri, char ** aclP, void * data)
 {
-    *value = NULL;
+    *aclP = NULL;
 
     if (strcmp(uri,"."))
     {
         return OMADM_SYNCML_ERROR_NOT_FOUND;
     }
 
-	if (!strcmp(prop,OMADM_NODE_PROPERTY_ACL))
-	{
-		*value = strdup("Get=*");
-	}
-	else if (!strcmp(prop,OMADM_NODE_PROPERTY_FORMAT))
-	{
-		*value = strdup("node");
-	}
-	else if (!strcmp(prop,OMADM_NODE_PROPERTY_TYPE))
-	{
-		*value = strdup("null");
-	}
+	*aclP = strdup("Get=*");
 
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
-static int prv_getAccessRights(const char *uri, OMADM_AccessType *access_rights, void *data)
+static int prv_get(dmtree_node_t * nodeP,
+		           void *oData)
 {
-    if (strcmp(uri,"."))
+    if (strcmp(nodeP->uri, "."))
     {
         return OMADM_SYNCML_ERROR_NOT_FOUND;
     }
-
-	*access_rights = OMADM_ACCESS_GET;
-
-	return OMADM_SYNCML_ERROR_NONE;
-}
-
-static int prv_getNodeChildren(const char *iURI,
-					           dmc_ptr_array *oChildren,
-					           void *oData)
-{
-    if (strcmp(iURI, "."))
-    {
-        return OMADM_SYNCML_ERROR_NOT_FOUND;
-    }
+    // TODO: use constants
+    nodeP->format = strdup("node");
+    nodeP->type = strdup("text/plain");
+    nodeP->data_size = 1;
+    nodeP->data_buffer = strdup("");
 
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
-OMADM_DMTreePlugin * getDefaultRootPlugin()
+omadm_mo_interface_t * getDefaultRootPlugin()
 {
-	OMADM_DMTreePlugin *retval = NULL;
+	omadm_mo_interface_t *retval = NULL;
 
 	retval = malloc(sizeof(*retval));
 	if (retval) {
 		memset(retval, 0, sizeof(*retval));
-		retval->create = prv_create;
-		retval->free = prv_free;
-		retval->nodeExists = prv_nodeExists;
-		retval->getAccessRights = prv_getAccessRights;
-		retval->getMeta = prv_getMeta;
-		retval->getNodeChildren = prv_getNodeChildren;
-		retval->supportTransactions = false;
+		retval->uri = strdup(".");
+		retval->initFunc = prv_init;
+		retval->closeFunc = prv_close;
+		retval->isNodeFunc = prv_isNode;
+		retval->getACLFunc = prv_getACL;
+		retval->getFunc = prv_get;
 	}
 
 	return retval;

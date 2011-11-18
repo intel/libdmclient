@@ -14,13 +14,14 @@
 #ifndef OMADM_DMSETTINGS_UTILS_H_
 #define OMADM_DMSETTINGS_UTILS_H_
 
+#include <omadmtree_mo.h>
+
 #include "dyn_buf.h"
 
-#include "dmtree_plugin.h"
 #include "dmsettings.h"
 
 int omadm_dmsettings_utils_node_exists(dmsettings *handle, const char *uri,
-				       OMADM_NodeType *node_type);
+				       omadmtree_node_type_t *node_type);
 int omadm_dmsettings_utils_get_node_children(dmsettings *handle,
 					     const char *uri,
 					     dmc_ptr_array *children);

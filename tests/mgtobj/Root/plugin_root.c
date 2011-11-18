@@ -23,165 +23,202 @@
 #include "dmsettings_utils.h"
 #include "syncml_error.h"
 
+static char * prv_str_cat(char * first,
+                          char * second)
+{
+    char * string;
 
-static int prv_rootCreateFN(const char *serverID, void **oData)
+    string = (char *)malloc(strlen(first) + strlen(second) + 1);
+    if (string)
+    {
+        sprintf(string, "%s", first);
+        strcat(string, second);
+    }
+
+    return string;
+}
+
+
+static int prv_rootInitFN(void **oData)
 {
     return dmsettings_open((dmsettings **)oData);
 }
 
-static void prv_rootFreeFN(void *iData)
+static void prv_rootCloseFN(void *iData)
 {
     dmsettings_close((dmsettings *)iData);
 }
 
-static int prv_rootNodeExistsFN(const char *uri, OMADM_NodeType* node_type,
-				void *data)
+static int prv_rootIsNodeFN(const char *iURI,
+			                omadmtree_node_type_t *oNodeType,
+			                void *iData)
 {
 	DMC_ERR_MANAGE;
-	dmsettings *settings = (dmsettings *) data;
 
-	DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, uri,
-							 node_type));
+	dmsettings *settings = (dmsettings *)iData;
 
-	if ((*node_type == OMADM_NODE_NOT_EXIST) && !strcmp(uri,"."))
-		*node_type = OMADM_NODE_IS_INTERIOR;
+	DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, iURI, oNodeType));
+
+	if ((*oNodeType == OMADM_NODE_NOT_EXIST) && !strcmp(iURI,"."))
+		*oNodeType = OMADM_NODE_IS_INTERIOR;
 
 DMC_ON_ERR:
 
 	return DMC_ERR;
 }
 
-static int prv_rootGetAccessRightsFN(const char *uri,
-				     OMADM_AccessType *access_rights,
-				     void *data)
-{
-	*access_rights = OMADM_ACCESS_ADD | OMADM_ACCESS_GET;
-
-	if (strcmp(uri, "."))
-		*access_rights |=
-			(OMADM_ACCESS_REPLACE | OMADM_ACCESS_DELETE);
-
-	return OMADM_SYNCML_ERROR_NONE;
-}
-
-static int prv_rootGetNodeChildrenFN(const char *uri, dmc_ptr_array *children,
-					void *data)
-{
-	dmsettings *settings = (dmsettings *) data;
-
-	return omadm_dmsettings_utils_get_node_children(settings, uri,
-							children);
-}
-
-static int prv_rootGetValueFN(const char *uri, char **value, void *data)
-{
-	dmsettings *settings = (dmsettings *) data;
-
-	return omadm_dmsettings_utils_get_value(settings, uri, value);
-}
-
-static int prv_rootSetValueFN(const char *uri, const char *value,
-			      void *data)
-{
-	dmsettings *settings = (dmsettings *) data;
-
-	return omadm_dmsettings_utils_set_value(settings, uri, value);
-}
-
-static int prv_rootGetMetaFN(const char *uri, const char *prop,
-			     char **value, void *data)
+static int prv_rootGetFN(dmtree_node_t * nodeP,
+			             void *iData)
 {
 	DMC_ERR_MANAGE;
-	dmsettings *settings = (dmsettings *) data;
-	char* value_copy;
 
-	DMC_ERR = omadm_dmsettings_utils_get_meta(settings,
-							 uri, prop, value);
-	if ((DMC_ERR == DMC_ERR_NOT_FOUND) &&
-	    !strcmp(uri,".")) {
-		if (!strcmp(prop,OMADM_NODE_PROPERTY_ACL)) {
-			DMC_FAIL_NULL(value_copy, strdup("Add=*&Get=*"),
-					   OMADM_SYNCML_ERROR_DEVICE_FULL);
-			DMC_ERR = OMADM_SYNCML_ERROR_NONE;
-			*value = value_copy;
-		}
-		else if (!strcmp(prop,OMADM_NODE_PROPERTY_FORMAT)) {
-			DMC_FAIL_NULL(value_copy, strdup("node"),
-					   OMADM_SYNCML_ERROR_DEVICE_FULL);
-			DMC_ERR = OMADM_SYNCML_ERROR_NONE;
-			*value = value_copy;
-		}
-		else if (!strcmp(prop,OMADM_NODE_PROPERTY_TYPE)) {
-			DMC_FAIL_NULL(value_copy, strdup("null"),
-					   OMADM_SYNCML_ERROR_DEVICE_FULL);
-			DMC_ERR = OMADM_SYNCML_ERROR_NONE;
-			*value = value_copy;
-		}
-	}
+	dmsettings *settings = (dmsettings *)iData;
+    omadmtree_node_type_t type;
 
-DMC_ON_ERR:
-
-	return DMC_ERR;
-}
-
-static int prv_rootSetMetaFN(const char *uri, const char *prop,
-				      const char *value, void *data)
-{
-	dmsettings *settings = (dmsettings *) data;
-
-	return omadm_dmsettings_utils_set_meta(settings, uri, prop,
-					       value);
-}
-
-static int prv_rootDeleteNodeFN(const char *uri, void *data)
-{
-	dmsettings *settings = (dmsettings *) data;
-
-	return omadm_dmsettings_utils_delete_node(settings, uri);
-}
-
-static int prv_rootCreateNonLeafFN(const char *uri, void *data)
-{
-	dmsettings *settings = (dmsettings *) data;
-
-	return omadm_dmsettings_utils_create_non_leaf(settings, uri);
-}
-
-
-OMADM_DMTreePlugin *omadm_create_root_plugin()
-{
-	OMADM_DMTreePlugin *retval = NULL;
-
-	retval = malloc(sizeof(*retval));
-	if (retval) {
-		memset(retval, 0, sizeof(*retval));
-		retval->create = prv_rootCreateFN;
-		retval->free = prv_rootFreeFN;
-		retval->nodeExists = prv_rootNodeExistsFN;
-		retval->getAccessRights = prv_rootGetAccessRightsFN;
-		retval->getNodeChildren = prv_rootGetNodeChildrenFN;
-		retval->getValue = prv_rootGetValueFN;
-		retval->setValue = prv_rootSetValueFN;
-		retval->getMeta = prv_rootGetMetaFN;
-		retval->setMeta = prv_rootSetMetaFN;
-		retval->deleteNode = prv_rootDeleteNodeFN;
-		retval->createNonLeaf = prv_rootCreateNonLeafFN;
-		retval->supportTransactions = true;
-	}
-
-	return retval;
-}
-
-OMADM_PluginDesc * omadm_get_plugin_desc(void)
-{
-    OMADM_PluginDesc *plugin_desc;
-
-    plugin_desc = (OMADM_PluginDesc *)malloc(sizeof(OMADM_PluginDesc));
-    if (plugin_desc)
+    if (strcmp(nodeP->uri,"."))
     {
-        plugin_desc->uri = strdup("./");
-        plugin_desc->createFunc = omadm_create_root_plugin;
+        DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, nodeP->uri, &type));
+    }
+    else
+    {
+        type = OMADM_NODE_IS_INTERIOR;
     }
 
-    return plugin_desc;
+    switch(type)
+    {
+    case OMADM_NODE_IS_INTERIOR:
+    {
+        dmc_ptr_array children;
+        unsigned int i;
+
+        dmc_ptr_array_make(&children, 16, free);
+        DMC_FAIL(omadm_dmsettings_utils_get_node_children(settings, nodeP->uri, &children));
+        for (i = 0; i < dmc_ptr_array_get_size(&children); ++i)
+        {
+            char * path = dmc_ptr_array_get(&children, i);
+            char * node_name = strrchr(path,'/');
+            if (node_name)
+            {
+                if (nodeP->data_buffer)
+                {
+                    char * tmp_str;
+                    tmp_str = prv_str_cat(nodeP->data_buffer, node_name);
+                    free(nodeP->data_buffer);
+                    nodeP->data_buffer = tmp_str;
+                }
+                else
+                {
+                    DMC_FAIL_NULL(nodeP->data_buffer, strdup(node_name+1), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                }
+            }
+        }
+        dmc_ptr_array_free(&children);
+
+        DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        DMC_FAIL_NULL(nodeP->type, strdup("text/plain"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        nodeP->type = NULL;
+    }
+    break;
+    case OMADM_NODE_IS_LEAF:
+    {
+        DMC_FAIL(omadm_dmsettings_utils_get_value(settings, nodeP->uri, &nodeP->data_buffer));
+        nodeP->data_size = strlen(nodeP->data_buffer)+1;
+        DMC_FAIL(omadm_dmsettings_utils_get_meta(settings, nodeP->uri, OMADM_NODE_PROPERTY_FORMAT, &nodeP->format));
+        DMC_FAIL(omadm_dmsettings_utils_get_meta(settings, nodeP->uri, OMADM_NODE_PROPERTY_TYPE, &nodeP->type));
+    }
+    break;
+    default:
+        DMC_FAIL(OMADM_NODE_NOT_EXIST);
+    }
+
+DMC_ON_ERR:
+
+	return DMC_ERR;
+}
+
+static int prv_rootSetFN(const dmtree_node_t * nodeP,
+                         void * iData)
+{
+    DMC_ERR_MANAGE;
+	dmsettings *settings = (dmsettings *) iData;
+
+    if (strcmp(nodeP->format, "node"))
+    {
+        DMC_FAIL(omadm_dmsettings_utils_create_non_leaf(settings, nodeP->uri));
+    }
+    else
+    {
+        DMC_FAIL(omadm_dmsettings_utils_set_value(settings, nodeP->uri, nodeP->data_buffer));
+        if (nodeP->format)
+        {
+            DMC_FAIL(omadm_dmsettings_utils_set_meta(settings, nodeP->uri, OMADM_NODE_PROPERTY_FORMAT, nodeP->format));
+        }
+        if (nodeP->type)
+        {
+            DMC_FAIL(omadm_dmsettings_utils_set_meta(settings, nodeP->uri, OMADM_NODE_PROPERTY_TYPE, nodeP->type));
+        }
+    }
+
+DMC_ON_ERR:
+
+	return DMC_ERR;
+}
+
+static int prv_rootGetACLFN(const char *iURI,
+                            char **oValue,
+                            void *iData)
+{
+	DMC_ERR_MANAGE;
+	dmsettings *settings = (dmsettings *)iData;
+
+	if (!strcmp(iURI,"."))
+    {
+		DMC_FAIL_NULL(*oValue, strdup("Add=*&Get=*"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+	}
+	else
+	{
+    	DMC_FAIL(omadm_dmsettings_utils_get_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL, oValue));
+	}
+
+DMC_ON_ERR:
+
+	return DMC_ERR;
+}
+
+static int prv_rootSetACLFN(const char *iURI,
+                            const char *acl,
+                            void * iData)
+{
+	dmsettings *settings = (dmsettings *)iData;
+
+	return omadm_dmsettings_utils_set_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL,	acl);
+}
+
+static int prv_rootDeleteFN(const char *iURI,
+                            void * iData)
+{
+	dmsettings *settings = (dmsettings *)iData;
+
+	return omadm_dmsettings_utils_delete_node(settings, iURI);
+}
+
+omadm_mo_interface_t * omadm_get_mo_interface()
+{
+	omadm_mo_interface_t *retVal = NULL;
+
+	retVal = malloc(sizeof(*retVal));
+	if (retVal) {
+		memset(retVal, 0, sizeof(*retVal));
+		retVal->uri = strdup("./");
+		retVal->initFunc = prv_rootInitFN;
+		retVal->closeFunc = prv_rootCloseFN;
+		retVal->isNodeFunc = prv_rootIsNodeFN;
+		retVal->getFunc = prv_rootGetFN;
+		retVal->getACLFunc = prv_rootGetACLFN;
+		retVal->setFunc = prv_rootSetFN;
+		retVal->setACLFunc = prv_rootSetACLFN;
+		retVal->deleteFunc = prv_rootDeleteFN;
+	}
+
+	return retVal;
 }
