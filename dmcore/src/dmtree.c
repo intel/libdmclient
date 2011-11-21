@@ -372,6 +372,8 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
 
             DMC_FAIL_NULL(node->data_buffer, strdup(name), OMADM_SYNCML_ERROR_DEVICE_FULL);
             node->data_size = strlen(node->data_buffer);
+            node->format = strdup("chr");
+		    node->type = strdup("text/plain");
 		}
 	    else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
 	    {
@@ -388,8 +390,6 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
 	    {
 		    DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
 	    }
-	    node->format = strdup("chr");
-		node->type = strdup("text/plain");
 	}
 	else
 	{

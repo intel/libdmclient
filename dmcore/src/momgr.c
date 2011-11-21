@@ -342,10 +342,6 @@ int momgr_get_value(const mo_list_t iList,
     {
         DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     }
-    if (!nodeP->format)
-    {
-        DMC_FAIL_NULL(nodeP->type, strdup("text/plain"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-    }
 
 DMC_ON_ERR:
 
