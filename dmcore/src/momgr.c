@@ -25,6 +25,8 @@
 
 #include "syncml_error.h"
 #include "momgr.h"
+#include "internals.h"
+
 
 // defined in defaultroot.c
 omadm_mo_interface_t * getDefaultRootPlugin();
