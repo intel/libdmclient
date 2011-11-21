@@ -20,8 +20,8 @@
 
 typedef struct
 {
-	mo_list_t MOs;
-	char *server_id;
+    mo_list_t MOs;
+    char *server_id;
 } dmtree_t;
 
 int dmtree_open(const char *server_id, dmtree_t ** handleP);
@@ -31,7 +31,7 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node);
 int dmtree_add(dmtree_t * handle, const dmtree_node_t *node);
 int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node);
 int dmtree_delete(dmtree_t * handle, const char *uri);
-int dmtree_copy(dmtree_t * handle, const char *source_uri,	const char *target_uri);
+int dmtree_copy(dmtree_t * handle, const char *source_uri, const char *target_uri);
 
 int dmtree_validate_uri(const char *uri, char ** oNodeURI, char ** oPropId);
 

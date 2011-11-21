@@ -20,29 +20,29 @@ extern "C"
 #endif
 
 
-#define OMADM_NODE_PROPERTY_VERSION 	"VerNo"
-#define OMADM_NODE_PROPERTY_TIMESTAMP 	"TStamp"
-#define OMADM_NODE_PROPERTY_FORMAT		"Format"
-#define OMADM_NODE_PROPERTY_TYPE		"Type"
-#define OMADM_NODE_PROPERTY_ACL			"ACL"
-#define OMADM_NODE_PROPERTY_NAME		"Name"
-#define OMADM_NODE_PROPERTY_SIZE		"Size"
-#define OMADM_NODE_PROPERTY_TITLE		"Title"
+#define OMADM_NODE_PROPERTY_VERSION     "VerNo"
+#define OMADM_NODE_PROPERTY_TIMESTAMP     "TStamp"
+#define OMADM_NODE_PROPERTY_FORMAT        "Format"
+#define OMADM_NODE_PROPERTY_TYPE        "Type"
+#define OMADM_NODE_PROPERTY_ACL            "ACL"
+#define OMADM_NODE_PROPERTY_NAME        "Name"
+#define OMADM_NODE_PROPERTY_SIZE        "Size"
+#define OMADM_NODE_PROPERTY_TITLE        "Title"
 
 typedef enum
 {
-	OMADM_NODE_NOT_EXIST,
-	OMADM_NODE_IS_INTERIOR,
-	OMADM_NODE_IS_LEAF,
+    OMADM_NODE_NOT_EXIST,
+    OMADM_NODE_IS_INTERIOR,
+    OMADM_NODE_IS_LEAF,
 } omadmtree_node_type_t;
 
 typedef struct
 {
-	char *uri;
-	char *format;
-	char *type;
-	unsigned int data_size;
-	char *data_buffer;
+    char *uri;
+    char *format;
+    char *type;
+    unsigned int data_size;
+    char *data_buffer;
 } dmtree_node_t;
 
 
@@ -65,16 +65,16 @@ typedef int (*omadm_mo_exec_fn) (const char * uri, const char * cmdData, const c
 typedef struct
 {
     char * uri;
-	omadm_mo_init_fn      initFunc;
-	omadm_mo_close_fn     closeFunc;
-	omadm_mo_is_node_fn   isNodeFunc;
-	omadm_mo_get_fn       getFunc;
-	omadm_mo_set_fn       setFunc;
-	omadm_mo_get_ACL_fn   getACLFunc;
-	omadm_mo_set_ACL_fn   setACLFunc;
-	omadm_mo_rename_fn    renameFunc;
-	omadm_mo_delete_fn    deleteFunc;
-	omadm_mo_exec_fn      execFunc;
+    omadm_mo_init_fn      initFunc;
+    omadm_mo_close_fn     closeFunc;
+    omadm_mo_is_node_fn   isNodeFunc;
+    omadm_mo_get_fn       getFunc;
+    omadm_mo_set_fn       setFunc;
+    omadm_mo_get_ACL_fn   getACLFunc;
+    omadm_mo_set_ACL_fn   setACLFunc;
+    omadm_mo_rename_fn    renameFunc;
+    omadm_mo_delete_fn    deleteFunc;
+    omadm_mo_exec_fn      execFunc;
 } omadm_mo_interface_t;
 
 omadm_mo_interface_t * omadm_get_mo_interface(void);

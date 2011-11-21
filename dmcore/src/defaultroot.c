@@ -32,14 +32,14 @@ static int prv_isNode(const char *uri, omadmtree_node_type_t* node_type, void *d
 {
     if (!strcmp(uri,"."))
     {
-		*node_type = OMADM_NODE_IS_INTERIOR;
-	}
-	else
-	{
-	    *node_type = OMADM_NODE_NOT_EXIST;
-	}
+        *node_type = OMADM_NODE_IS_INTERIOR;
+    }
+    else
+    {
+        *node_type = OMADM_NODE_NOT_EXIST;
+    }
 
-	return OMADM_SYNCML_ERROR_NONE;
+    return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_getACL(const char * uri, char ** aclP, void * data)
@@ -51,13 +51,13 @@ static int prv_getACL(const char * uri, char ** aclP, void * data)
         return OMADM_SYNCML_ERROR_NOT_FOUND;
     }
 
-	*aclP = strdup("Get=*");
+    *aclP = strdup("Get=*");
 
-	return OMADM_SYNCML_ERROR_NONE;
+    return OMADM_SYNCML_ERROR_NONE;
 }
 
 static int prv_get(dmtree_node_t * nodeP,
-		           void *oData)
+                   void *oData)
 {
     if (strcmp(nodeP->uri, "."))
     {
@@ -69,23 +69,23 @@ static int prv_get(dmtree_node_t * nodeP,
     nodeP->data_size = 1;
     nodeP->data_buffer = strdup("");
 
-	return OMADM_SYNCML_ERROR_NONE;
+    return OMADM_SYNCML_ERROR_NONE;
 }
 
 omadm_mo_interface_t * getDefaultRootPlugin()
 {
-	omadm_mo_interface_t *retval = NULL;
+    omadm_mo_interface_t *retval = NULL;
 
-	retval = malloc(sizeof(*retval));
-	if (retval) {
-		memset(retval, 0, sizeof(*retval));
-		retval->uri = strdup(".");
-		retval->initFunc = prv_init;
-		retval->closeFunc = prv_close;
-		retval->isNodeFunc = prv_isNode;
-		retval->getACLFunc = prv_getACL;
-		retval->getFunc = prv_get;
-	}
+    retval = malloc(sizeof(*retval));
+    if (retval) {
+        memset(retval, 0, sizeof(*retval));
+        retval->uri = strdup(".");
+        retval->initFunc = prv_init;
+        retval->closeFunc = prv_close;
+        retval->isNodeFunc = prv_isNode;
+        retval->getACLFunc = prv_getACL;
+        retval->getFunc = prv_get;
+    }
 
-	return retval;
+    return retval;
 }

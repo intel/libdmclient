@@ -50,29 +50,29 @@ static void prv_rootCloseFN(void *iData)
 }
 
 static int prv_rootIsNodeFN(const char *iURI,
-			                omadmtree_node_type_t *oNodeType,
-			                void *iData)
+                            omadmtree_node_type_t *oNodeType,
+                            void *iData)
 {
-	DMC_ERR_MANAGE;
+    DMC_ERR_MANAGE;
 
-	dmsettings *settings = (dmsettings *)iData;
+    dmsettings *settings = (dmsettings *)iData;
 
-	DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, iURI, oNodeType));
+    DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, iURI, oNodeType));
 
-	if ((*oNodeType == OMADM_NODE_NOT_EXIST) && !strcmp(iURI,"."))
-		*oNodeType = OMADM_NODE_IS_INTERIOR;
+    if ((*oNodeType == OMADM_NODE_NOT_EXIST) && !strcmp(iURI,"."))
+        *oNodeType = OMADM_NODE_IS_INTERIOR;
 
 DMC_ON_ERR:
 
-	return DMC_ERR;
+    return DMC_ERR;
 }
 
 static int prv_rootGetFN(dmtree_node_t * nodeP,
-			             void *iData)
+                         void *iData)
 {
-	DMC_ERR_MANAGE;
+    DMC_ERR_MANAGE;
 
-	dmsettings *settings = (dmsettings *)iData;
+    dmsettings *settings = (dmsettings *)iData;
     omadmtree_node_type_t type;
 
     if (strcmp(nodeP->uri,"."))
@@ -133,14 +133,14 @@ static int prv_rootGetFN(dmtree_node_t * nodeP,
 
 DMC_ON_ERR:
 
-	return DMC_ERR;
+    return DMC_ERR;
 }
 
 static int prv_rootSetFN(const dmtree_node_t * nodeP,
                          void * iData)
 {
     DMC_ERR_MANAGE;
-	dmsettings *settings = (dmsettings *) iData;
+    dmsettings *settings = (dmsettings *) iData;
 
     if (strcmp(nodeP->format, "node"))
     {
@@ -161,64 +161,64 @@ static int prv_rootSetFN(const dmtree_node_t * nodeP,
 
 DMC_ON_ERR:
 
-	return DMC_ERR;
+    return DMC_ERR;
 }
 
 static int prv_rootGetACLFN(const char *iURI,
                             char **oValue,
                             void *iData)
 {
-	DMC_ERR_MANAGE;
-	dmsettings *settings = (dmsettings *)iData;
+    DMC_ERR_MANAGE;
+    dmsettings *settings = (dmsettings *)iData;
 
-	if (!strcmp(iURI,"."))
+    if (!strcmp(iURI,"."))
     {
-		DMC_FAIL_NULL(*oValue, strdup("Add=*&Get=*"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-	}
-	else
-	{
-    	DMC_FAIL(omadm_dmsettings_utils_get_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL, oValue));
-	}
+        DMC_FAIL_NULL(*oValue, strdup("Add=*&Get=*"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    }
+    else
+    {
+        DMC_FAIL(omadm_dmsettings_utils_get_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL, oValue));
+    }
 
 DMC_ON_ERR:
 
-	return DMC_ERR;
+    return DMC_ERR;
 }
 
 static int prv_rootSetACLFN(const char *iURI,
                             const char *acl,
                             void * iData)
 {
-	dmsettings *settings = (dmsettings *)iData;
+    dmsettings *settings = (dmsettings *)iData;
 
-	return omadm_dmsettings_utils_set_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL,	acl);
+    return omadm_dmsettings_utils_set_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL,    acl);
 }
 
 static int prv_rootDeleteFN(const char *iURI,
                             void * iData)
 {
-	dmsettings *settings = (dmsettings *)iData;
+    dmsettings *settings = (dmsettings *)iData;
 
-	return omadm_dmsettings_utils_delete_node(settings, iURI);
+    return omadm_dmsettings_utils_delete_node(settings, iURI);
 }
 
 omadm_mo_interface_t * omadm_get_mo_interface()
 {
-	omadm_mo_interface_t *retVal = NULL;
+    omadm_mo_interface_t *retVal = NULL;
 
-	retVal = malloc(sizeof(*retVal));
-	if (retVal) {
-		memset(retVal, 0, sizeof(*retVal));
-		retVal->uri = strdup("./");
-		retVal->initFunc = prv_rootInitFN;
-		retVal->closeFunc = prv_rootCloseFN;
-		retVal->isNodeFunc = prv_rootIsNodeFN;
-		retVal->getFunc = prv_rootGetFN;
-		retVal->getACLFunc = prv_rootGetACLFN;
-		retVal->setFunc = prv_rootSetFN;
-		retVal->setACLFunc = prv_rootSetACLFN;
-		retVal->deleteFunc = prv_rootDeleteFN;
-	}
+    retVal = malloc(sizeof(*retVal));
+    if (retVal) {
+        memset(retVal, 0, sizeof(*retVal));
+        retVal->uri = strdup("./");
+        retVal->initFunc = prv_rootInitFN;
+        retVal->closeFunc = prv_rootCloseFN;
+        retVal->isNodeFunc = prv_rootIsNodeFN;
+        retVal->getFunc = prv_rootGetFN;
+        retVal->getACLFunc = prv_rootGetACLFN;
+        retVal->setFunc = prv_rootSetFN;
+        retVal->setACLFunc = prv_rootSetACLFN;
+        retVal->deleteFunc = prv_rootDeleteFN;
+    }
 
-	return retVal;
+    return retVal;
 }

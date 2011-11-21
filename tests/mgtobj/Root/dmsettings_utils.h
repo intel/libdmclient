@@ -21,18 +21,18 @@
 #include "dmsettings.h"
 
 int omadm_dmsettings_utils_node_exists(dmsettings *handle, const char *uri,
-				       omadmtree_node_type_t *node_type);
+                       omadmtree_node_type_t *node_type);
 int omadm_dmsettings_utils_get_node_children(dmsettings *handle,
-					     const char *uri,
-					     dmc_ptr_array *children);
+                         const char *uri,
+                         dmc_ptr_array *children);
 int omadm_dmsettings_utils_get_value(dmsettings *handle, const char *uri,
-				     char **value);
+                     char **value);
 int omadm_dmsettings_utils_set_value(dmsettings *handle, const char *uri,
-				     const char *value);
+                     const char *value);
 int omadm_dmsettings_utils_get_meta(dmsettings *handle, const char *uri,
-				    const char *prop, char **value);
+                    const char *prop, char **value);
 int omadm_dmsettings_utils_set_meta(dmsettings *handle, const char *uri,
-				    const char *prop, const char *value);
+                    const char *prop, const char *value);
 int omadm_dmsettings_utils_delete_node(dmsettings *handle, const char *uri);
 int omadm_dmsettings_utils_create_non_leaf(dmsettings *handle, const char *uri);
 
