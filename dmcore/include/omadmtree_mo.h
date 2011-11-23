@@ -21,13 +21,13 @@ extern "C"
 
 
 #define OMADM_NODE_PROPERTY_VERSION     "VerNo"
-#define OMADM_NODE_PROPERTY_TIMESTAMP     "TStamp"
-#define OMADM_NODE_PROPERTY_FORMAT        "Format"
+#define OMADM_NODE_PROPERTY_TIMESTAMP   "TStamp"
+#define OMADM_NODE_PROPERTY_FORMAT      "Format"
 #define OMADM_NODE_PROPERTY_TYPE        "Type"
-#define OMADM_NODE_PROPERTY_ACL            "ACL"
+#define OMADM_NODE_PROPERTY_ACL         "ACL"
 #define OMADM_NODE_PROPERTY_NAME        "Name"
 #define OMADM_NODE_PROPERTY_SIZE        "Size"
-#define OMADM_NODE_PROPERTY_TITLE        "Title"
+#define OMADM_NODE_PROPERTY_TITLE       "Title"
 
 typedef enum
 {
