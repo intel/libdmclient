@@ -33,117 +33,223 @@
 /* Global constants */
 
 #define OMADM_XML_FORMAT_VAL        "xml"
-#define OMADM_NODE_FORMAT_VAL        "node"
-#define OMADM_DMTNDS_XML_TYPE_VAL    "application/vnd.syncml.dmtnds+xml"
-#define OMADM_DMTNDS_WBXML_TYPE_VAL    "application/vnd.syncml.dmtnds+wbxml"
+#define OMADM_NODE_FORMAT_VAL       "node"
+#define OMADM_DMTNDS_XML_TYPE_VAL   "application/vnd.syncml.dmtnds+xml"
+#define OMADM_DMTNDS_WBXML_TYPE_VAL "application/vnd.syncml.dmtnds+wbxml"
 
-#define OMADM_COMMAND_ADD         "Add="
-#define OMADM_COMMAND_GET         "Get="
-#define OMADM_COMMAND_REPLACE     "Replace="
-#define OMADM_COMMAND_EXECUTE    "Exec="
+#define OMADM_COMMAND_ADD       "Add="
+#define OMADM_COMMAND_GET       "Get="
+#define OMADM_COMMAND_REPLACE   "Replace="
+#define OMADM_COMMAND_EXECUTE   "Exec="
 #define OMADM_COMMAND_DELETE    "Delete="
 
 #define OMADM_TOKEN_PROP "?prop="
 #define OMADM_TOKEN_LIST "?list="
 
-#define OMADM_ACL_GET_SET        (uint8_t) 1 << 0
-#define OMADM_ACL_ADD_SET        (uint8_t) 1 << 1
+#define OMADM_ACL_GET_SET       (uint8_t) 1 << 0
+#define OMADM_ACL_ADD_SET       (uint8_t) 1 << 1
 #define OMADM_ACL_DELETE_SET    (uint8_t) 1 << 2
-#define OMADM_ACL_EXEC_SET        (uint8_t) 1 << 3
-#define OMADM_ACL_REPLACE_SET    (uint8_t) 1 << 4
+#define OMADM_ACL_EXEC_SET      (uint8_t) 1 << 3
+#define OMADM_ACL_REPLACE_SET   (uint8_t) 1 << 4
 
-int dmtree_validate_uri(const char *uri,
+/******
+ * A valid URI for OMADM is :
+ *    uri        = node_uri[ property | list ]
+ *    property   = "?prop=" prop_name
+ *    list       = "?list=" attribute
+ *    node_uri   = "." | [ "./" ] path
+ *    path       = segment *( "/" segment )
+ *    segment    = *( pchar | "." ) pchar
+ *    pchar      = unreserved | escaped | ":" | "@" | "&" | "=" | "+" | "$" | ","
+ *    unreserved = alphanum | mark
+ *    mark       = "-" | "_" | "!" | "~" | "*" | "'" | "(" | ")"
+ *    escaped    = "%" hex hex
+ *    hex        = digit | "A" | "B" | "C" | "D" | "E" | "F" |
+ *                         "a" | "b" | "c" | "d" | "e" | "f"
+ *    alphanum   = alpha | digit
+ *    alpha      = lowalpha | upalpha
+ *    lowalpha   = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" |
+ *                 "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" |
+ *                 "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+ *    upalpha    = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" |
+ *                 "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" |
+ *                 "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
+ *    digit      = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" |
+ *                 "8" | "9"
+ *
+ *****/
+
+static bool prv_check_hex(char target)
+{
+    if (((target >= 'A') && (target <= 'F'))
+     || ((target >= 'a') && (target <= 'f'))
+     || ((target >= '0') && (target <= '9')))
+    {
+        return true;
+    }
+    return false;
+}
+
+static bool prv_check_pchar(char target)
+{
+    if (((target >= 'A') && (target <= 'Z'))
+     || ((target >= 'a') && (target <= 'z'))
+     || ((target >= '0') && (target <= '9')))
+    {
+        return true;
+    }
+    switch (target)
+    {
+    case ':':
+    case '@':
+    case '&':
+    case '=':
+    case '+':
+    case '$':
+    case ',':
+    case '-':
+    case '_':
+    case '!':
+    case '~':
+    case '*':
+    case '\'':
+    case '(':
+    case ')':
+        return true;
+    default:
+        break;
+    }
+
+    return false;
+}
+
+static int prv_validate_path(char * path_str)
+{
+    if (*path_str == 0)
+    {
+        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+    }
+    while (*path_str != 0 && *path_str != '/')
+    {
+        switch (*path_str)
+        {
+        case '.':
+            if (*(path_str+1) == '/')
+            {
+                return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+            }
+            path_str++;
+            break;
+        case '%':
+            if (!prv_check_hex(*(path_str+1))
+             && !prv_check_hex(*(path_str+2)))
+            {
+                return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+            }
+            path_str += 3;
+            break;
+         default:
+            if (!prv_check_pchar(*path_str))
+            {
+                return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+            }
+            path_str++;
+            break;
+        }
+    }
+
+    if (*path_str == '/')
+    {
+        return prv_validate_path(path_str+1);
+    }
+
+    return OMADM_SYNCML_ERROR_NONE;
+}
+
+int dmtree_validate_uri(const char * uri,
                         char ** oNodeURI,
                         char ** oPropId)
 {
     DMC_ERR_MANAGE;
 
-    unsigned int segments = 1;
-    char *uri_ptr;
-    char *old_uri_ptr;
-    unsigned int seg_len;
     unsigned int uri_len;
+    char * node_uri = NULL;
+    char * prop_str;
+    char * path_str;
 
     DMC_FAIL_ERR(!uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
     DMC_FAIL_ERR(oPropId && !oNodeURI, OMADM_SYNCML_ERROR_COMMAND_FAILED);
 
-    if (oNodeURI) *oNodeURI = NULL;
-    if (oPropId) *oPropId = NULL;
-
     uri_len = strlen(uri);
+    DMC_FAIL_ERR(uri_len == 0, OMADM_SYNCML_ERROR_COMMAND_FAILED);
     DMC_FAIL_ERR(uri_len > OMADM_DEVDETAILS_MAX_TOT_LEN, OMADM_SYNCML_ERROR_URI_TOO_LONG);
 
-    if (strcmp(uri, "."))
+    DMC_FAIL_ERR(strstr(uri, OMADM_TOKEN_LIST) != NULL, OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
+
+    DMC_FAIL_NULL(node_uri, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+
+    prop_str = strstr(node_uri, OMADM_TOKEN_PROP);
+    if (prop_str)
     {
-        DMC_FAIL_ERR(uri_len < 2, OMADM_SYNCML_ERROR_NOT_FOUND);
-        if ((strncmp(uri, "./", 2) && strncmp(uri, ".?", 2))
-        || (uri[uri_len - 1] == '/'))
-        {
-            DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_FOUND);
-        }
-        else
-        {
-            const char * question;
-
-            question = strchr(uri, '?');
-            if (question)
-            {
-                char *prop_str;
-
-                DMC_FAIL_ERR(!oPropId, OMADM_SYNCML_ERROR_NOT_ALLOWED);
-                DMC_FAIL_ERR(*(question - 1) == '/', OMADM_SYNCML_ERROR_NOT_FOUND);
-
-                DMC_FAIL_ERR(!strstr(uri, OMADM_TOKEN_LIST), OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
-
-                DMC_FAIL_NULL(*oNodeURI, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
-                DMC_FAIL_NULL(prop_str, strstr(*oNodeURI, OMADM_TOKEN_PROP), OMADM_SYNCML_ERROR_NOT_FOUND);
-
-                *oNodeURI[prop_str - *oNodeURI] = 0;
-                DMC_FAIL_NULL(*oPropId, strdup(prop_str + strlen(OMADM_TOKEN_PROP)), OMADM_SYNCML_ERROR_DEVICE_FULL);
-            }
-        }
-    }
-    if (oNodeURI && !*oNodeURI)
-    {
-        DMC_FAIL_NULL(*oNodeURI, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        DMC_FAIL_ERR(!oPropId, OMADM_SYNCML_ERROR_NOT_ALLOWED);
+        DMC_FAIL_NULL(*oPropId, strdup(prop_str + strlen(OMADM_TOKEN_PROP)), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        *prop_str = 0;
+        uri_len = strlen(node_uri);
+        DMC_FAIL_ERR(uri_len == 0, OMADM_SYNCML_ERROR_COMMAND_FAILED);
     }
 
-    /* Let's count the segments */
+    DMC_FAIL_ERR((node_uri)[uri_len-1] == '/', OMADM_SYNCML_ERROR_COMMAND_FAILED);
 
-    uri_ptr = strchr(uri, '/');
-    while (uri_ptr)
+    path_str = node_uri;
+
+    if ((node_uri)[0] == '.')
     {
-        ++segments;
-        old_uri_ptr = uri_ptr + 1;
-        uri_ptr = strchr(old_uri_ptr, '/');
-
-        if (uri_ptr)
-            seg_len = (unsigned int) (uri_ptr - old_uri_ptr);
-        else
+        switch ((node_uri)[1])
         {
-            char * prop_ptr;
-
-            prop_ptr = strchr(old_uri_ptr, '?');
-            if (prop_ptr)
-                seg_len = (unsigned int) (prop_ptr - old_uri_ptr);
-            else
-                seg_len = strlen(old_uri_ptr);
+        case 0:
+            path_str = NULL;
+            break;
+        case '/':
+            path_str += 2;
+            break;
+        default:
+            break;
         }
-
-        DMC_FAIL_ERR(seg_len > OMADM_DEVDETAILS_MAX_SEG_LEN, OMADM_SYNCML_ERROR_URI_TOO_LONG);
+    }
+    else
+    {
+        node_uri = str_cat_2("./", path_str);
+        if (!node_uri)
+        {
+            node_uri = path_str;
+            DMC_FAIL(OMADM_SYNCML_ERROR_DEVICE_FULL);
+        }
+        free(path_str);
+        path_str = node_uri + 2;
     }
 
-    DMC_FAIL_ERR(segments > OMADM_DEVDETAILS_MAX_DEPTH_LEN, OMADM_SYNCML_ERROR_URI_TOO_LONG);
+    if (path_str)
+    {
+        DMC_FAIL(prv_validate_path(path_str));
+    }
+
+    if (oNodeURI)
+    {
+        *oNodeURI = node_uri;
+    }
+    else
+    {
+        free(node_uri);
+    }
 
     DMC_LOGF("%s exitted with error %d",__FUNCTION__, DMC_ERR);
     return OMADM_SYNCML_ERROR_NONE;
 
 DMC_ON_ERR:
 
-    if (oNodeURI && *oNodeURI)
+    if (node_uri)
     {
-        free(*oNodeURI);
-        *oNodeURI = NULL;
+        free(node_uri);
     }
     if (oPropId && *oPropId)
     {
@@ -342,7 +448,7 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
     DMC_ERR_MANAGE;
 
     omadmtree_node_type_t node_exists;
-    char * uri = NULL;
+    char * target_uri = NULL;
     char * prop_id = NULL;
 
     DMC_FAIL_ERR(!node || !node->uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
@@ -354,20 +460,20 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
     node->data_buffer = NULL;
     node->data_size = 0;
 
-    DMC_FAIL(dmtree_validate_uri(node->uri, &uri, &prop_id));
+    DMC_FAIL(dmtree_validate_uri(node->uri, &target_uri, &prop_id));
 
     if (prop_id)
     {
-        DMC_FAIL(momgr_exists(handle->MOs, uri, &node_exists));
+        DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
         DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
-        DMC_FAIL(prv_check_node_acl_rights(handle, uri, OMADM_COMMAND_GET));
+        DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_GET));
 
         if (!strcmp(prop_id, OMADM_NODE_PROPERTY_NAME))
         {
             char * name;
 
-            name = strrchr(uri, '/');
-            if (!name) name = uri;
+            name = strrchr(target_uri, '/');
+            if (!name) name = target_uri;
             else name++;
 
             DMC_FAIL_NULL(node->data_buffer, strdup(name), OMADM_SYNCML_ERROR_DEVICE_FULL);
@@ -377,7 +483,7 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
         }
         else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
         {
-            DMC_FAIL(momgr_get_ACL(handle->MOs, uri, &(node->data_buffer)));
+            DMC_FAIL(momgr_get_ACL(handle->MOs, target_uri, &(node->data_buffer)));
             node->data_size = strlen(node->data_buffer);
             node->format = strdup("chr");
             node->type = strdup("text/plain");
@@ -393,17 +499,23 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
     }
     else
     {
-        DMC_FAIL(momgr_exists(handle->MOs, node->uri, &node_exists));
+        char * tmp_uri;
+
+        DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
         DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
-        DMC_FAIL(prv_check_node_acl_rights(handle, node->uri, OMADM_COMMAND_GET));
-        DMC_FAIL(momgr_get_value(handle->MOs, node));
+        DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_GET));
+        tmp_uri = node->uri;
+        node->uri = target_uri;
+        DMC_ERR = momgr_get_value(handle->MOs, node);
+        node->uri = tmp_uri;
+        DMC_FAIL(DMC_ERR);
     }
 
 DMC_ON_ERR:
 
     DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
 
-    if (uri) free(uri);
+    if (target_uri) free(target_uri);
     if (prop_id) free(prop_id);
 
     return DMC_ERR;
@@ -412,6 +524,8 @@ DMC_ON_ERR:
 int dmtree_delete(dmtree_t * handle, const char *uri)
 {
     DMC_ERR_MANAGE;
+
+    char * target_uri = NULL;
     omadmtree_node_type_t node_exists;
 
     DMC_LOGF("%s called.", __FUNCTION__);
@@ -420,32 +534,37 @@ int dmtree_delete(dmtree_t * handle, const char *uri)
 
     DMC_LOGF("deleting %s", uri);
 
-    DMC_FAIL(dmtree_validate_uri(uri, NULL, NULL));
+    DMC_FAIL(dmtree_validate_uri(uri, &target_uri, NULL));
 
-    DMC_FAIL(momgr_exists(handle->MOs, uri, &node_exists));
+    DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
 
     DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
 
-    DMC_FAIL(prv_check_node_acl_rights(handle, uri, OMADM_COMMAND_DELETE));
+    DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_DELETE));
 
-    DMC_FAIL(momgr_delete_node(handle->MOs, uri));
+    DMC_FAIL(momgr_delete_node(handle->MOs, target_uri));
 
 DMC_ON_ERR:
+
+    if (target_uri) free(target_uri);
 
     DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
 
     return DMC_ERR;
 }
 
-int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
+int dmtree_add(dmtree_t * handle, dmtree_node_t *node)
 {
     DMC_ERR_MANAGE;
+
+    char * target_uri = NULL;
     omadmtree_node_type_t node_exists;
     char *parent_uri = NULL;
     char *parent_acl = NULL;
     char * token = NULL;
     char * new_acl = NULL;
     char * tmp_str = NULL;
+    char * tmp_uri = NULL;
     int error;
 
     DMC_LOGF("%s called.", __FUNCTION__);
@@ -454,7 +573,7 @@ int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
 
     DMC_LOGF("adding %s", node->uri);
 
-    DMC_FAIL(dmtree_validate_uri(node->uri, NULL, NULL));
+    DMC_FAIL(dmtree_validate_uri(node->uri, &target_uri, NULL));
 
     if ((node->format) && (node->type) &&
         (!strcmp(node->format, OMADM_XML_FORMAT_VAL)) &&
@@ -462,11 +581,11 @@ int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
          !strcmp(node->type, OMADM_DMTNDS_WBXML_TYPE_VAL)))
         DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
 
-    DMC_FAIL(momgr_exists(handle->MOs, node->uri, &node_exists));
+    DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
 
     DMC_FAIL_ERR((node_exists != OMADM_NODE_NOT_EXIST), OMADM_SYNCML_ERROR_ALREADY_EXISTS);
 
-    DMC_FAIL_NULL(parent_uri, strdup(node->uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    DMC_FAIL_NULL(parent_uri, strdup(target_uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
     DMC_FAIL_NULL(token, strrchr(parent_uri, '/'), OMADM_SYNCML_ERROR_COMMAND_FAILED);
     *token = 0;
     // If the parent is a leaf node we cannot add. Neither if it does not exist.
@@ -477,7 +596,11 @@ int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
     DMC_FAIL_ERR(!parent_acl, OMADM_SYNCML_ERROR_COMMAND_FAILED);
     DMC_FAIL(prv_check_access_rights(handle, parent_acl, OMADM_COMMAND_ADD));
 
-    DMC_FAIL(momgr_set_value(handle->MOs, node));
+    tmp_uri = node->uri;
+    node->uri = target_uri;
+    DMC_ERR = momgr_set_value(handle->MOs, node);
+    node->uri = tmp_uri;
+    DMC_FAIL(DMC_ERR);
 
     // if parent's ACL does not allow replace, set node's ACL to give creating
     // server Add, Delete and Replace rights
@@ -494,7 +617,7 @@ int dmtree_add(dmtree_t * handle, const dmtree_node_t *node)
             free(new_acl);
             new_acl = NULL;
             DMC_FAIL_NULL(new_acl, str_cat_5(tmp_str, handle->server_id, "&", OMADM_COMMAND_REPLACE, handle->server_id), OMADM_SYNCML_ERROR_DEVICE_FULL);
-            DMC_FAIL(momgr_set_ACL(handle->MOs, node->uri, new_acl));
+            DMC_FAIL(momgr_set_ACL(handle->MOs, target_uri, new_acl));
         }
         break;
     default:
@@ -513,11 +636,11 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node)
+int dmtree_replace(dmtree_t * handle, dmtree_node_t *node)
 {
     DMC_ERR_MANAGE;
     omadmtree_node_type_t node_exists;
-    char *uri = NULL;
+    char *target_uri = NULL;
     char *prop_id = NULL;
 
     DMC_LOGF("%s called.", __FUNCTION__);
@@ -527,23 +650,23 @@ int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node)
 
     DMC_LOGF("replacing %s", node->uri);
 
-    DMC_FAIL(dmtree_validate_uri(node->uri, &uri, &prop_id));
+    DMC_FAIL(dmtree_validate_uri(node->uri, &target_uri, &prop_id));
 
     if (prop_id)
     {
-        DMC_FAIL(momgr_exists(handle->MOs, uri, &node_exists));
+        DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
         DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
-        DMC_FAIL(prv_check_node_acl_rights(handle, uri, OMADM_COMMAND_REPLACE));
+        DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
 
         if (!strcmp(prop_id, OMADM_NODE_PROPERTY_NAME))
         {
             DMC_FAIL_ERR(!strstr(node->data_buffer, "/"), OMADM_SYNCML_ERROR_COMMAND_FAILED);
-            DMC_FAIL(momgr_rename_node(handle->MOs, uri, node->data_buffer));
+            DMC_FAIL(momgr_rename_node(handle->MOs, target_uri, node->data_buffer));
         }
         else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
         {
             DMC_FAIL(prv_check_acl_syntax(node->data_buffer));
-            DMC_FAIL(momgr_set_ACL(handle->MOs, uri, node->data_buffer));
+            DMC_FAIL(momgr_set_ACL(handle->MOs, target_uri, node->data_buffer));
         }
         else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_TITLE))
         {
@@ -556,15 +679,21 @@ int dmtree_replace(dmtree_t * handle, const dmtree_node_t *node)
     }
     else
     {
-        DMC_FAIL(momgr_exists(handle->MOs, node->uri, &node_exists));
+        char * tmp_uri;
+
+        DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
         DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
-        DMC_FAIL(prv_check_node_acl_rights(handle, node->uri, OMADM_COMMAND_REPLACE));
-        DMC_FAIL(momgr_set_value(handle->MOs, node));
+        DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
+        tmp_uri = node->uri;
+        node->uri = target_uri;
+        DMC_ERR = momgr_set_value(handle->MOs, node);
+        node->uri = tmp_uri;
+        DMC_FAIL(DMC_ERR);
     }
 
 DMC_ON_ERR:
 
-    if (uri) free(uri);
+    if (target_uri) free(target_uri);
     if (prop_id) free(prop_id);
 
     DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);

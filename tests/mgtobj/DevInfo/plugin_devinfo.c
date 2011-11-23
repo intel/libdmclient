@@ -125,7 +125,7 @@ omadm_mo_interface_t * omadm_get_mo_interface()
     retVal = malloc(sizeof(*retVal));
     if (retVal) {
         memset(retVal, 0, sizeof(*retVal));
-        retVal->uri = strdup("./DevInfo/");
+        retVal->uri = strdup("./DevInfo");
         retVal->initFunc = prv_devInfoInitFN;
         retVal->closeFunc = prv_devInfoCloseFN;
         retVal->isNodeFunc = prv_devInfoIsNodeFN;

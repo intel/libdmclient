@@ -114,8 +114,9 @@ static int prv_rootGetFN(dmtree_node_t * nodeP,
         }
         dmc_ptr_array_free(&children);
 
+        if (!nodeP->data_buffer)
+            nodeP->data_buffer = strdup("");
         DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-        DMC_FAIL_NULL(nodeP->type, strdup("text/plain"), OMADM_SYNCML_ERROR_DEVICE_FULL);
         nodeP->type = NULL;
     }
     break;
@@ -142,7 +143,7 @@ static int prv_rootSetFN(const dmtree_node_t * nodeP,
     DMC_ERR_MANAGE;
     dmsettings *settings = (dmsettings *) iData;
 
-    if (strcmp(nodeP->format, "node"))
+    if (!strcmp(nodeP->format, "node"))
     {
         DMC_FAIL(omadm_dmsettings_utils_create_non_leaf(settings, nodeP->uri));
     }
@@ -209,7 +210,7 @@ omadm_mo_interface_t * omadm_get_mo_interface()
     retVal = malloc(sizeof(*retVal));
     if (retVal) {
         memset(retVal, 0, sizeof(*retVal));
-        retVal->uri = strdup("./");
+        retVal->uri = strdup(".");
         retVal->initFunc = prv_rootInitFN;
         retVal->closeFunc = prv_rootCloseFN;
         retVal->isNodeFunc = prv_rootIsNodeFN;

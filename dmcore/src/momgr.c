@@ -53,30 +53,21 @@ static void prv_freePlugin(dmtree_plugin_t *oPlugin)
 }
 
 static dmtree_plugin_t *prv_findPlugin(const mo_list_t iList,
-                   const char *iURI)
+                                       const char *iURI)
 {
-    dmtree_plugin_t *matchingPlugin = NULL;
-    unsigned int longest = 0;
-    unsigned int pluginURILen = 0;
     plugin_elem_t * elem = iList.first;
 
-    while(elem)
+    while(elem
+       && strncmp(elem->plugin->URI, iURI, strlen(elem->plugin->URI)))
     {
-        pluginURILen = strlen(elem->plugin->URI);
-
-        if ((pluginURILen == strlen(iURI) + 1)
-            && !strncmp(elem->plugin->URI, iURI, pluginURILen - 1)) {
-            matchingPlugin = elem->plugin;
-            break;
-        } else if ((strstr(iURI, elem->plugin->URI))
-               && (pluginURILen > longest)) {
-            longest = pluginURILen;
-            matchingPlugin = elem->plugin;
-        }
         elem = elem->next;
     }
 
-    return matchingPlugin;
+    if (elem)
+    {
+        return elem->plugin;
+    }
+    return NULL;
 }
 
 static void prv_removePlugin(mo_list_t * iListP,
@@ -120,18 +111,15 @@ static int prv_add_plugin(mo_list_t * iList,
                           void * handle)
 {
     DMC_ERR_MANAGE;
-    unsigned int uriLen = strlen(iURI);
     plugin_elem_t * newElem = NULL;
     void * pluginData = NULL;
 
     DMC_LOGF("uri <%s>", iURI);
 
-    //TODO: use dmtree_validate_uri(pluginDescP->uri, false)
-    if (uriLen < 2 || iURI[0] != '.' || iURI[1] != '/'
-        || iURI[uriLen - 1] != '/') {
-        DMC_ERR = OMADM_SYNCML_ERROR_SESSION_INTERNAL;
-        goto DMC_ON_ERR;
-    }
+    DMC_FAIL_ERR(dmtree_validate_uri(iURI, NULL, NULL), OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+
+    /* Plugin base URI must be root (".") or a direct child of root ("./[^\/]**/
+    // TODO
 
     DMC_FAIL_ERR(NULL == iPlugin, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
     DMC_FAIL_ERR(NULL == iPlugin->initFunc, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
@@ -310,13 +298,9 @@ int momgr_get_value(const mo_list_t iList,
     elem = iList.first;
     while(elem)
     {
-        if (strcmp(elem->plugin->URI, "./")
-         || (((unsigned int) (strchr(elem->plugin->URI + 2, '/') - elem->plugin->URI)) != strlen(elem->plugin->URI) - 1))
+        if (strcmp(elem->plugin->URI, "."))
         {
-
             DMC_FAIL_NULL(childNode, strdup(elem->plugin->URI), OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-            childNode[strlen(childNode) - 1] = 0;
 
             DMC_FAIL(elem->plugin->interface->isNodeFunc(childNode, &exists, elem->plugin->data));
 
