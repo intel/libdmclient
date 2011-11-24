@@ -42,12 +42,12 @@ static static_node_t gDmAccNodes[] =
     {PRV_BASE_URI"/test/AppAuth/toclient/AAuthType", OMADM_NODE_IS_LEAF, NULL, "DIGEST"},
     {PRV_BASE_URI"/test/AppAuth/toclient/AAuthName", OMADM_NODE_IS_LEAF, NULL, "funambol"},
     {PRV_BASE_URI"/test/AppAuth/toclient/AAuthSecret", OMADM_NODE_IS_LEAF, "", "srvpwd"},
-    {PRV_BASE_URI"/test/AppAuth/toclient/AAuthData", OMADM_NODE_IS_LEAF, "", ""},
+    {PRV_BASE_URI"/test/AppAuth/toclient/AAuthData", OMADM_NODE_IS_LEAF, "", NULL},
     {PRV_BASE_URI"/test/AppAuth/toserver/AAuthLevel", OMADM_NODE_IS_LEAF, NULL, "CLCRED"},
     {PRV_BASE_URI"/test/AppAuth/toserver/AAuthType", OMADM_NODE_IS_LEAF, NULL, "BASIC"},
     {PRV_BASE_URI"/test/AppAuth/toserver/AAuthName", OMADM_NODE_IS_LEAF, NULL, "funambol"},
     {PRV_BASE_URI"/test/AppAuth/toserver/AAuthSecret", OMADM_NODE_IS_LEAF, "", "funambol"},
-    {PRV_BASE_URI"/test/AppAuth/toserver/AAuthData", OMADM_NODE_IS_LEAF, "", ""},
+    {PRV_BASE_URI"/test/AppAuth/toserver/AAuthData", OMADM_NODE_IS_LEAF, "", NULL},
 
     {NULL, OMADM_NODE_NOT_EXIST, NULL},
 };

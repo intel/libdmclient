@@ -24,10 +24,6 @@ static int prv_init(void ** dataP)
     return OMADM_SYNCML_ERROR_NONE;
 }
 
-static void prv_close(void *unused)
-{
-}
-
 static int prv_isNode(const char *uri, omadmtree_node_type_t* node_type, void *data)
 {
     if (!strcmp(uri,"."))
@@ -65,9 +61,8 @@ static int prv_get(dmtree_node_t * nodeP,
     }
     // TODO: use constants
     nodeP->format = strdup("node");
-    nodeP->type = strdup("text/plain");
-    nodeP->data_size = 1;
-    nodeP->data_buffer = strdup("");
+    nodeP->data_size = 0;
+    nodeP->data_buffer = NULL;
 
     return OMADM_SYNCML_ERROR_NONE;
 }
@@ -81,7 +76,6 @@ omadm_mo_interface_t * getDefaultRootPlugin()
         memset(retval, 0, sizeof(*retval));
         retval->uri = strdup(".");
         retval->initFunc = prv_init;
-        retval->closeFunc = prv_close;
         retval->isNodeFunc = prv_isNode;
         retval->getACLFunc = prv_getACL;
         retval->getFunc = prv_get;

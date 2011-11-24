@@ -42,7 +42,14 @@ static int prv_fill_item(SmlItemPtr_t itemP,
         return OMADM_SYNCML_ERROR_COMMAND_FAILED;
     }
     itemP->source->locURI = smlString2Pcdata(node.uri);
-    itemP->data = smlString2Pcdata((char *)(node.data_buffer));
+    if (node.data_buffer)
+    {
+        itemP->data = smlString2Pcdata((char *)(node.data_buffer));
+    }
+    else
+    {
+        itemP->data = smlString2Pcdata("");
+    }
     itemP->meta = convert_to_meta(node.format, node.type);
 
     return OMADM_SYNCML_ERROR_SUCCESS;
