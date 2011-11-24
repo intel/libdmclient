@@ -24,10 +24,6 @@ static int prv_inboxInitFN(void **oData)
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
-static void prv_inboxCloseFN(void *iData)
-{
-}
-
 static int prv_inboxIsNodeFN(const char *iURI,
 			                 omadmtree_node_type_t *oNodeType,
 				             void *iData)
@@ -68,7 +64,6 @@ omadm_mo_interface_t * omadm_get_mo_interface()
 		memset(retVal, 0, sizeof(*retVal));
 		retVal->uri = strdup("./Inbox");
 		retVal->initFunc = prv_inboxInitFN;
-		retVal->closeFunc = prv_inboxCloseFN;
 		retVal->isNodeFunc = prv_inboxIsNodeFN;
 		retVal->setFunc = prv_inboxSetFN;
 		retVal->getACLFunc = prv_inboxGetACLFN;

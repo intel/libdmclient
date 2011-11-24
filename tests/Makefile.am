@@ -6,19 +6,25 @@ testdmclient_LDADD = $(top_builddir)/dmcore/libomadmclient.la \
 		      $(GLIB_LIBS) $(LIBSOUP_LIBS)
 
 libdir = $(MOBJS_DIR)
-lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la moroot.la
+lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la moroot.la modmacc.la
 
-modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c
+modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c mgtobj/utils/static_mo_util.c
 modevdetails_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                            -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
-                           -I $(top_srcdir)/dmcore/include
+                           -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
 modevdetails_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
 
-modevinfo_la_SOURCES = mgtobj/DevInfo/plugin_devinfo.c
+modevinfo_la_SOURCES = mgtobj/DevInfo/plugin_devinfo.c mgtobj/utils/static_mo_util.c
 modevinfo_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                         -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
-                        -I $(top_srcdir)/dmcore/include
+                        -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
 modevinfo_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
+
+modmacc_la_SOURCES = mgtobj/DmAcc/plugin_dmacc.c mgtobj/utils/static_mo_util.c
+modmacc_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
+                      -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
+                      -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
+modmacc_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
 
 moinbox_la_SOURCES = mgtobj/Inbox/plugin_inbox.c
 moinbox_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
