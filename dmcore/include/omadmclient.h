@@ -128,7 +128,7 @@ void omadmclient_session_close(dmclt_session sessionH);
 dmclt_err_t omadmclient_get_next_packet(dmclt_session sessionH, dmclt_buffer_t * packetP);
 
 /*!
- * @brief Processes a packet recieved from the server
+ * @brief Processes a packet received from the server
  *
  * @param sessionH session handle
  * @param packetP packet received from the server.

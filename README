@@ -1,8 +1,45 @@
 
+Source Layout
+-------------
+
+-+- dmcore              (the omadmclient library)
+ |    |
+ |    +- include        (public header files either for using the lib or for MOs)
+ |    |
+ |    +- src            (source files of the lib)
+ |
+ +- externals
+ |    |
+ |    +- SyncMLRTK      (the SyncML Reference Toolkit published by OMA)
+ |
+ +- tests
+ |    |
+ |    +- client         (a command-line test OMA DM client)
+ |    |
+ |    +- mgtobj         (test MOs for the omadmclient library)
+ |         |
+ |         +- DevDetail (contains hard-coded values)
+ |         |
+ |         +- DevInfo   (contains hard-coded values)
+ |         |
+ |         +- DmAcc     (contains hard-coded values)
+ |         |
+ |         +- Inbox     (empty MO)
+ |         |
+ |         +- Root      (stores added nodes in a SQL DB)
+ |         |
+ |         +- utils     (utility functions for hard-coded nodes)
+ |
+ +- Tizen               (Tizen-specific client and MOs)
+
+
 Required packages
 -----------------
 
-autoconf automake libtool gcc make sqlite-devel libxml2-devel libwbxml-devel gnutls-devel
+autoconf automake libtool gcc make libxml2-devel libwbxml-devel gnutls-devel
 
 for test client:
 libsoup-devel
+
+for test Root MO:
+sqlite-devel
