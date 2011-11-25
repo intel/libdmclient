@@ -34,9 +34,9 @@ static static_node_t gDevDetailNodes[] =
     {PRV_BASE_URI"/HwV", OMADM_NODE_IS_LEAF, NULL, "1.0"},
     {PRV_BASE_URI"/LrgObj", OMADM_NODE_IS_LEAF, NULL, "true"},
     {PRV_BASE_URI"/URI", OMADM_NODE_IS_INTERIOR, NULL, "MaxDepth/MaxTotLen/MaxSegLen"},
-    {PRV_BASE_URI"/URI/MaxDepth", OMADM_NODE_IS_LEAF, NULL, "16"},
-    {PRV_BASE_URI"/URI/MaxTotLen", OMADM_NODE_IS_LEAF, NULL, "256"},
-    {PRV_BASE_URI"/URI/MaxSegLen", OMADM_NODE_IS_LEAF, NULL, "64"},
+    {PRV_BASE_URI"/URI/MaxDepth", OMADM_NODE_IS_LEAF, NULL, "0"},
+    {PRV_BASE_URI"/URI/MaxTotLen", OMADM_NODE_IS_LEAF, NULL, "0"},
+    {PRV_BASE_URI"/URI/MaxSegLen", OMADM_NODE_IS_LEAF, NULL, "0"},
 
     {NULL, OMADM_NODE_NOT_EXIST, NULL},
 };
