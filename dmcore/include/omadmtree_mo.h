@@ -176,7 +176,8 @@ typedef int (*omadm_mo_exec_fn) (const char * uri, const char * cmdData, const c
  */
 typedef struct
 {
-    char * uri;                         /*!< base URI of the MO */
+    char * base_uri;                    /*!< base URI of the MO */
+    char * urn;                         /*!< URN of the MO */
     omadm_mo_init_fn      initFunc;     /*!< initialization function */
     omadm_mo_close_fn     closeFunc;
     omadm_mo_is_node_fn   isNodeFunc;

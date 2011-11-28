@@ -341,9 +341,9 @@ void momgr_load_plugin(mo_mgr_t * iMgrP,
     if (!getMoIfaceF) goto error;
 
     moInterfaceP = getMoIfaceF();
-    if ((!moInterfaceP) || (!moInterfaceP->uri)) goto error;
+    if ((!moInterfaceP) || (!moInterfaceP->base_uri)) goto error;
 
-    if (OMADM_SYNCML_ERROR_NONE == prv_add_plugin(iMgrP, moInterfaceP->uri, moInterfaceP, handle))
+    if (OMADM_SYNCML_ERROR_NONE == prv_add_plugin(iMgrP, moInterfaceP->base_uri, moInterfaceP, handle))
     {
         handle = NULL;
     }
@@ -439,14 +439,13 @@ int momgr_exists(const mo_mgr_t iMgr,
     DMC_LOGF("momgr_node_exists <%s>", iURI);
 
     DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
-               OMADM_SYNCML_ERROR_NOT_FOUND);
+                  OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->isNodeFunc,
                  OMADM_SYNCML_ERROR_NOT_ALLOWED);
     DMC_FAIL(plugin->interface->isNodeFunc(iURI, oExists, plugin->data));
 
-    DMC_LOGF("momgr_node_exists exit <0x%x> %d",
-                DMC_ERR, *oExists);
+    DMC_LOGF("momgr_node_exists exit <0x%x> %d", DMC_ERR, *oExists);
 
 DMC_ON_ERR:
 
@@ -780,4 +779,27 @@ DMC_ON_ERR:
     DMC_LOGF("%s exitted with error %d",__FUNCTION__, DMC_ERR);
 
     return DMC_ERR;
+}
+
+int momgr_get_uri_from_urn(const mo_mgr_t iMgr,
+                           const char * iUrn,
+                           char ** oUri)
+{
+    plugin_elem_t * elem = iMgr.first;
+
+    *oUri = NULL;
+
+    while(elem)
+    {
+        if ((NULL != elem->plugin->interface->urn)
+         && !strcmp(iUrn, elem->plugin->interface->urn))
+        {
+            *oUri = strdup(elem->plugin->URI);
+            if (*oUri) return OMADM_SYNCML_ERROR_NONE;
+            return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+        }
+        elem = elem->next;
+    }
+
+    return OMADM_SYNCML_ERROR_NOT_FOUND;
 }

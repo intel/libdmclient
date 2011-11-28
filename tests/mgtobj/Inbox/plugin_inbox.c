@@ -62,7 +62,8 @@ omadm_mo_interface_t * omadm_get_mo_interface()
 	retVal = malloc(sizeof(*retVal));
 	if (retVal) {
 		memset(retVal, 0, sizeof(*retVal));
-		retVal->uri = strdup("./Inbox");
+		retVal->base_uri = strdup("./Inbox");
+		retVal->urn = strdup("urn:oma:mo:oma-dm-inbox:1.0");
 		retVal->initFunc = prv_inboxInitFN;
 		retVal->isNodeFunc = prv_inboxIsNodeFN;
 		retVal->setFunc = prv_inboxSetFN;

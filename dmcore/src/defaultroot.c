@@ -74,7 +74,7 @@ omadm_mo_interface_t * getDefaultRootPlugin()
     retval = malloc(sizeof(*retval));
     if (retval) {
         memset(retval, 0, sizeof(*retval));
-        retval->uri = strdup(".");
+        retval->base_uri = strdup(".");
         retval->initFunc = prv_init;
         retval->isNodeFunc = prv_isNode;
         retval->getACLFunc = prv_getACL;

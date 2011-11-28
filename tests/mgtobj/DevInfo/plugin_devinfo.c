@@ -22,6 +22,7 @@
 
 
 #define PRV_BASE_URI "./DevInfo"
+#define PRV_URN      "urn:oma:mo:oma-dm-devinfo:1.0"
 
 
 static static_node_t gDevInfoNodes[] =
@@ -50,7 +51,8 @@ omadm_mo_interface_t * omadm_get_mo_interface()
     retVal = malloc(sizeof(*retVal));
     if (retVal) {
         memset(retVal, 0, sizeof(*retVal));
-        retVal->uri = strdup(PRV_BASE_URI);
+        retVal->base_uri = strdup(PRV_BASE_URI);
+        retVal->urn = strdup(PRV_URN);
         retVal->initFunc = prv_initFN;
         retVal->isNodeFunc = static_mo_is_node;
         retVal->getFunc = static_mo_get;
