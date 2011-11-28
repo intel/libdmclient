@@ -249,3 +249,25 @@ char * auth_type_as_string(authType_t type)
         return "";
     }
 }
+
+int get_server_account(char * serverID,
+                       accountDesc_t ** accountP)
+{
+#warning TODO: Implement the real stuff
+    *accountP = (accountDesc_t *)malloc(sizeof(accountDesc_t));
+    (*accountP)->id = strdup("funambol");
+    (*accountP)->name = strdup("Funambol");
+    (*accountP)->uri = strdup("http://127.0.0.1:8080/funambol/dm");
+    (*accountP)->toServerCred = (authDesc_t *)malloc(sizeof(authDesc_t));
+    (*accountP)->toServerCred->type = AUTH_TYPE_BASIC;
+    (*accountP)->toServerCred->name = strdup("funambol");
+    (*accountP)->toServerCred->secret = strdup("funambol");
+    (*accountP)->toServerCred->data = strdup("");
+    (*accountP)->toClientCred = (authDesc_t *)malloc(sizeof(authDesc_t));
+    (*accountP)->toClientCred->type = AUTH_TYPE_DIGEST;
+    (*accountP)->toClientCred->name = strdup("funambol");
+    (*accountP)->toClientCred->secret = strdup("srvpwd");
+    (*accountP)->toClientCred->data = strdup("");
+
+    return OMADM_SYNCML_ERROR_NONE;
+}

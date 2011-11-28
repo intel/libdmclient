@@ -87,6 +87,7 @@ typedef struct
 {
     InstanceID_t     smlH;
     dmtree_t *       dmtreeH;
+    accountDesc_t *  account;
     int              session_id;
     int              message_id;
     int              command_id;
@@ -94,7 +95,6 @@ typedef struct
     elemCell_t *     elem_last;
     elemCell_t *     old_elem;
     char *           reply_ref;
-    accountDesc_t *  account;
     int              srv_auth;
     int              clt_auth;
     dmclt_callback_t alert_cb;
@@ -112,7 +112,6 @@ char * encode_md5     (char * data, size_t len);
 
 
 // implemented in sml2tree.c
-int             get_server_account (internals_t * internP, char * serverID);
 SmlReplacePtr_t get_device_info    (internals_t * internP);
 int             get_node           (internals_t * internP, SmlItemPtr_t itemP, SmlItemPtr_t resultP);
 int             add_node           (internals_t * internP, SmlItemPtr_t itemP);
@@ -164,6 +163,7 @@ int          check_credentials   (SmlCredPtr_t credP, authDesc_t * authP);
 SmlChalPtr_t get_challenge       (authDesc_t * authP);
 authType_t   auth_string_as_type (char * string);
 char *       auth_type_as_string (authType_t type);
+int          get_server_account  (char * serverID, accountDesc_t ** accountP);
 
 // implemented in package0.c
 int decode_package_0   (char * pkg0, int pkg0_len, char ** serverID, int * sessionID, char * flags);

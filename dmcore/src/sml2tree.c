@@ -111,28 +111,6 @@ static int prv_get_to_list(internals_t * internP,
     return code;
 }
 
-int get_server_account (internals_t * internP,
-                        char * serverID)
-{
-#warning TODO: Implement the real stuff
-    internP->account = (accountDesc_t *)malloc(sizeof(accountDesc_t));
-    internP->account->id = strdup("funambol");
-    internP->account->name = strdup("Funambol");
-    internP->account->uri = strdup("http://127.0.0.1:8080/funambol/dm");
-    internP->account->toServerCred = (authDesc_t *)malloc(sizeof(authDesc_t));
-    internP->account->toServerCred->type = AUTH_TYPE_BASIC;
-    internP->account->toServerCred->name = strdup("funambol");
-    internP->account->toServerCred->secret = strdup("funambol");
-    internP->account->toServerCred->data = strdup("");
-    internP->account->toClientCred = (authDesc_t *)malloc(sizeof(authDesc_t));
-    internP->account->toClientCred->type = AUTH_TYPE_DIGEST;
-    internP->account->toClientCred->name = strdup("funambol");
-    internP->account->toClientCred->secret = strdup("srvpwd");
-    internP->account->toClientCred->data = strdup("");
-
-    return OMADM_SYNCML_ERROR_NONE;
-}
-
 SmlReplacePtr_t get_device_info(internals_t * internP)
 {
     SmlReplacePtr_t replaceP = NULL;

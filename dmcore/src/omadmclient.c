@@ -204,7 +204,7 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
     {
         goto error;
     }
-    if (OMADM_SYNCML_ERROR_NONE != get_server_account(internP, serverID))
+    if (OMADM_SYNCML_ERROR_NONE != get_server_account(serverID, &(internP->account)))
     {
         goto error;
     }
