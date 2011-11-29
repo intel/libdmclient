@@ -534,23 +534,3 @@ void dmtree_close(dmtree_t * handle)
         free(handle);
     }
 }
-
-void dmtree_node_free(dmtree_node_t *node)
-{
-    if (node == NULL)
-        return;
-
-    if (node->uri)
-        free(node->uri);
-
-    if (node->format)
-        free(node->format);
-
-    if (node->type)
-        free(node->type);
-
-    if (node->data_buffer)
-        free(node->data_buffer);
-
-    free(node);
-}

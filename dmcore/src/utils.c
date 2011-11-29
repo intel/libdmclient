@@ -212,8 +212,8 @@ int pcdata_to_int(SmlPcdataPtr_t dataP)
     return result;
 }
 
-char * str_cat_2(char * first,
-                 char * second)
+char * str_cat_2(const char * first,
+                 const char * second)
 {
     char * string;
 
@@ -227,9 +227,9 @@ char * str_cat_2(char * first,
     return string;
 }
 
-char * str_cat_3(char * first,
-                 char * second,
-                 char * third)
+char * str_cat_3(const char * first,
+                 const char * second,
+                 const char * third)
 {
     char * string;
 
@@ -244,11 +244,11 @@ char * str_cat_3(char * first,
     return string;
 }
 
-char * str_cat_5 (char * first,
-                  char * second,
-                  char * third,
-                  char * fourth,
-                  char* fifth)
+char * str_cat_5 (const char * first,
+                  const char * second,
+                  const char * third,
+                  const char * fourth,
+                  const char * fifth)
 {
     char * string;
     char * string_tmp;
@@ -734,4 +734,99 @@ void free_dmclt_alert(dmclt_ui_t * alertP)
         }
         free(alertP);
     }
+}
+
+void dmtree_node_clean(dmtree_node_t *node,
+                       bool full)
+{
+    if (node->uri)
+        free(node->uri);
+
+    if (node->format)
+        free(node->format);
+
+    if (node->type)
+        free(node->type);
+
+    // we free data_buffer manually since most of the time it
+    // is allocated by the SyncMLRTK
+    if (full && node->data_buffer)
+        free(node->data_buffer);
+
+    memset(node, 0, sizeof(dmtree_node_t));
+}
+
+void dmtree_node_free(dmtree_node_t *node)
+{
+    if (node == NULL)
+        return;
+
+    dmtree_node_clean(node, true);
+
+    free(node);
+}
+
+void free_uri_list(char ** list)
+{
+    int i = 0;
+
+    if (NULL == list) return;
+
+    while(list[i])
+    {
+        free(list[i]);
+        i++;
+    }
+
+    free(list);
+}
+
+char ** get_child_uri_list(const char * iBaseUri,
+                           const char * iChildList)
+{
+    char ** result = NULL;
+    int nb_child = 0;
+    char * childName;
+    char * listCopy = NULL;
+
+    childName = iChildList;
+    while(childName && *childName)
+    {
+        nb_child++;
+        childName = strchr(childName, '/');
+        if (childName) childName += 1;
+    }
+    if (0 == nb_child) return NULL;
+
+    listCopy = strdup(iChildList);
+    if (NULL == listCopy) return NULL;
+    result = (char**)malloc((nb_child + 1) * sizeof(char*));
+    memset(result, 0, (nb_child + 1) * sizeof(char*));
+    if (result)
+    {
+        nb_child = 0;
+        childName = listCopy;
+        while(childName && *childName)
+        {
+            char * slashStr;
+
+            slashStr = strchr(childName, '/');
+            if (slashStr)
+            {
+                *slashStr = 0;
+                slashStr++;
+            }
+
+            result[nb_child] = str_cat_3(iBaseUri, "/", childName);
+            if (NULL == result[nb_child])
+            {
+                free_uri_list(result);
+                return NULL;
+            }
+            nb_child++;
+            childName = slashStr;
+        }
+    }
+
+    return result;
 }

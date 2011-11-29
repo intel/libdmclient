@@ -557,7 +557,7 @@ int momgr_get_ACL(const mo_mgr_t iMgr,
     DMC_LOGF("momgr_get_ACL <%s>", iURI);
 
     DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
-              OMADM_SYNCML_ERROR_NOT_FOUND);
+                  OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->getACLFunc,
                  OMADM_SYNCML_ERROR_NOT_ALLOWED);
@@ -586,7 +586,7 @@ int momgr_set_ACL(const mo_mgr_t iMgr,
     DMC_LOGF("momgr_set_ACL <%s> <%s>", iURI, iACL);
 
     DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
-              OMADM_SYNCML_ERROR_NOT_FOUND);
+                  OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->setACLFunc,
                  OMADM_SYNCML_ERROR_NOT_ALLOWED);
@@ -792,7 +792,7 @@ int momgr_get_uri_from_urn(const mo_mgr_t iMgr,
     while(elem)
     {
         if ((NULL != elem->plugin->interface->urn)
-         && !strcmp(iUrn, elem->plugin->interface->urn))
+         && !strcasecmp(iUrn, elem->plugin->interface->urn))
         {
             *oUri = strdup(elem->plugin->URI);
             if (*oUri) return OMADM_SYNCML_ERROR_NONE;
@@ -802,4 +802,78 @@ int momgr_get_uri_from_urn(const mo_mgr_t iMgr,
     }
 
     return OMADM_SYNCML_ERROR_NOT_FOUND;
+}
+
+int momgr_find_subtree(const mo_mgr_t iMgr,
+                       const char * iUri,
+                       const char * iCriteriaName,
+                       const char * iCriteriaValue,
+                       char ** oUri)
+{
+    DMC_ERR_MANAGE;
+
+    dmtree_plugin_t * plugin;
+    char * childList = NULL;
+    char ** childUriList = NULL;
+    int i = 0;
+    bool found = false;
+    dmtree_node_t node;
+
+    memset(&node, 0, sizeof(dmtree_node_t));
+
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iUri),
+                  OMADM_SYNCML_ERROR_NOT_FOUND);
+    DMC_FAIL_ERR(NULL == iCriteriaName, OMADM_SYNCML_ERROR_NOT_FOUND);
+    DMC_FAIL_ERR(NULL == plugin->interface->getFunc || NULL == plugin->interface->isNodeFunc, OMADM_SYNCML_ERROR_NOT_FOUND);
+
+    DMC_FAIL_NULL(node.uri, strdup(iUri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    DMC_FAIL(plugin->interface->getFunc(&node, plugin->data));
+    DMC_FAIL_ERR(node.data_size == 0, OMADM_SYNCML_ERROR_NOT_FOUND);
+
+    childList = node.data_buffer;
+    DMC_FAIL_NULL(childUriList, get_child_uri_list(iUri, childList), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    dmtree_node_clean(&node, false);
+
+    while (childUriList[i] && !found)
+    {
+        omadmtree_node_type_t type;
+
+        DMC_FAIL_NULL(node.uri, str_cat_3(childUriList[i], "/", iCriteriaName), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        DMC_FAIL(plugin->interface->isNodeFunc(node.uri, &type, plugin->data));
+        if(OMADM_NODE_NOT_EXIST != type)
+        {
+            if (iCriteriaValue
+             && OMADM_NODE_IS_LEAF == type)
+            {
+                DMC_FAIL(plugin->interface->getFunc(&node, plugin->data));
+                if (!strcmp(node.data_buffer, iCriteriaValue))
+                {
+                    found = true;
+                }
+            }
+            else
+            {
+                found = true;
+            }
+        }
+        dmtree_node_clean(&node, true);
+        i++;
+    }
+
+    if (found)
+    {
+        DMC_FAIL_NULL(*oUri, strdup(childUriList[i - 1]), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    }
+    else
+    {
+        DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
+    }
+
+DMC_ON_ERR:
+
+    if (childList) free(childList);
+    if (childUriList) free_uri_list(childUriList);
+    dmtree_node_clean(&node, true);
+
+    return DMC_ERR;
 }

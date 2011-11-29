@@ -13,6 +13,7 @@
 #ifndef OMADM_DMTREE_H
 #define OMADM_DMTREE_H
 
+#include <stdbool.h>
 #include "momgr.h"
 
 typedef struct
@@ -30,6 +31,5 @@ int dmtree_replace(dmtree_t * handle, dmtree_node_t *node);
 int dmtree_delete(dmtree_t * handle, const char *uri);
 int dmtree_copy(dmtree_t * handle, const char *source_uri, const char *target_uri);
 
-void dmtree_node_free(dmtree_node_t *node);
 
 #endif

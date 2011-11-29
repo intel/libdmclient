@@ -16,24 +16,6 @@
 
 #define PRV_CONVERT_CODE(code) if ((code) == OMADM_SYNCML_ERROR_NONE) code = OMADM_SYNCML_ERROR_SUCCESS
 
-static void prv_node_clean(dmtree_node_t node,
-                           bool full)
-{
-    if (node.uri)
-        free(node.uri);
-
-    if (node.format)
-        free(node.format);
-
-    if (node.type)
-        free(node.type);
-
-    if (full && node.data_buffer)
-        free(node.data_buffer);
-    // we free data_buffer manually since most of the time it
-    // is allocated by the SyncMLRTK
-}
-
 static int prv_fill_item(SmlItemPtr_t itemP,
                          dmtree_node_t node)
 {
@@ -70,7 +52,7 @@ static int prv_get(internals_t * internP,
         if (OMADM_SYNCML_ERROR_NONE == code)
         {
             code = prv_fill_item(resultP, node);
-            prv_node_clean(node, true);
+            dmtree_node_clean(&node, true);
         }
     }
     return code;
@@ -174,7 +156,7 @@ int add_node(internals_t * internP,
     code = dmtree_add(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
 
-    prv_node_clean(node, false);
+    dmtree_node_clean(&node, false);
 
     return code;
 }
@@ -205,7 +187,7 @@ int replace_node(internals_t * internP,
     code = dmtree_replace(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
 
-    prv_node_clean(node, false);
+    dmtree_node_clean(&node, false);
 
     return code;
 }

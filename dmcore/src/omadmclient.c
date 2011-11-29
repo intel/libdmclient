@@ -314,7 +314,6 @@ void omadmclient_session_close(dmclt_session sessionH)
     if (internP->account)
     {
         if (internP->account->id) free(internP->account->id);
-        if (internP->account->name) free(internP->account->name);
         if (internP->account->uri) free(internP->account->uri);
         prvFreeAuth(internP->account->toServerCred);
         prvFreeAuth(internP->account->toClientCred);

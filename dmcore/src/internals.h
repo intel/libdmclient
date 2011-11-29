@@ -77,7 +77,6 @@ typedef struct _elemCell
 typedef struct
 {
     char *       id;
-    char *       name;
     char *       uri;
     authDesc_t * toServerCred;
     authDesc_t * toClientCred;
@@ -121,9 +120,9 @@ int             copy_node          (internals_t * internP, SmlItemPtr_t itemP);
 
 
 // implemented in utils.c
-char * str_cat_2 (char * first, char * second);
-char * str_cat_3 (char * first, char * second, char * third);
-char * str_cat_5 (char * first, char * second, char * third, char * fourth, char* fifth);
+char * str_cat_2 (const char * first, const char * second);
+char * str_cat_3 (const char * first, const char * second, const char * third);
+char * str_cat_5 (const char * first, const char * second, const char * third, const char * fourth, const char* fifth);
 
 void   set_pcdata_string (SmlPcdataPtr_t dataP, char * string);
 void   set_pcdata_int    (SmlPcdataPtr_t dataP, int value);
@@ -152,6 +151,11 @@ void         free_dmclt_alert(dmclt_ui_t * alertP);
 
 void set_new_uri (internals_t * internP, char * uri);
 
+void dmtree_node_free(dmtree_node_t *node);
+void dmtree_node_clean(dmtree_node_t *node, bool full);
+
+char ** get_child_uri_list(const char * iBaseUri, const char * iChildList);
+void free_uri_list(char ** list);
 
 // implemented in callbacks.c
 SmlCallbacksPtr_t get_callbacks();
