@@ -167,7 +167,7 @@ int          check_credentials   (SmlCredPtr_t credP, authDesc_t * authP);
 SmlChalPtr_t get_challenge       (authDesc_t * authP);
 authType_t   auth_string_as_type (char * string);
 char *       auth_type_as_string (authType_t type);
-int          get_server_account  (char * serverID, accountDesc_t ** accountP);
+int          get_server_account  (const mo_mgr_t iMgr, char * serverID, accountDesc_t ** accountP);
 
 // implemented in package0.c
 int decode_package_0   (char * pkg0, int pkg0_len, char ** serverID, int * sessionID, char * flags);
