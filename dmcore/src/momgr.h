@@ -20,7 +20,6 @@
 
 typedef struct
 {
-    char * URI;
     omadm_mo_interface_t * interface;
     void * data;
     void * dl_handle;

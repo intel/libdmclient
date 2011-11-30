@@ -21,7 +21,7 @@
 #include "syncml_error.h"
 
 
-#define PRV_BASE_URI "./DmAcc"
+#define PRV_BASE_URI "./DMAcc"
 #define PRV_URN      "urn:oma:mo:oma-dm-dmacc:1.0"
 
 

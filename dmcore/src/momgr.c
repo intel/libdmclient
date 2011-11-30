@@ -29,6 +29,13 @@
 #include "momgr.h"
 #include "internals.h"
 
+#define URN_MO_DMACC     "urn:oma:mo:oma-dm-dmacc:1.0"
+#define URN_MO_DEVDETAIL "urn:oma:mo:oma-dm-devdetail:1.0"
+#define URN_MO_DEVINFO   "urn:oma:mo:oma-dm-devinfo:1.0"
+
+#define URI(plug) (plug)->interface->base_uri
+#define URN(plug) (plug)->interface->urn
+
 #define OMADM_TOKEN_PROP "?prop="
 #define OMADM_TOKEN_LIST "?list="
 
@@ -193,34 +200,35 @@ static int prv_get_short(const dmtree_plugin_t *plugin,
     return error;
 }
 
-static void prv_freePlugin(dmtree_plugin_t *oPlugin)
+static void prv_freePlugin(dmtree_plugin_t *iPlugin)
 {
-    if (oPlugin->URI)
-        free(oPlugin->URI);
-
-    if (oPlugin->interface) {
-        if (oPlugin->interface->closeFunc)
+    if (iPlugin->interface) {
+        if (iPlugin->interface->closeFunc)
         {
-            oPlugin->interface->closeFunc(oPlugin->data);
+            iPlugin->interface->closeFunc(iPlugin->data);
         }
-        free(oPlugin->interface);
+        if (URI(iPlugin)) free(URI(iPlugin));
+        if (URN(iPlugin)) free(URN(iPlugin));
+        free(iPlugin->interface);
     }
 
-    if (oPlugin->dl_handle)
+    if (iPlugin->dl_handle)
     {
-        dlclose(oPlugin->dl_handle);
+        dlclose(iPlugin->dl_handle);
     }
 
-    free(oPlugin);
+    free(iPlugin);
 }
 
-static dmtree_plugin_t *prv_findPlugin(const mo_mgr_t iMgr,
-                                       const char *iURI)
+static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
+                                        const char *iURI,
+                                        const char *iURN)
 {
     plugin_elem_t * elem = iMgr.first;
 
     while(elem
-       && strncmp(elem->plugin->URI, iURI, strlen(elem->plugin->URI)))
+       && ((iURI && URI(elem->plugin) && strncmp(URI(elem->plugin), iURI, strlen(URI(elem->plugin))))
+        || (iURN && URN(elem->plugin) && strncmp(URN(elem->plugin), iURN, strlen(URN(elem->plugin))))))
     {
         elem = elem->next;
     }
@@ -240,10 +248,10 @@ static void prv_removePlugin(mo_mgr_t * iMgrP,
 
     if (elem)
     {
-        if (strcmp(iURI, elem->plugin->URI))
+        if (strcmp(iURI, URI(elem->plugin)))
         {
             while ((elem->next)
-                && (strcmp(iURI, elem->next->plugin->URI)))
+                && (strcmp(iURI, URI(elem->next->plugin))))
             {
                 elem = elem->next;
             }
@@ -295,8 +303,6 @@ static int prv_add_plugin(mo_mgr_t * iMgr,
 
     memset(newElem->plugin, 0, sizeof(dmtree_plugin_t));
 
-    DMC_FAIL_NULL(newElem->plugin->URI, strdup(iURI),
-              OMADM_SYNCML_ERROR_DEVICE_FULL);
     newElem->plugin->interface = iPlugin;
     newElem->plugin->data = pluginData;
     newElem->plugin->dl_handle = handle;
@@ -385,29 +391,45 @@ int momgr_init(mo_mgr_t * iMgrP)
         closedir(folderP);
     }
 
-    // Check if we have a root plugin
-    if (NULL == prv_findPlugin(*iMgrP, "."))
+    // Check if we have all mandatory MOs
+    if (NULL == prv_findPlugin(*iMgrP, NULL, URN_MO_DMACC))
     {
+        error = OMADM_SYNCML_ERROR_NOT_FOUND;
+    }
+    else if (NULL == prv_findPlugin(*iMgrP, NULL, URN_MO_DEVDETAIL))
+    {
+        error = OMADM_SYNCML_ERROR_NOT_FOUND;
+    }
+    else if (NULL == prv_findPlugin(*iMgrP, NULL, URN_MO_DEVINFO))
+    {
+        error = OMADM_SYNCML_ERROR_NOT_FOUND;
+    }
+    else if (NULL == prv_findPlugin(*iMgrP, ".", NULL))
+    {
+        // Check if we have a root plugin
         error = prv_add_plugin(iMgrP, "./", getDefaultRootPlugin(), NULL);
     }
 
-    // retrieve uri limits
-    detailPluginP = prv_findPlugin(*iMgrP, "./DevDetail");
-    if (detailPluginP && detailPluginP->interface->getFunc)
+    if (OMADM_SYNCML_ERROR_NONE == error)
     {
-        error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxDepth", &(iMgrP->max_depth));
-        if (OMADM_SYNCML_ERROR_NONE == error)
+        // retrieve uri limits
+        detailPluginP = prv_findPlugin(*iMgrP, "./DevDetail", NULL);
+        if (detailPluginP && detailPluginP->interface->getFunc)
         {
-            error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxTotLen", &(iMgrP->max_total_len));
+            error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxDepth", &(iMgrP->max_depth));
             if (OMADM_SYNCML_ERROR_NONE == error)
             {
-                error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxSegLen", &(iMgrP->max_segment_len));
+                error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxTotLen", &(iMgrP->max_total_len));
+                if (OMADM_SYNCML_ERROR_NONE == error)
+                {
+                    error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxSegLen", &(iMgrP->max_segment_len));
+                }
             }
         }
-    }
-    else
-    {
-        error = OMADM_SYNCML_ERROR_SESSION_INTERNAL;
+        else
+        {
+            error = OMADM_SYNCML_ERROR_SESSION_INTERNAL;
+        }
     }
 
     if (OMADM_SYNCML_ERROR_NONE != error)
@@ -438,7 +460,7 @@ int momgr_exists(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_node_exists <%s>", iURI);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->isNodeFunc,
@@ -465,7 +487,7 @@ int momgr_get_value(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_get_value <%s>", nodeP->uri);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->getFunc,
@@ -479,9 +501,9 @@ int momgr_get_value(const mo_mgr_t iMgr,
     elem = iMgr.first;
     while(elem)
     {
-        if (strcmp(elem->plugin->URI, "."))
+        if (strcmp(URI(elem->plugin), "."))
         {
-            DMC_FAIL_NULL(childNode, strdup(elem->plugin->URI), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            DMC_FAIL_NULL(childNode, strdup(URI(elem->plugin)), OMADM_SYNCML_ERROR_DEVICE_FULL);
 
             DMC_FAIL(elem->plugin->interface->isNodeFunc(childNode, &exists, elem->plugin->data));
 
@@ -529,7 +551,7 @@ int momgr_set_value(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_set_value <%s>", nodeP->uri);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->setFunc,
@@ -556,7 +578,7 @@ int momgr_get_ACL(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_get_ACL <%s>", iURI);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->getACLFunc,
@@ -585,7 +607,7 @@ int momgr_set_ACL(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_set_ACL <%s> <%s>", iURI, iACL);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->setACLFunc,
@@ -615,7 +637,7 @@ int momgr_rename_node(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_rename_node <%s> <%s>", iURI, iNewName);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->renameFunc,
@@ -644,7 +666,7 @@ int momgr_delete_node(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_delete_node <%s>", iURI);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->deleteFunc,
@@ -671,7 +693,7 @@ int momgr_exec_node(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_exec_node <%s> <%s> <%s>", iURI, iData, iCorrelator);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->execFunc,
@@ -789,23 +811,25 @@ int momgr_get_uri_from_urn(const mo_mgr_t iMgr,
                            const char * iUrn,
                            char ** oUri)
 {
-    plugin_elem_t * elem = iMgr.first;
+    dmtree_plugin_t * plugin;
+    int result = OMADM_SYNCML_ERROR_NOT_FOUND;
 
     *oUri = NULL;
 
-    while(elem)
+    plugin = prv_findPlugin(iMgr, NULL, iUrn);
+    if (plugin)
     {
-        if ((NULL != elem->plugin->interface->urn)
-         && !strcasecmp(iUrn, elem->plugin->interface->urn))
+        if (URI(plugin))
         {
-            *oUri = strdup(elem->plugin->URI);
-            if (*oUri) return OMADM_SYNCML_ERROR_NONE;
-            return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+            *oUri = strdup(URI(plugin));
+            if (*oUri)
+                result = OMADM_SYNCML_ERROR_NONE;
+            else
+                result = OMADM_SYNCML_ERROR_COMMAND_FAILED;
         }
-        elem = elem->next;
     }
 
-    return OMADM_SYNCML_ERROR_NOT_FOUND;
+    return result;
 }
 
 int momgr_find_subtree(const mo_mgr_t iMgr,
@@ -825,7 +849,7 @@ int momgr_find_subtree(const mo_mgr_t iMgr,
 
     memset(&node, 0, sizeof(dmtree_node_t));
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iUri),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iUri, NULL),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
     DMC_FAIL_ERR(NULL == iCriteriaName, OMADM_SYNCML_ERROR_NOT_FOUND);
     DMC_FAIL_ERR(NULL == plugin->interface->getFunc || NULL == plugin->interface->isNodeFunc, OMADM_SYNCML_ERROR_NOT_FOUND);
