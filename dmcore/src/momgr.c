@@ -608,6 +608,7 @@ int momgr_rename_node(const mo_mgr_t iMgr,
 {
     DMC_ERR_MANAGE;
     dmtree_plugin_t *plugin = NULL;
+    char * nameCopy = NULL;
 
     DMC_FAIL_ERR(NULL == iURI, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
     DMC_FAIL_ERR(NULL == iNewName, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
@@ -620,11 +621,14 @@ int momgr_rename_node(const mo_mgr_t iMgr,
     DMC_FAIL_ERR(NULL == plugin->interface->renameFunc,
                  OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-    // TODO: check that iNewName is valid (here or in dmtree.c
+    // prv_validate_path() will check for NULL
+    nameCopy = strdup(iNewName);
+    DMC_FAIL(prv_validate_path(nameCopy, 1, iMgr.max_segment_len));
     DMC_FAIL(plugin->interface->renameFunc(iURI, iNewName, plugin->data));
 
 DMC_ON_ERR:
 
+    if (nameCopy) free(nameCopy);
     DMC_LOGF("momgr_set_ACL exit <%d>", DMC_ERR);
 
     return DMC_ERR;
