@@ -390,8 +390,8 @@ int dmtree_add(dmtree_t * handle, dmtree_node_t *node)
         break;
     case OMADM_SYNCML_ERROR_PERMISSION_DENIED:
         {
-            DMC_FAIL_NULL(new_acl, str_cat_3(OMADM_COMMAND_ADD, handle->server_id, "&"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-            DMC_FAIL_NULL(tmp_str, str_cat_2(new_acl, OMADM_COMMAND_DELETE), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            DMC_FAIL_NULL(new_acl, str_cat_3("Get=*&", OMADM_COMMAND_ADD, handle->server_id), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            DMC_FAIL_NULL(tmp_str, str_cat_3(new_acl, "&", OMADM_COMMAND_DELETE), OMADM_SYNCML_ERROR_DEVICE_FULL);
             free(new_acl);
             new_acl = NULL;
             DMC_FAIL_NULL(new_acl, str_cat_5(tmp_str, handle->server_id, "&", OMADM_COMMAND_REPLACE, handle->server_id), OMADM_SYNCML_ERROR_DEVICE_FULL);

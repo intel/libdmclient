@@ -45,6 +45,8 @@ static int prv_get(internals_t * internP,
     int code = OMADM_SYNCML_ERROR_COMMAND_FAILED;
     dmtree_node_t node;
 
+    memset(&node, 0, sizeof(dmtree_node_t));
+
     node.uri = strdup(uri);
     if (node.uri)
     {
