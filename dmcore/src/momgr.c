@@ -241,17 +241,19 @@ static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
 }
 
 static void prv_removePlugin(mo_mgr_t * iMgrP,
-                             const char *iURI)
+                             const char *iURx)
 {
     plugin_elem_t * elem = iMgrP->first;
     plugin_elem_t * target = NULL;
 
     if (elem)
     {
-        if (strcmp(iURI, URI(elem->plugin)))
+        if ((!URI(elem->plugin) || strcmp(iURx, URI(elem->plugin)))
+         && (!URN(elem->plugin) || strcmp(iURx, URN(elem->plugin))))
         {
             while ((elem->next)
-                && (strcmp(iURI, URI(elem->next->plugin))))
+                && (!URI(elem->next->plugin) || strcmp(iURx, URI(elem->next->plugin)))
+                && (!URN(elem->next->plugin) || strcmp(iURx, URN(elem->next->plugin))))
             {
                 elem = elem->next;
             }
@@ -276,20 +278,41 @@ static void prv_removePlugin(mo_mgr_t * iMgrP,
 }
 
 static int prv_add_plugin(mo_mgr_t * iMgr,
-                          const char *iURI,
                           omadm_mo_interface_t *iPlugin,
                           void * handle)
 {
     DMC_ERR_MANAGE;
     plugin_elem_t * newElem = NULL;
     void * pluginData = NULL;
+    char * uriCopy = NULL;
 
-    DMC_LOGF("uri <%s>", iURI);
+    DMC_LOGF("uri <%s>", iPlugin->base_uri);
 
-    DMC_FAIL_ERR(momgr_validate_uri(*iMgr, iURI, NULL, NULL), OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    /* Plugin base URI must be root (".") or a direct child of root ("./[^/]*") The "./" part is optionnal. */
+    if (iPlugin->base_uri)
+    {
+        if ('.' == iPlugin->base_uri[0])
+        {
+            switch(iPlugin->base_uri[1])
+            {
+            case 0:
+                break;
+            case '/':
+                uriCopy = strdup(iPlugin->base_uri + 2);
+                DMC_FAIL(prv_validate_path(uriCopy, 1, iMgr->max_segment_len));
+                break;
+            default:
+                DMC_FAIL(OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+            }
+        }
+        else
+        {
+            uriCopy = strdup(iPlugin->base_uri + 2);
+            DMC_FAIL(prv_validate_path(uriCopy, 1, iMgr->max_segment_len));
+        }
+    }
 
-    /* Plugin base URI must be root (".") or a direct child of root ("./[^\/]**/
-    // TODO
+    // check urn is valid
 
     DMC_FAIL_ERR(NULL == iPlugin, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
     DMC_FAIL_ERR(NULL == iPlugin->initFunc, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
@@ -307,7 +330,8 @@ static int prv_add_plugin(mo_mgr_t * iMgr,
     newElem->plugin->data = pluginData;
     newElem->plugin->dl_handle = handle;
 
-    prv_removePlugin(iMgr, iURI);
+    prv_removePlugin(iMgr, iPlugin->base_uri);
+    prv_removePlugin(iMgr, iPlugin->urn);
     newElem->next = iMgr->first;
     iMgr->first = newElem;
 
@@ -323,6 +347,7 @@ DMC_ON_ERR:
         }
         free(newElem);
     }
+    if (uriCopy) free(uriCopy);
 
     DMC_LOGF("exit <0x%x>", DMC_ERR);
 
@@ -347,9 +372,9 @@ void momgr_load_plugin(mo_mgr_t * iMgrP,
     if (!getMoIfaceF) goto error;
 
     moInterfaceP = getMoIfaceF();
-    if ((!moInterfaceP) || (!moInterfaceP->base_uri)) goto error;
+    if ((!moInterfaceP) || (!moInterfaceP->base_uri && !moInterfaceP->urn)) goto error;
 
-    if (OMADM_SYNCML_ERROR_NONE == prv_add_plugin(iMgrP, moInterfaceP->base_uri, moInterfaceP, handle))
+    if (OMADM_SYNCML_ERROR_NONE == prv_add_plugin(iMgrP, moInterfaceP, handle))
     {
         handle = NULL;
     }
@@ -407,7 +432,7 @@ int momgr_init(mo_mgr_t * iMgrP)
     else if (NULL == prv_findPlugin(*iMgrP, ".", NULL))
     {
         // Check if we have a root plugin
-        error = prv_add_plugin(iMgrP, "./", getDefaultRootPlugin(), NULL);
+        error = prv_add_plugin(iMgrP, getDefaultRootPlugin(), NULL);
     }
 
     if (OMADM_SYNCML_ERROR_NONE == error)
