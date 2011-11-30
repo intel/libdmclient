@@ -348,6 +348,30 @@ static int prv_fill_credentials(const mo_mgr_t iMgr,
     }
     dmtree_node_clean(&node, false);
 
+    switch (authP->type)
+    {
+    case AUTH_TYPE_DIGEST:
+        if (NULL == authP->data)
+        {
+            authP->data = strdup("");
+            if (NULL == authP->data) return OMADM_SYNCML_ERROR_DEVICE_FULL;
+        }
+        // fall through
+    case AUTH_TYPE_BASIC:
+        if (NULL == authP->name)
+        {
+            authP->name = strdup("");
+            if (NULL == authP->name) return OMADM_SYNCML_ERROR_DEVICE_FULL;
+        }
+        if (NULL == authP->secret)
+        {
+            authP->secret = strdup("");
+            if (NULL == authP->secret) return OMADM_SYNCML_ERROR_DEVICE_FULL;
+        }
+        break;
+    default:
+        break;
+    }
     return code;
 }
 
@@ -372,7 +396,11 @@ int get_server_account(const mo_mgr_t iMgr,
 
     DMC_FAIL_NULL(*accountP, malloc(sizeof(accountDesc_t)), OMADM_SYNCML_ERROR_DEVICE_FULL);
     memset(*accountP, 0, sizeof(accountDesc_t));
-    DMC_FAIL_NULL((*accountP)->id, strdup(serverID), OMADM_SYNCML_ERROR_DEVICE_FULL);
+
+    DMC_FAIL_NULL(node.uri, strdup("./DevInfo/DevId"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    DMC_FAIL(momgr_get_value(iMgr, &node));
+    (*accountP)->id = node.data_buffer;
+    dmtree_node_clean(&node, false);
 
     // TODO handle IPv4 and IPv6 cases
     DMC_FAIL_NULL(uri, str_cat_2(accountUri, "/AppAddr"), OMADM_SYNCML_ERROR_DEVICE_FULL);

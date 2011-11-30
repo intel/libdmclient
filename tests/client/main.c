@@ -7,42 +7,31 @@
 #include <libsoup/soup.h>
 #include <gio/gio.h>
 
+// HACK
 typedef struct
 {
-    char * id;
-    char * name;
-    char * uri;
-    void * toServerCred;
-    void * toClientCred;
-} accountDesc_t;
-
-typedef struct
-{
-    void *        smlH;
-    void *      dmtreeH;
-    int                 session_id;
-    int                 message_id;
-    int                 command_id;
-    void *       elem_first;
-    void *       elem_last;
-    void *       old_elem;
-    char *              reply_ref;
-    accountDesc_t *    account;
-    int                 srv_auth;
-    int                 clt_auth;
-    dmclt_callback_t alert_cb;
-    void *           cb_data;
-} * internals_p;
+    void *  unused1;
+    void *  unused2;
+    void *  unused3;
+    int     unused4;
+    int     unused5;
+    int     unused6;
+    void *  unused7;
+    void *  unused8;
+    void *  unused9;
+    char *  unusedA;
+    int     srv_auth;
+    int     clt_auth;
+} internals_t;
 
 void print_usage(void)
 {
-    fprintf(stderr, "Usage: testdmclient [-w] [-d] [-f FILE|-u URI]\r\n");
-    fprintf(stderr, "Launch a DM session with the server \"funambol\" on localhost.\r\n\n");
+    fprintf(stderr, "Usage: testdmclient [-w] [-f FILE | -s SERVERID]\r\n");
+    fprintf(stderr, "Launch a DM session with the server SERVERID. If SERVERID is not specified, \"funambol\" is used by default.\r\n\n");
     fprintf(stderr, "  -w\tuse WBXML\r\n");
-    fprintf(stderr, "  -d\tuse Dbus calls to display UI\r\n");
     fprintf(stderr, "  -f\tuse the file as a server's packet\r\n");
-    fprintf(stderr, "  -u\tuse the URI to connect the server\r\n");
-    fprintf(stderr, "Options f and u are mutually exclusive.\r\n");
+    fprintf(stderr, "  -s\topen a DM session with server SERVERID\r\n");
+    fprintf(stderr, "Options f and s are mutually exclusive.\r\n");
 
 }
 
@@ -179,183 +168,6 @@ int uiCallback(void * userData,
     return code;
 }
 
-int uiCallbackDBus(void * userData,
-                   const dmclt_ui_t * alertData,
-                   char * userReply)
-{
-    int code = 200;
-    GDBusProxy * proxyP = NULL;
-    GError * error = NULL;
-    GVariant * resultP = NULL;
-
-    fprintf(stderr, "\nAlert received:\n");
-    fprintf(stderr, "type: %d\n", alertData->type);
-    fprintf(stderr, "min_disp: %d\n", alertData->min_disp);
-    fprintf(stderr, "max_disp: %d\n", alertData->max_disp);
-    fprintf(stderr, "max_resp_len: %d\n", alertData->max_resp_len);
-    fprintf(stderr, "input_type: %d\n", alertData->input_type);
-    fprintf(stderr, "echo_type: %d\n", alertData->echo_type);
-    fprintf(stderr, "disp_msg: \"%s\"\n", alertData->disp_msg);
-    fprintf(stderr, "dflt_resp: \"%s\"\n", alertData->dflt_resp);
-
-#define DMUI_SERVER_NAME "com.intel.roman.ui"
-#define DMUI_OBJECT "/com/intel/roman/ui"
-#define DMUI_INTERFACE "com.intel.roman.ui.omadm"
-
-    proxyP = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
-                                           0,
-                                           NULL,
-                                           DMUI_SERVER_NAME,
-                                           DMUI_OBJECT,
-                                           DMUI_INTERFACE,
-                                           NULL,
-                                           &error);
-
-    if (!proxyP)
-    {
-        if (error)
-        {
-            fprintf(stderr, "g_dbus_proxy_new_for_bus_sync() failed (%d) \"%s\"\n", error->code, error->message);
-            g_error_free(error);
-        }
-        return 500;
-    }
-
-    switch (alertData->type)
-    {
-    case DMCLT_UI_TYPE_DISPLAY:
-        resultP = g_dbus_proxy_call_sync(proxyP,
-                                         "Display",
-                                         g_variant_new ("(sii)",
-                                                        alertData->disp_msg,
-                                                        alertData->min_disp, alertData->max_disp),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         -1, NULL,
-                                         &error);
-        if (resultP == NULL)
-        {
-            if (error)
-            {
-                fprintf(stderr, "g_dbus_proxy_call_sync(Display) failed (%d) \"%s\"\n", error->code, error->message);
-                g_error_free(error);
-            }
-            code = 500;
-        }
-        else
-        {
-            g_variant_unref(resultP);
-        }
-        break;
-
-    case DMCLT_UI_TYPE_CONFIRM:
-        resultP = g_dbus_proxy_call_sync(proxyP,
-                                         "Confirm",
-                                         g_variant_new ("(sii)",
-                                                        alertData->disp_msg,
-                                                        alertData->min_disp, alertData->max_disp),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         -1, NULL,
-                                         &error);
-        if (resultP == NULL)
-        {
-            if (error)
-            {
-                fprintf(stderr, "g_dbus_proxy_call_sync(Confirm) failed (%d) \"%s\"\n", error->code, error->message);
-                g_error_free(error);
-            }
-            code = 500;
-        }
-        else
-        {
-            g_variant_get(resultP, "(i)", &code);
-            g_variant_unref(resultP);
-        }
-        break;
-
-    case DMCLT_UI_TYPE_USER_INPUT:
-        resultP = g_dbus_proxy_call_sync(proxyP,
-                                         "UserInput",
-                                         g_variant_new ("(siiiibs)",
-                                                        alertData->disp_msg,
-                                                        alertData->min_disp, alertData->max_disp,
-                                                        alertData->max_resp_len, alertData->input_type,
-                                                        alertData->echo_type, alertData->dflt_resp),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         -1, NULL,
-                                         &error);
-        if (resultP == NULL)
-        {
-            if (error)
-            {
-                fprintf(stderr, "g_dbus_proxy_call_sync(Confirm) failed (%d) \"%s\"\n", error->code, error->message);
-                g_error_free(error);
-            }
-            code = 500;
-        }
-        else
-        {
-            gchar * reply;
-            g_variant_get(resultP, "(i&s)", &code, &reply);
-            strncpy(userReply, reply, alertData->max_resp_len);
-            userReply[alertData->max_resp_len-1] = 0;
-            g_variant_unref(resultP);
-        }
-        break;
-
-    case DMCLT_UI_TYPE_USER_CHOICE:
-    case DMCLT_UI_TYPE_USER_MULTICHOICE:
-    {
-        GVariantBuilder *builderP;
-        int i;
-
-        builderP = g_variant_builder_new(G_VARIANT_TYPE("as"));
-        i = 0;
-        while(alertData->choices[i])
-        {
-            g_variant_builder_add(builderP, "s", alertData->choices[i]);
-            i++;
-        }
-
-        resultP = g_dbus_proxy_call_sync(proxyP,
-                                         "UserChoice",
-                                         g_variant_new ("(siib(as)s)",
-                                                        alertData->disp_msg,
-                                                        alertData->min_disp, alertData->max_disp,
-                                                        alertData->type == DMCLT_UI_TYPE_USER_MULTICHOICE,
-                                                        builderP,
-                                                        alertData->dflt_resp),
-                                         G_DBUS_CALL_FLAGS_NONE,
-                                         -1, NULL,
-                                         &error);
-        g_variant_builder_unref(builderP);
-        if (resultP == NULL)
-        {
-            if (error)
-            {
-                fprintf(stderr, "g_dbus_proxy_call_sync(Confirm) failed (%d) \"%s\"\n", error->code, error->message);
-                g_error_free(error);
-            }
-            code = 500;
-        }
-        else
-        {
-            gchar * reply;
-            g_variant_get(resultP, "(i&s)", &code, &reply);
-            strncpy(userReply, reply, alertData->max_resp_len);
-            userReply[alertData->max_resp_len-1] = 0;
-            g_variant_unref(resultP);
-        }
-    }
-    break;
-
-    default:
-        break;
-    }
-
-    g_object_unref(proxyP);
-    return code;
-}
-
 int sendPacket(SoupSession * soupH,
                char * type,
                dmclt_buffer_t * packet,
@@ -396,30 +208,26 @@ int main(int argc, char *argv[])
     int err;
     int status;
     SoupSession * soupH;
-    char * url = NULL;
+    char * server = NULL;
     char * file = NULL;
-    bool dbus = false;
 
     g_type_init();
     soupH = soup_session_sync_new();
 
     flags = DMCLT_FLAG_CLIENT_INIT;
-    url = NULL;
+    server = NULL;
     file = NULL;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "wdu:f:")) != -1)
+    while ((c = getopt (argc, argv, "ws:f:")) != -1)
     {
         switch (c)
         {
         case 'w':
             flags |= DMCLT_FLAG_WBXML;
             break;
-        case 'd':
-            dbus = true;
-            break;
-        case 'u':
-            url = optarg;
+        case 's':
+            server = optarg;
             break;
         case 'f':
             file = optarg;
@@ -432,28 +240,22 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (url && file)
+    if (server && file)
     {
         print_usage();
         return 1;
     }
 
     err = omadmclient_session_open(&session,
-                                   "funambol",
+                                   server?server:"funambol",
                                    1,
                                    &flags,
-                                   dbus?uiCallbackDBus:uiCallback,
+                                   uiCallback,
                                    NULL);
     if (err != DMCLT_ERR_NONE)
     {
         fprintf(stderr, "Initialization failed: %d\r\n", err);
         return err;
-    }
-    if (url)
-    {
-        // override url
-        free(((internals_p)session)->account->uri);
-        ((internals_p)session)->account->uri = strdup(url);
     }
     if (!file)
     {
@@ -511,9 +313,9 @@ int main(int argc, char *argv[])
         }
         fclose(fd);
 
-        // override status
-        ((internals_p)session)->srv_auth = 212;
-        ((internals_p)session)->clt_auth = 212;
+        // HACK for test: override status
+        ((internals_t *)session)->srv_auth = 212;
+        ((internals_t *)session)->clt_auth = 212;
 
         err = omadmclient_process_reply(session, &reply);
         omadmclient_clean_buffer(&reply);
