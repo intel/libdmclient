@@ -59,7 +59,7 @@ static int prv_get(dmtree_node_t * nodeP,
     {
         return OMADM_SYNCML_ERROR_NOT_FOUND;
     }
-    // TODO: use constants
+
     nodeP->format = strdup("node");
     nodeP->data_size = 0;
     nodeP->data_buffer = NULL;
