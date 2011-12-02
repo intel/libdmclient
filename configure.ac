@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([dmclient], [0.0.1], [david.navarro@intel.com])
+AC_INIT([omadmclient], [0.0.1], [david.navarro@intel.com])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 LT_PREREQ([2.2])
@@ -57,9 +57,9 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=${prefix}
 fi
 libdir=${exec_prefix}/lib/${PACKAGE}
-mo_install_dir=${exec_prefix}/lib/${PACKAGE}/mobjs
-AC_SUBST([MOBJS_DIR], [${mo_install_dir}])
-AC_DEFINE_UNQUOTED([MOBJS_DIR], ["${mo_install_dir}"], [management objects installation directory])
+mo_install_dir=${exec_prefix}/lib/${PACKAGE}/plugins
+AC_SUBST([MO_INSTALL_DIR], [${mo_install_dir}])
+AC_DEFINE_UNQUOTED([MO_INSTALL_DIR], ["${mo_install_dir}"], [management objects installation directory])
 
 
 AM_CONDITIONAL([BUILD_TESTS], [test "x${enable_tests}" = xyes])

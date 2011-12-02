@@ -5,7 +5,7 @@ testdmclient_CPPFLAGS = -I $(top_srcdir)/dmcore/include \
 testdmclient_LDADD = $(top_builddir)/dmcore/libomadmclient.la \
 		      $(GLIB_LIBS) $(LIBSOUP_LIBS)
 
-libdir = $(MOBJS_DIR)
+libdir = $(MO_INSTALL_DIR)
 lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la moroot.la modmacc.la
 
 modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c mgtobj/utils/static_mo_util.c

@@ -397,7 +397,7 @@ int momgr_init(mo_mgr_t * iMgrP)
 
     memset(iMgrP, 0, sizeof(mo_mgr_t));
 
-    folderP = opendir(MOBJS_DIR);
+    folderP = opendir(MO_INSTALL_DIR);
     if (folderP != NULL)
     {
         struct dirent *fileP;
@@ -408,7 +408,7 @@ int momgr_init(mo_mgr_t * iMgrP)
             {
                 char * filename;
 
-                filename = str_cat_3(MOBJS_DIR, "/", fileP->d_name);
+                filename = str_cat_3(MO_INSTALL_DIR, "/", fileP->d_name);
                 momgr_load_plugin(iMgrP, filename);
                 free(filename);
             }
