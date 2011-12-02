@@ -12,25 +12,25 @@ modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c mgtobj/utils/stat
 modevdetails_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                            -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
                            -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
-modevdetails_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
+modevdetails_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
 
 modevinfo_la_SOURCES = mgtobj/DevInfo/plugin_devinfo.c mgtobj/utils/static_mo_util.c
 modevinfo_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                         -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
                         -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
-modevinfo_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
+modevinfo_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
 
 modmacc_la_SOURCES = mgtobj/DmAcc/plugin_dmacc.c mgtobj/utils/static_mo_util.c
 modmacc_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                       -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
                       -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
-modmacc_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
+modmacc_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
 
 moinbox_la_SOURCES = mgtobj/Inbox/plugin_inbox.c
 moinbox_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                       -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
                       -I $(top_srcdir)/dmcore/include
-moinbox_la_LDFLAGS = -avoid-version -module -shared -export-dynamic
+moinbox_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
 
 moroot_la_SOURCES = mgtobj/Root/plugin_root.c \
                     mgtobj/Root/dyn_buf.c \
@@ -39,4 +39,4 @@ moroot_la_SOURCES = mgtobj/Root/plugin_root.c \
 moroot_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                      -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
                      -I $(top_srcdir)/dmcore/include
-moroot_la_LDFLAGS = $(SQLITE3_LIBS) -avoid-version -module -shared -export-dynamic
+moroot_la_LDFLAGS = $(SQLITE3_LIBS) -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'

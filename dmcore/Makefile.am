@@ -25,6 +25,6 @@ libomadmclient_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                              -I $(top_srcdir)/externals/SyncMLRTK/src/sml/mgr/inc \
                              $(LIBXML_CFLAGS)
 
-libomadmclient_la_LIBADD = $(top_builddir)/externals/SyncMLRTK/libsyncml.la
+libomadmclient_la_LIBADD = $(top_builddir)/externals/SyncMLRTK/libsyncml.a
 
-libomadmclient_la_LDFLAGS = $(GNUTLS_LIBS) $(LIBXML_LIBS) $(SQLITE3_LIBS)
+libomadmclient_la_LDFLAGS = $(GNUTLS_LIBS) $(LIBXML_LIBS) -export-symbols-regex '^omadmclient_'
