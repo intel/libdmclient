@@ -1,4 +1,62 @@
 
+Overview
+--------
+
+                                    -------------
+                                   |  DMclient   |
+                                   | application |
+                                    -------------
+                                          |
+                                   +-------------+
+                                   | omadmclient |--------+
+                                   |   library   | SyncML |
+                                   +-------------|  RTK   |
+                                          |      +--------+
+                    ______________________|____________________________
+                   |               |             |          |        |
+              -----------      ---------      -------     -----    -----
+             | DevDetail |    | DevInfo |    | DMAcc |   | ... |  | ... |
+             |    MO     |    |    MO   |    |  MO   |   | MO  |  | MO  |
+              -----------      ---------      -------     -----    -----
+
+
+libomadmclient implements the client-side of OMA DM 1.2 protocol. It provides high-level APIs. The main functions are:
+  - omadmclient_session_open()
+      to open a DM session either to a specified server or by parsing a Wap Push payload.
+  - omadmclient_get_next_packet()
+      to retrieve a complete SyncML packet to be sent to the server
+  - omadmclient_process_reply()
+      to make the library process the reply received from the server
+For the SyncML parsing, we are using the SyncML Reference Toolkit published by OMA.
+
+The DMclient application is platform specific. Its role is to open the communicate with the server, receive Wap Push messages and display some UI.
+A DM Client algorithm is:
+
+    omadmclient_session_open()
+    while (packet = omadmclient_get_next_packet())
+    {
+        http_send(packet)
+        packet2 = http_receive()
+        omadmclient_process_reply(packet2)
+    }
+    omadmclient_session_close()
+
+One of omadmclient_session_open() parameters is a callback called when there is some UI to display.
+
+The MOs are shared libraries, one lib per MO. They are loaded at runtime during the DM session opening.
+
+The MO interface contains 8 APIs apart from the classic open and close:
+   - is_node() to test the existence of a node and determine if it is a leaf or an interior node.
+   - get() to retrieve a node value or list of children along with its meta data.
+   - set() to set a node's value or create a node.
+   - getACL() and setACL() to get and set the Access Control List of a node.
+   - rename(), delete() and exec()
+
+All the access rights check, URI parsing and syntax validation is done by the library. The MOs can be really simple.
+
+libomadmclient comes with a command-line dmclient application and some test MOs. The MOs are mostly returning hard-coded values.
+
+
 Source Layout
 -------------
 
@@ -13,33 +71,55 @@ Source Layout
  |    +- SyncMLRTK      (the SyncML Reference Toolkit published by OMA)
  |
  +- tests
- |    |
- |    +- client         (a command-line test OMA DM client)
- |    |
- |    +- mgtobj         (test MOs for the omadmclient library)
- |         |
- |         +- DevDetail (contains hard-coded values)
- |         |
- |         +- DevInfo   (contains hard-coded values)
- |         |
- |         +- DmAcc     (contains hard-coded values)
- |         |
- |         +- Inbox     (empty MO)
- |         |
- |         +- Root      (stores added nodes in a SQL DB)
- |         |
- |         +- utils     (utility functions for hard-coded nodes)
- |
- +- Tizen               (Tizen-specific client and MOs)
+      |
+      +- client         (a command-line test OMA DM client)
+      |
+      +- mgtobj         (test MOs for the omadmclient library)
+           |
+           +- DevDetail (contains hard-coded values)
+           |
+           +- DevInfo   (contains hard-coded values)
+           |
+           +- DmAcc     (contains hard-coded values)
+           |
+           +- Inbox     (empty MO)
+           |
+           +- Root      (stores added nodes in a SQL DB)
+           |
+           +- utils     (utility functions for hard-coded nodes)
 
 
-Required packages
------------------
 
-autoconf automake libtool gcc make libxml2-devel libwbxml-devel gnutls-devel
+Compiling
+---------
 
-for test client:
-libsoup-devel
+libomadmclient requires some packages:
+  - autoconf automake libtool gcc make
+      for the build system
+  - libxml2-devel libwbxml-devel
+      for the SyncML parsing
+  - gnutls-devel
+      for the MD5 hash function
 
-for test Root MO:
-sqlite-devel
+Two other packages are optionnal:
+  - libsoup-devel
+      for the test client
+  - sqlite-devel
+      for test Root MO
+
+In the source top directory, run the following commands:
+    autoreconf -i
+    ./configure [options]
+    make
+    make install
+
+Specific configure options are:
+  --enable-tests
+      build the test client and MOs. No by default.
+
+
+Install
+-------
+
+libomadmclient.so is installed in ${prefix}/lib/omadmclient
+MOs plugin libraries must be installed in ${prefix}/lib/omadmclient/plugins
