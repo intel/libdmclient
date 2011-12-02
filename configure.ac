@@ -10,18 +10,25 @@ LT_INIT
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 
 AC_CONFIG_MACRO_DIR([m4])
+AM_SILENT_RULES([yes])
+
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
 
+AC_ARG_ENABLE([logging], AS_HELP_STRING([--enable-tests], [Build test client and plugins]))
+AC_ARG_ENABLE([tests], AS_HELP_STRING([--enable-tests], [Build test client and plugins]))
+
 # Checks for libraries.
 PKG_PROG_PKG_CONFIG(0.16)
-PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBWBXML], [libwbxml2])
 PKG_CHECK_MODULES([GNUTLS], [gnutls])
-PKG_CHECK_MODULES([LIBSOUP], [libsoup-2.4])
 AC_CHECK_LIB(dl, dlopen)
+AS_IF([test "x$enable_tests" = "xyes"], [
+    PKG_CHECK_MODULES([LIBSOUP], [libsoup-2.4])
+    PKG_CHECK_MODULES([SQLITE3], [sqlite3])
+])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h])
@@ -38,26 +45,25 @@ if test "x${CFLAGS}" = "x"; then
    CFLAGS="-O2"
 fi
 
-AM_SILENT_RULES([yes])
+if test "x${logging}" = xyes; then
+   AC_DEFINE([DMC_LOGGING], 1, [logging enabled])
+fi
 
+# set plugins directory
 if test "${prefix}" = "NONE"; then
     prefix=${ac_default_prefix}
 fi
 if test "${exec_prefix}" = "NONE"; then
     exec_prefix=${prefix}
 fi
-
 libdir=${exec_prefix}/lib/${PACKAGE}
-
 mo_install_dir=${exec_prefix}/lib/${PACKAGE}/mobjs
 AC_SUBST([MOBJS_DIR], [${mo_install_dir}])
 AC_DEFINE_UNQUOTED([MOBJS_DIR], ["${mo_install_dir}"], [management objects installation directory])
 
-AC_ARG_ENABLE([logging], [  --enable-logging enables logging], [logging=${enableval}], [logging=no])
 
-if test "x${logging}" = xyes; then
-   AC_DEFINE([DMC_LOGGING], 1, [logging enabled])
-fi
+AM_CONDITIONAL([BUILD_TESTS], [test "x${enable_tests}" = xyes])
+
 
 AC_CONFIG_FILES([Makefile
                  dmcore/Makefile
@@ -76,6 +82,6 @@ Prefix: '${prefix}'.
 Compiler: '${CC} ${CFLAGS} ${CPPFLAGS}'
 
 Package features:
-	enable-logging: ${logging}
+	enable-tests: ${enable_tests}
 
  --------------------------------------------------"
