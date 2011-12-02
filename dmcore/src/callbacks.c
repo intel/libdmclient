@@ -415,14 +415,15 @@ static Ret_t prv_status_cmd_cb(InstanceID_t id,
         if (statusP->chal)
         {
             authType_t type;
-            char * newNonce;
+            buffer_t newNonce;
 
             type = get_from_chal_meta(statusP->chal->meta, &newNonce);
             if (type != AUTH_TYPE_UNKNOWN)
             {
                 internP->account->toServerCred->type = type;
-                free(internP->account->toServerCred->data);
-                internP->account->toServerCred->data = newNonce;
+                if (internP->account->toServerCred->data.buffer) free(internP->account->toServerCred->data.buffer);
+                internP->account->toServerCred->data.buffer = newNonce.buffer;
+                internP->account->toServerCred->data.len = newNonce.len;
             }
         }
     }

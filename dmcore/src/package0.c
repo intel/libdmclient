@@ -79,8 +79,7 @@
 #define PRV_DEFAULT_NONCE "0x00000000"
 
 
-int decode_package_0(char * pkg0,
-                     int pkg0_len,
+int decode_package_0(buffer_t pkg0,
                      char ** serverID,
                      int * sessionID,
                      char * flags)
@@ -88,12 +87,12 @@ int decode_package_0(char * pkg0,
     uint64_t header;
     uint16_t field;
 
-    if (PRV_GNIS_ALERT_SIZE > pkg0_len)
+    if (PRV_GNIS_ALERT_SIZE > pkg0.len)
     {
         return OMADM_SYNCML_ERROR_INCOMPLETE_COMMAND;
     }
 
-    memcpy(&header, pkg0 + PRV_MD5_DIGEST_LEN, sizeof(uint64_t));
+    memcpy(&header, pkg0.buffer + PRV_MD5_DIGEST_LEN, sizeof(uint64_t));
     header = be64toh(header);
 
     field = (header & PRV_VERSION_MASK) >> PRV_VERSION_SHIFT;
@@ -123,7 +122,7 @@ int decode_package_0(char * pkg0,
     *sessionID = ntohs(field);
 
     field = (header & PRV_LENGTH_ID_MASK) >> PRV_LENGTH_ID_SHIFT;
-    if (PRV_GNIS_ALERT_SIZE > pkg0_len)
+    if (PRV_GNIS_ALERT_SIZE > pkg0.len)
     {
         return OMADM_SYNCML_ERROR_INCOMPLETE_COMMAND;
     }
@@ -132,7 +131,7 @@ int decode_package_0(char * pkg0,
     {
         return OMADM_SYNCML_ERROR_COMMAND_FAILED;
     }
-    memcpy(*serverID, pkg0 + PRV_GNIS_ALERT_SIZE, field);
+    memcpy(*serverID, pkg0.buffer + PRV_GNIS_ALERT_SIZE, field);
     (*serverID)[field] = 0;
 
     return OMADM_SYNCML_ERROR_NONE;
@@ -140,11 +139,10 @@ int decode_package_0(char * pkg0,
 
 
 int validate_package_0(internals_t * internP,
-                       char * pkg0,
-                       int pkg0_len)
+                       buffer_t pkg0)
 {
     int result;
-    char * serv_pass;
+    buffer_t data;
     char * B64_H_serv_pass;
     char * B64_H_trigger;
     char * key;
@@ -155,41 +153,40 @@ int validate_package_0(internals_t * internP,
     B64_H_trigger = NULL;
     H_key = NULL;
 
-    serv_pass = str_cat_3(internP->account->toClientCred->name,
-                          PRV_COLUMN_STR,
-                          internP->account->toClientCred->secret);
-    if (!serv_pass) goto end;
+    key = str_cat_3(internP->account->toClientCred->name,
+                    PRV_COLUMN_STR,
+                    internP->account->toClientCred->secret);
+    if (!key) goto end;
 
-    B64_H_serv_pass = encode_b64_md5(serv_pass, strlen(serv_pass));
-    free(serv_pass);
+    B64_H_serv_pass = encode_b64_md5_str(key);
     if (!B64_H_serv_pass) goto end;
 
-    B64_H_trigger = encode_b64_md5(pkg0 + PRV_MD5_DIGEST_LEN, pkg0_len - PRV_MD5_DIGEST_LEN);
+    data.buffer = pkg0.buffer + PRV_MD5_DIGEST_LEN;
+    data.len = pkg0.len - PRV_MD5_DIGEST_LEN;
+    B64_H_trigger = encode_b64_md5(data);
     if (!B64_H_trigger) goto end;
 
     while (result != OMADM_SYNCML_ERROR_NONE
            && result != OMADM_SYNCML_ERROR_INVALID_CREDENTIALS)
     {
-        key = str_cat_5(B64_H_serv_pass,
-                        PRV_COLUMN_STR,
-                        internP->account->toClientCred->data,
-                        PRV_COLUMN_STR,
-                        B64_H_trigger);
-        if (!key) goto end;
+        buf_cat_str_buf(B64_H_serv_pass, internP->account->toClientCred->data, &data);
+        if (!data.buffer) goto end;
+        buf_append_str(&data, B64_H_trigger);
 
-        H_key = encode_md5(key, strlen(key));
-        free(key);
+        H_key = encode_md5(data);
+        free(data.buffer);
         if (!H_key) goto end;
 
-        if (strncmp(pkg0, H_key, PRV_MD5_DIGEST_LEN))
+        if (memcmp(pkg0.buffer, H_key, PRV_MD5_DIGEST_LEN))
         {
             if (result == OMADM_SYNCML_ERROR_COMMAND_FAILED)
             {
                 result = OMADM_SYNCML_ERROR_IN_PROGRESS;
-                free(internP->account->toClientCred->data);
+                free(internP->account->toClientCred->data.buffer);
                 free(H_key);
                 H_key = NULL;
-                internP->account->toServerCred->data = strdup(PRV_DEFAULT_NONCE);
+                internP->account->toServerCred->data.buffer = (uint8_t *)strdup(PRV_DEFAULT_NONCE);
+                internP->account->toServerCred->data.len = strlen(PRV_DEFAULT_NONCE);
             }
             else
             {

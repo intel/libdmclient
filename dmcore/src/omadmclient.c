@@ -169,7 +169,7 @@ static void prvFreeAuth(authDesc_t * authP)
 
     if (authP->name) free(authP->name);
     if (authP->secret) free(authP->secret);
-    if (authP->data) free(authP->data);
+    if (authP->data.buffer) free(authP->data.buffer);
 
     free(authP);
 }
@@ -242,7 +242,7 @@ error:
 }
 
 dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionHP,
-                                              char * pkg0,
+                                              uint8_t * pkg0,
                                               int pkg0_len,
                                               char * flags,
                                               dmclt_callback_t UICallbacksP,
@@ -251,13 +251,17 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionHP,
     char * serverID;
     int sessionID;
     dmclt_err_t err;
+    buffer_t package;
 
     if (sessionHP == NULL || pkg0 == NULL || pkg0_len <= 0)
     {
         return DMCLT_ERR_USAGE;
     }
 
-    if (OMADM_SYNCML_ERROR_NONE != decode_package_0(pkg0, pkg0_len, &serverID, &sessionID, flags))
+    package.buffer = pkg0;
+    package.len = pkg0_len;
+
+    if (OMADM_SYNCML_ERROR_NONE != decode_package_0(package, &serverID, &sessionID, flags))
     {
         return DMCLT_ERR_USAGE;
     }
@@ -271,7 +275,7 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionHP,
     {
         internals_t * internP = (internals_t *)sessionHP;
 
-        if (OMADM_SYNCML_ERROR_NONE != validate_package_0(internP, pkg0, pkg0_len))
+        if (OMADM_SYNCML_ERROR_NONE != validate_package_0(internP, package))
         {
             err = DMCLT_ERR_USAGE;
             omadmclient_session_close(sessionHP);

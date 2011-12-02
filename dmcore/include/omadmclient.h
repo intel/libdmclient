@@ -11,6 +11,8 @@
 #ifndef OMADMCLIENT_H
 #define OMADMCLIENT_H
 
+#include <stdint.h>
+
 
 #define DMCLT_FLAG_NONE         0x00
 #define DMCLT_FLAG_WBXML        0x01
@@ -107,7 +109,7 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionH, char * serverID, 
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionH, char * pkg0, int pkg0_len, char * flags, dmclt_callback_t UICallbacksP, void * userData);
+dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionH, uint8_t * pkg0, int pkg0_len, char * flags, dmclt_callback_t UICallbacksP, void * userData);
 
 /*!
  * @brief Closes an open OMA DM session

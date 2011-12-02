@@ -14,92 +14,233 @@
 
 #include "internals.h"
 
-char * encode_b64(char * data,
-                  size_t len)
+#define PRV_B64_PADDING '='
+
+static char s_b64_alphabet[64] =
 {
-    gnutls_datum_t input;
-    gnutls_datum_t output;
-    unsigned int index;
-    char * string;
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+    'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
+};
+
+static void prv_encode_block(uint8_t input[3],
+                             char output[4])
+{
+    memset(output, 0, sizeof(output));
+
+    output[0] = s_b64_alphabet[input[0] >> 2];
+    output[1] = s_b64_alphabet[((input[0] & 0x03) << 4) | (input[1] >> 4)];
+    output[2] = s_b64_alphabet[((input[1] & 0x0F) << 2) | (input[2] >> 6)];
+    output[3] = s_b64_alphabet[input[2] & 0x3F];
+}
+
+static uint8_t prv_revert_b64(uint8_t value)
+{
+    if (value >= 'A' && value <= 'Z')
+    {
+        return (value - 'A');
+    }
+    if (value >= 'a' && value <= 'z')
+    {
+        return (26 + value - 'a');
+    }
+    if (value >= '0' && value <= '9')
+    {
+        return (52 + value - 'A');
+    }
+    switch (value)
+    {
+    case '+':
+        return 62;
+    case '/':
+        return 63;
+    default:
+        return 0;
+    }
+}
+
+static void prv_decode_block(char input[4],
+                             uint8_t output[3])
+{
+    uint8_t tmp[4];
+    int i;
+
+    memset(output, 0, sizeof(output));
+
+    for (i = 0; i < 4 ; i++)
+    {
+        tmp[i] = prv_revert_b64(input[i]);
+    }
+
+    output[0] = (tmp[0] << 2) | (tmp[1] >> 4);
+    output[1] = (tmp[1] << 4) | (tmp[2] >> 2);
+    output[2] = (tmp[2] << 6) | tmp[3];
+}
+
+char * encode_b64(buffer_t data)
+{
+    unsigned int data_index;
+    unsigned int result_index;
     char * result = NULL;
+    size_t result_len;
 
-    input.data = (unsigned char *)data;
-    input.size = len;
+    result_len = 4 * (data.len / 3) + 1;
+    if (data.len % 3) result_len += 4;
 
-    if (gnutls_pem_base64_encode_alloc("", &input, &output))
-    {
-        return NULL;
-    }
+    result = (char *) malloc(result_len);
+    if (!result) return NULL;
+    memset(result, 0, result_len);
 
-    index = 0;
-    while (index < output.size && output.data[index] != 0x0A)
+    data_index = 0;
+    result_index = 0;
+    while (data_index < data.len)
     {
-        index++;
-    }
-    if (index < output.size)
-    {
-        index++;
-        string = (char *)output.data + index;
-        while (index < output.size && output.data[index] != 0x0A)
+        switch (data.len - data_index)
         {
-            index++;
+        case 0:
+            // should never happen
+            break;
+        case 1:
+            result[result_index] = s_b64_alphabet[data.buffer[data_index] >> 2];
+            result[result_index + 1] = s_b64_alphabet[(data.buffer[data_index] & 0x03) << 4];
+            result[result_index + 2] = PRV_B64_PADDING;
+            result[result_index + 3] = PRV_B64_PADDING;
+            break;
+        case 2:
+            result[result_index] = s_b64_alphabet[data.buffer[data_index] >> 2];
+            result[result_index + 1] = s_b64_alphabet[(data.buffer[data_index] & 0x03) << 4 | (data.buffer[data_index+1] >> 4)];
+            result[result_index + 2] = s_b64_alphabet[(data.buffer[data_index+1] & 0x0F) << 2];
+            result[result_index + 3] = PRV_B64_PADDING;
+            break;
+        default:
+            prv_encode_block(data.buffer + data_index, result + result_index);
+            break;
         }
-        if (index < output.size)
-        {
-            output.data[index] = 0;
-            result = strdup(string);
-        }
+        data_index += 3;
+        result_index += 4;
     }
-
-    gnutls_free(output.data);
 
     return result;
 }
 
-#define PEM_HEADER "-----BEGIN -----\n"
-#define PEM_FOOTER "\n-----END -----"
-
-char * decode_b64(char * data)
+char * encode_b64_str(char * string)
 {
-    gnutls_datum_t input;
-    gnutls_datum_t output;
-    char * result = NULL;
+    buffer_t data;
 
-    input.data = (unsigned char *)str_cat_3(PEM_HEADER, data, PEM_FOOTER);
-    input.size = strlen((char *)input.data);
+    data.buffer = (uint8_t *)string;
+    data.len = strlen(string);
 
-    if (gnutls_pem_base64_decode_alloc(NULL, &input, &output))
-    {
-        return NULL;
-    }
-
-    result = strdup((char *)output.data);
-
-    gnutls_free(output.data);
-
-    return result;
+    return encode_b64(data);
 }
 
-char * encode_b64_md5(char * data,
-                      size_t len)
+void decode_b64(char * data,
+                buffer_t * resultP)
+{
+    unsigned int data_index;
+    unsigned int result_index;
+    size_t data_len;
+
+    resultP->buffer = NULL;
+    resultP->len = 0;
+
+    data_len = strlen(data);
+    if (data_len % 4) return;
+
+    resultP->len = (data_len >> 2) * 3;
+
+    resultP->buffer = (unsigned char *) malloc(resultP->len);
+    if (NULL == resultP->buffer) return;
+
+    memset(resultP->buffer, 0, resultP->len);
+
+    data_index = 0;
+    result_index = 0;
+    while (data_index < data_len)
+    {
+        prv_decode_block(data + data_index, resultP->buffer + result_index);
+        data_index += 4;
+        result_index += 3;
+    }
+}
+
+char * encode_b64_md5(buffer_t data)
+{
+    buffer_t temp;
+
+    uint8_t result[PRV_MD5_DIGEST_LEN+1];
+
+    result[PRV_MD5_DIGEST_LEN] = 0x00;
+
+    gnutls_hash_fast(GNUTLS_DIG_MD5, data.buffer, data.len, result);
+
+    temp.buffer = result;
+    temp.len = PRV_MD5_DIGEST_LEN;
+
+    return encode_b64(temp);
+}
+
+char * encode_b64_md5_str (char * string)
+{
+    buffer_t data;
+
+    data.buffer = (uint8_t *)string;
+    data.len = strlen(string);
+
+    return encode_b64_md5(data);
+}
+
+char * encode_md5(buffer_t data)
 {
     char result[PRV_MD5_DIGEST_LEN+1];
 
     result[PRV_MD5_DIGEST_LEN] = 0x00;
 
-    gnutls_hash_fast(GNUTLS_DIG_MD5, data, len, result);
-
-    return encode_b64(result, PRV_MD5_DIGEST_LEN);
-}
-
-char * encode_md5(char * data,
-                  size_t len)
-{
-    char result[PRV_MD5_DIGEST_LEN+1];
-
-    result[PRV_MD5_DIGEST_LEN] = 0x00;
-
-    gnutls_hash_fast(GNUTLS_DIG_MD5, data, len, result);
+    gnutls_hash_fast(GNUTLS_DIG_MD5, data.buffer, data.len, result);
 
     return strdup(result);
+}
+
+void buf_cat_str_buf(char * string,
+                     buffer_t data,
+                     buffer_t * output)
+{
+    int index = 0;
+
+    output->len = strlen(string) + strlen(PRV_COLUMN_STR) + data.len;
+    output->buffer = (uint8_t *)malloc(output->len);
+    if (NULL == output->buffer)
+    {
+        output->len = 0;
+        return;
+    }
+    memcpy(output->buffer, string, strlen(string));
+    index = strlen(string);
+    memcpy(output->buffer + index, PRV_COLUMN_STR, strlen(PRV_COLUMN_STR));
+    index += strlen(PRV_COLUMN_STR);
+    memcpy(output->buffer + index, data.buffer, data.len);
+}
+
+void buf_append_str(buffer_t * dataP,
+                    char * string)
+{
+    uint8_t * newBuf = NULL;
+    int newLen = 0;
+    int index;
+
+    newLen = strlen(string) + strlen(PRV_COLUMN_STR) + dataP->len;
+    newBuf = (uint8_t *)malloc(newLen);
+    if (NULL == newBuf)
+    {
+        return;
+    }
+    memcpy(newBuf, dataP->buffer, dataP->len);
+    index = dataP->len;
+    memcpy(newBuf + index, PRV_COLUMN_STR, strlen(PRV_COLUMN_STR));
+    index += strlen(PRV_COLUMN_STR);
+    memcpy(newBuf, string, strlen(string));
+
+    free(dataP->buffer);
+    dataP->buffer = newBuf;
+    dataP->len = newLen;
 }

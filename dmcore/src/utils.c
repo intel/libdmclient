@@ -73,14 +73,18 @@ void extract_from_meta(SmlPcdataPtr_t metaP,
 }
 
 authType_t get_from_chal_meta(SmlPcdataPtr_t metaP,
-                              char ** nonceP)
+                              buffer_t * nonceP)
 {
     authType_t type;
     SmlMetInfMetInfPtr_t metInfP;
     char * item;
 
     type = AUTH_TYPE_UNKNOWN;
-    if (nonceP) *nonceP = NULL;
+    if (nonceP)
+    {
+        nonceP->buffer = NULL;
+        nonceP->len = 0;
+    }
 
     if (metaP->contentType != SML_PCDATA_EXTENSION
      || metaP->extension != SML_EXT_METINF)
@@ -102,7 +106,7 @@ authType_t get_from_chal_meta(SmlPcdataPtr_t metaP,
         item = smlPcdata2String(metInfP->nextnonce);
         if (item)
         {
-            *nonceP = decode_b64(item);
+            decode_b64(item, nonceP);
             free(item);
         }
     }
@@ -111,7 +115,7 @@ authType_t get_from_chal_meta(SmlPcdataPtr_t metaP,
 }
 
 SmlPcdataPtr_t create_chal_meta(authType_t type,
-                                char * nonce)
+                                buffer_t * nonceP)
 {
     SmlMetInfMetInfPtr_t metInfP;
     SmlPcdataPtr_t metaP;
@@ -121,9 +125,9 @@ SmlPcdataPtr_t create_chal_meta(authType_t type,
 
     metInfP->type = smlString2Pcdata(auth_type_as_string(type));
     metInfP->format = smlString2Pcdata("b64");
-    if (nonce)
+    if (nonceP)
     {
-        char * tmp = encode_b64(nonce, strlen(nonce));
+        char * tmp = encode_b64(*nonceP);
         metInfP->nextnonce = smlString2Pcdata(tmp);
         free(tmp);
     }
@@ -789,7 +793,10 @@ char ** get_child_uri_list(const char * iBaseUri,
     char * childName;
     char * listCopy = NULL;
 
-    childName = iChildList;
+    listCopy = strdup(iChildList);
+    if (NULL == listCopy) return NULL;
+
+    childName = listCopy;
     while(childName && *childName)
     {
         nb_child++;
@@ -798,8 +805,6 @@ char ** get_child_uri_list(const char * iBaseUri,
     }
     if (0 == nb_child) return NULL;
 
-    listCopy = strdup(iChildList);
-    if (NULL == listCopy) return NULL;
     result = (char**)malloc((nb_child + 1) * sizeof(char*));
     memset(result, 0, (nb_child + 1) * sizeof(char*));
     if (result)

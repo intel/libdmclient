@@ -11,6 +11,7 @@
 #ifndef INTERNALS_H
 #define INTERNALS_H
 
+#include <stdint.h>
 #include <config.h>
 #include <syncml_tk_prefix_file.h>
 #include <sml.h>
@@ -55,10 +56,16 @@ typedef enum
 
 typedef struct
 {
-    authType_t type;
-    char *     name;
-    char *     secret;
-    char *     data;
+    uint8_t * buffer;
+    size_t    len;
+} buffer_t;
+
+typedef struct
+{
+    authType_t      type;
+    char *          name;
+    char *          secret;
+    buffer_t        data;
 } authDesc_t;
 
 typedef struct
@@ -104,10 +111,14 @@ typedef struct
 
 
 // implemented in codec.c
-char * encode_b64     (char * data, size_t len);
-char * decode_b64     (char * data);
-char * encode_b64_md5 (char * data, size_t len);
-char * encode_md5     (char * data, size_t len);
+char * encode_b64         (buffer_t data);
+char * encode_b64_str     (char * string);
+void   decode_b64         (char * data, buffer_t * resultP);
+char * encode_b64_md5     (buffer_t data);
+char * encode_b64_md5_str (char * string);
+char * encode_md5         (buffer_t data);
+void   buf_cat_str_buf    (char * string, buffer_t data, buffer_t * output);
+void   buf_append_str     (buffer_t * dataP, char * string);
 
 
 // implemented in sml2tree.c
@@ -135,8 +146,8 @@ SmlStatusPtr_t create_status  (internals_t * internP, int code, SmlGenericCmdPtr
 void           add_target_ref (SmlStatusPtr_t statusP, SmlTargetPtr_t target);
 void           add_source_ref (SmlStatusPtr_t statusP, SmlSourcePtr_t source);
 
-authType_t     get_from_chal_meta (SmlPcdataPtr_t metaP, char ** nonceP);
-SmlPcdataPtr_t create_chal_meta   (authType_t type, char * nonce);
+authType_t     get_from_chal_meta (SmlPcdataPtr_t metaP, buffer_t * nonceP);
+SmlPcdataPtr_t create_chal_meta   (authType_t type, buffer_t * nonceP);
 void           extract_from_meta  (SmlPcdataPtr_t metaP, char ** formatP, char ** typeP);
 SmlPcdataPtr_t convert_to_meta    (char * format, char * type);
 
@@ -170,8 +181,8 @@ char *       auth_type_as_string (authType_t type);
 int          get_server_account  (const mo_mgr_t iMgr, char * serverID, accountDesc_t ** accountP);
 
 // implemented in package0.c
-int decode_package_0   (char * pkg0, int pkg0_len, char ** serverID, int * sessionID, char * flags);
-int validate_package_0 (internals_t * internP, char * pkg0, int pkg0_len);
+int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags);
+int validate_package_0 (internals_t * internP, buffer_t pkg0);
 
 
 #endif // INTERNALS_H

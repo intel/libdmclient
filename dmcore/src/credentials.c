@@ -41,7 +41,7 @@ static char * prv_get_digest_basic(authDesc_t * authP)
     A = str_cat_3(authP->name, PRV_COLUMN_STR, authP->secret);
     if (A != NULL)
     {
-        digest = encode_b64(A, strlen(A));
+        digest = encode_b64_str(A);
         free(A);
     }
 
@@ -52,22 +52,23 @@ static char * prv_get_digest_md5(authDesc_t * authP)
 {
     char * A;
     char * AD;
-    char * scheme;
     char * digest = NULL;
 
     A = str_cat_3(authP->name, PRV_COLUMN_STR, authP->secret);
     if (A != NULL)
     {
-        AD = encode_b64_md5(A, strlen(A));
+        AD = encode_b64_md5_str(A);
         free(A);
         if (AD != NULL)
         {
-            scheme = str_cat_3(AD, PRV_COLUMN_STR, authP->data);
+            buffer_t dataBuf;
+
+            buf_cat_str_buf(AD, authP->data, &dataBuf);
             free(AD);
-            if (scheme != NULL)
+            if (dataBuf.buffer)
             {
-                digest = encode_b64_md5(scheme, strlen(scheme));
-                free(scheme);
+                digest = encode_b64_md5(dataBuf);
+                free(dataBuf.buffer);
             }
         }
     }
@@ -184,9 +185,12 @@ SmlChalPtr_t get_challenge(authDesc_t * authP)
         break;
     case AUTH_TYPE_DIGEST:
         // TODO generate new nonce
-        if (authP->data) free(authP->data);
-        authP->data = encode_b64((char *)authP, 8);
-        metaP = create_chal_meta(authP->type, authP->data);
+        if (authP->data.buffer) free(authP->data.buffer);
+        authP->data.buffer = (uint8_t *)authP;
+        authP->data.len = 8;
+        authP->data.buffer = (uint8_t *)encode_b64(authP->data);
+        authP->data.len = strlen((const char *)(authP->data.buffer));
+        metaP = create_chal_meta(authP->type, &(authP->data));
         break;
     default:
         metaP = NULL;
@@ -339,7 +343,8 @@ static int prv_fill_credentials(const mo_mgr_t iMgr,
     code = momgr_get_value(iMgr, &node);
     if (OMADM_SYNCML_ERROR_NONE == code)
     {
-        authP->data = node.data_buffer;
+        authP->data.buffer = (uint8_t *)node.data_buffer;
+        authP->data.len = node.data_size;
     }
     else if (OMADM_SYNCML_ERROR_NOT_FOUND != code)
     {
@@ -348,30 +353,17 @@ static int prv_fill_credentials(const mo_mgr_t iMgr,
     }
     dmtree_node_clean(&node, false);
 
-    switch (authP->type)
+    if (NULL == authP->name)
     {
-    case AUTH_TYPE_DIGEST:
-        if (NULL == authP->data)
-        {
-            authP->data = strdup("");
-            if (NULL == authP->data) return OMADM_SYNCML_ERROR_DEVICE_FULL;
-        }
-        // fall through
-    case AUTH_TYPE_BASIC:
-        if (NULL == authP->name)
-        {
-            authP->name = strdup("");
-            if (NULL == authP->name) return OMADM_SYNCML_ERROR_DEVICE_FULL;
-        }
-        if (NULL == authP->secret)
-        {
-            authP->secret = strdup("");
-            if (NULL == authP->secret) return OMADM_SYNCML_ERROR_DEVICE_FULL;
-        }
-        break;
-    default:
-        break;
+        authP->name = strdup("");
+        if (NULL == authP->name) return OMADM_SYNCML_ERROR_DEVICE_FULL;
     }
+    if (NULL == authP->secret)
+    {
+        authP->secret = strdup("");
+        if (NULL == authP->secret) return OMADM_SYNCML_ERROR_DEVICE_FULL;
+    }
+
     return code;
 }
 
