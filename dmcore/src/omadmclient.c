@@ -27,13 +27,17 @@ static void prvCreatePacket1(internals_t * internP)
     {
         SmlReplacePtr_t replaceP;
 
-        if (internP->clt_auth == 1)
+        switch(internP->state)
         {
+        case STATE_CLIENT_INIT:
             alertP->data = smlString2Pcdata("1201");
-        }
-        else
-        {
+            break;
+        case STATE_SERVER_INIT:
             alertP->data = smlString2Pcdata("1200");
+            break;
+        default:
+            smlFreeProtoElement((basicElement_t *)alertP);
+            return;
         }
         smlFreeItemList(alertP->itemList);
         alertP->itemList = NULL;
@@ -43,13 +47,13 @@ static void prvCreatePacket1(internals_t * internP)
         {
             add_element(internP, (basicElement_t *)alertP);
             add_element(internP, (basicElement_t *)replaceP);
+            internP->state = STATE_IN_SESSION;
         }
         else
         {
             smlFreeProtoElement((basicElement_t *)alertP);
         }
     }
-
 }
 
 static SmlSyncHdrPtr_t prvGetHeader(internals_t * internP)
@@ -64,7 +68,7 @@ static SmlSyncHdrPtr_t prvGetHeader(internals_t * internP)
         set_pcdata_hex(headerP->sessionID, internP->session_id);
         set_pcdata_int(headerP->msgID, internP->message_id);
         set_pcdata_int(headerP->msgID, internP->message_id);
-        set_pcdata_string(headerP->target->locURI, internP->account->uri);
+        set_pcdata_string(headerP->target->locURI, internP->account->server_uri);
         set_pcdata_string(headerP->source->locURI, internP->account->id);
         if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->clt_auth)
         {
@@ -208,6 +212,15 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
         goto error;
     }
 
+    if (NULL == internP->account->toClientCred)
+    {
+        internP->srv_auth = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+    }
+    if (NULL == internP->account->toServerCred)
+    {
+        internP->clt_auth = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+    }
+
     memset(&options, 0, sizeof(options));
     options.encoding= ((*flags)&DMCLT_FLAG_WBXML)?SML_WBXML:SML_XML;
     options.workspaceSize= PRV_MAX_WORKSPACE_SIZE;
@@ -223,8 +236,11 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
     internP->message_id = 0;
     if ((*flags)&DMCLT_FLAG_CLIENT_INIT)
     {
-        // reuse of this field
-        internP->clt_auth = 1;
+        internP->state = STATE_CLIENT_INIT;
+    }
+    else
+    {
+        internP->state = STATE_SERVER_INIT;
     }
 
     internP->alert_cb = UICallbacksP;
@@ -317,7 +333,8 @@ void omadmclient_session_close(dmclt_session sessionH)
     if (internP->account)
     {
         if (internP->account->id) free(internP->account->id);
-        if (internP->account->uri) free(internP->account->uri);
+        if (internP->account->server_uri) free(internP->account->server_uri);
+        if (internP->account->dmtree_uri) free(internP->account->dmtree_uri);
         prvFreeAuth(internP->account->toServerCred);
         prvFreeAuth(internP->account->toClientCred);
     }
@@ -335,7 +352,7 @@ dmclt_err_t omadmclient_get_next_packet(dmclt_session sessionH,
         return DMCLT_ERR_USAGE;
     }
 
-    if (internP->srv_auth == 0)
+    if (STATE_IN_SESSION != internP->state)
     {
         prvCreatePacket1(internP);
     }
@@ -355,7 +372,7 @@ dmclt_err_t omadmclient_get_next_packet(dmclt_session sessionH,
         memcpy(packetP->data, dataP, size);
 
         packetP->length = size;
-        packetP->uri = strdup(internP->account->uri);
+        packetP->uri = strdup(internP->account->server_uri);
         PRV_CHECK_SML_CALL(smlUnlockReadBuffer(internP->smlH, size));
     }
 

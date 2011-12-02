@@ -271,8 +271,8 @@ char * str_cat_5 (const char * first,
 void set_new_uri(internals_t * internP,
                  char * uri)
 {
-    free(internP->account->uri);
-    internP->account->uri = strdup(uri);
+    free(internP->account->server_uri);
+    internP->account->server_uri = strdup(uri);
 }
 
 void add_element(internals_t * internP,

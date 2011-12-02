@@ -98,6 +98,7 @@ static Ret_t prv_start_message_cb(InstanceID_t id,
     {
         internP->srv_auth = check_credentials(headerP->cred, internP->account->toClientCred);
         challengeP= get_challenge(internP->account->toClientCred);
+        store_nonce(internP->dmtreeH->MOs, internP->account, false);
     }
 
     dataStr = smlPcdata2String(headerP->respURI);
@@ -424,6 +425,7 @@ static Ret_t prv_status_cmd_cb(InstanceID_t id,
                 if (internP->account->toServerCred->data.buffer) free(internP->account->toServerCred->data.buffer);
                 internP->account->toServerCred->data.buffer = newNonce.buffer;
                 internP->account->toServerCred->data.len = newNonce.len;
+                store_nonce(internP->dmtreeH->MOs, internP->account, true);
             }
         }
     }

@@ -54,6 +54,14 @@ typedef enum
     AUTH_TYPE_TRANSPORT
 } authType_t;
 
+typedef enum
+{
+    STATE_UNKNOWN = 0,
+    STATE_SERVER_INIT,
+    STATE_CLIENT_INIT,
+    STATE_IN_SESSION
+} State_t;
+
 typedef struct
 {
     uint8_t * buffer;
@@ -84,7 +92,8 @@ typedef struct _elemCell
 typedef struct
 {
     char *       id;
-    char *       uri;
+    char *       server_uri;
+    char *       dmtree_uri;
     authDesc_t * toServerCred;
     authDesc_t * toClientCred;
 } accountDesc_t;
@@ -107,6 +116,7 @@ typedef struct
     void *           cb_data;
     SmlSequencePtr_t sequence;
     int              seq_code;
+    State_t          state;
 } internals_t;
 
 
@@ -179,6 +189,7 @@ SmlChalPtr_t get_challenge       (authDesc_t * authP);
 authType_t   auth_string_as_type (char * string);
 char *       auth_type_as_string (authType_t type);
 int          get_server_account  (const mo_mgr_t iMgr, char * serverID, accountDesc_t ** accountP);
+void         store_nonce         (const mo_mgr_t iMgr, const accountDesc_t * accountP, bool server);
 
 // implemented in package0.c
 int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags);

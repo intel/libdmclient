@@ -388,6 +388,8 @@ int get_server_account(const mo_mgr_t iMgr,
 
     DMC_FAIL_NULL(*accountP, malloc(sizeof(accountDesc_t)), OMADM_SYNCML_ERROR_DEVICE_FULL);
     memset(*accountP, 0, sizeof(accountDesc_t));
+    (*accountP)->dmtree_uri = accountUri;
+    accountUri = NULL;
 
     DMC_FAIL_NULL(node.uri, strdup("./DevInfo/DevId"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     DMC_FAIL(momgr_get_value(iMgr, &node));
@@ -395,19 +397,19 @@ int get_server_account(const mo_mgr_t iMgr,
     dmtree_node_clean(&node, false);
 
     // TODO handle IPv4 and IPv6 cases
-    DMC_FAIL_NULL(uri, str_cat_2(accountUri, "/AppAddr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    DMC_FAIL_NULL(uri, str_cat_2((*accountP)->dmtree_uri, "/AppAddr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     DMC_FAIL(momgr_find_subtree(iMgr, uri, "AddrType", "URI", &subUri));
     free(uri);
     uri = NULL;
     DMC_FAIL_NULL(node.uri, str_cat_2(subUri, "/Addr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     DMC_FAIL(momgr_get_value(iMgr, &node));
-    (*accountP)->uri = node.data_buffer;
+    (*accountP)->server_uri = node.data_buffer;
     dmtree_node_clean(&node, false);
     free(subUri);
     subUri = NULL;
 
     // TODO handle OBEX and HTTP authentification levels
-    DMC_FAIL_NULL(uri, str_cat_2(accountUri, "/AppAuth"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    DMC_FAIL_NULL(uri, str_cat_2((*accountP)->dmtree_uri, "/AppAuth"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     code = momgr_find_subtree(iMgr, uri, "AAuthLevel", "CLCRED", &subUri);
     switch (code)
     {
@@ -447,4 +449,27 @@ DMC_ON_ERR:
     dmtree_node_clean(&node, true);
 
     return DMC_ERR;
+}
+
+void store_nonce(const mo_mgr_t iMgr,
+                 const accountDesc_t * accountP,
+                 bool server)
+{
+    char * subUri = NULL;
+
+    if (OMADM_SYNCML_ERROR_NONE == momgr_find_subtree(iMgr, accountP->dmtree_uri, "AAuthLevel", server?"CLCRED":"SRVCRED", &subUri))
+    {
+        dmtree_node_t node;
+
+        memset(&node, 0, sizeof(dmtree_node_t));
+        node.uri = str_cat_2(subUri, "/AAuthData");
+        if (node.uri)
+        {
+            node.data_buffer = (char *)(server?accountP->toServerCred->data.buffer:accountP->toClientCred->data.buffer);
+            node.data_size = server?accountP->toServerCred->data.len:accountP->toClientCred->data.len;
+            momgr_set_value(iMgr, &node);
+            free(node.uri);
+        }
+        free(subUri);
+    }
 }
