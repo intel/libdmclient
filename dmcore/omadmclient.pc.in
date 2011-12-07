@@ -1,0 +1,9 @@
+prefix=@prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libomadmclient
+Description: libomadmclient implements the client-side of OMA DM 1.2 protocol.
+Version: @VERSION@
+Libs: -L${libdir} -lomadmclient
+Cflags: -I${includedir}

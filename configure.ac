@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([omadmclient], [0.0.1], [david.navarro@intel.com])
+AC_INIT([omadmclient], [0.1.0], [david.navarro@intel.com])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 LT_PREREQ([2.2])
@@ -56,7 +56,7 @@ fi
 if test "${exec_prefix}" = "NONE"; then
     exec_prefix=${prefix}
 fi
-libdir=${exec_prefix}/lib/${PACKAGE}
+libdir=${exec_prefix}/lib
 mo_install_dir=${exec_prefix}/lib/${PACKAGE}/plugins
 AC_SUBST([MO_INSTALL_DIR], [${mo_install_dir}])
 AC_DEFINE_UNQUOTED([MO_INSTALL_DIR], ["${mo_install_dir}"], [management objects installation directory])
@@ -69,7 +69,8 @@ AC_CONFIG_FILES([Makefile
                  dmcore/Makefile
 		         externals/Makefile
 		         externals/SyncMLRTK/Makefile
-		         tests/Makefile])
+		         tests/Makefile
+		         dmcore/omadmclient.pc])
 
 AC_OUTPUT
 

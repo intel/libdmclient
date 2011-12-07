@@ -1,20 +1,24 @@
-dmclient_src = src/omadmclient.c \
-               src/callbacks.c \
-               src/codec.c \
-               src/package0.c \
-               src/credentials.c \
-               src/sml2tree.c \
-               src/utils.c
-
-dmtree_src = src/momgr.c \
-             src/dmtree.c \
-             src/defaultroot.c \
-             src/log.c
-
 lib_LTLIBRARIES = libomadmclient.la
 
-libomadmclient_la_SOURCES = $(dmclient_src) \
-                            $(dmtree_src)
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = omadmclient.pc
+
+libomadmclient_la_includedir = $(includedir)/omadmclient
+libomadmclient_la_include_HEADERS = include/omadmclient.h \
+                                    include/omadmtree_mo.h \
+                                    include/syncml_error.h
+
+libomadmclient_la_SOURCES = src/omadmclient.c \
+                            src/callbacks.c \
+                            src/codec.c \
+                            src/package0.c \
+                            src/credentials.c \
+                            src/sml2tree.c \
+                            src/utils.c \
+                            src/momgr.c \
+                            src/dmtree.c \
+                            src/defaultroot.c \
+                            src/log.c
 
 libomadmclient_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                              -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
