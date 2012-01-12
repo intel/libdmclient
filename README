@@ -8,7 +8,7 @@ Overview
                                     -------------
                                           |
                                    +-------------+
-                                   | omadmclient |--------+
+                                   |   dmclient  |--------+
                                    |   library   | SyncML |
                                    +-------------|  RTK   |
                                           |      +--------+
@@ -54,13 +54,13 @@ The MO interface contains 8 APIs apart from the classic open and close:
 
 All the access rights check, URI parsing and syntax validation is done by the library. The MOs can be really simple.
 
-libomadmclient comes with a command-line dmclient application and some test MOs. The MOs are mostly returning hard-coded values.
+libdmclient comes with a command-line dmclient application and some test MOs. The MOs are mostly returning hard-coded values.
 
 
 Source Layout
 -------------
 
--+- dmcore              (the omadmclient library)
+-+- dmcore              (the dmclient library)
  |    |
  |    +- include        (public header files either for using the lib or for MOs)
  |    |
@@ -74,7 +74,7 @@ Source Layout
       |
       +- client         (a command-line test OMA DM client)
       |
-      +- mgtobj         (test MOs for the omadmclient library)
+      +- mgtobj         (test MOs for the dmclient library)
            |
            +- DevDetail (contains hard-coded values)
            |
@@ -93,7 +93,7 @@ Source Layout
 Compiling
 ---------
 
-libomadmclient requires some packages:
+libdmclient requires some packages:
   - autoconf automake libtool gcc make
       for the build system
   - libxml2-devel libwbxml-devel
@@ -121,5 +121,5 @@ Specific configure options are:
 Install
 -------
 
-libomadmclient.so is installed in ${prefix}/lib/omadmclient
-MOs plugin libraries must be installed in ${prefix}/lib/omadmclient/plugins
+libdmclient.so is installed in ${prefix}/lib/dmclient
+MOs plugin libraries must be installed in ${prefix}/lib/dmclient/plugins

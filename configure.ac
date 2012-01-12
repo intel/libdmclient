@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([omadmclient], [0.1.0], [david.navarro@intel.com])
+AC_INIT([dmclient], [0.1.0], [david.navarro@intel.com])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 LT_PREREQ([2.2])
@@ -70,7 +70,7 @@ AC_CONFIG_FILES([Makefile
 		         externals/Makefile
 		         externals/SyncMLRTK/Makefile
 		         tests/Makefile
-		         dmcore/omadmclient.pc])
+		         dmcore/libdmclient.pc])
 
 AC_OUTPUT
 
