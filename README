@@ -20,7 +20,7 @@ Overview
               -----------      ---------      -------     -----    -----
 
 
-libomadmclient implements the client-side of OMA DM 1.2 protocol. It provides high-level APIs. The main functions are:
+libdmclient implements the client-side of OMA DM 1.2 protocol. It provides high-level APIs. The main functions are:
   - omadmclient_session_open()
       to open a DM session either to a specified server or by parsing a Wap Push payload.
   - omadmclient_get_next_packet()
