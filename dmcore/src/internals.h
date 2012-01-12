@@ -195,5 +195,9 @@ void         store_nonce         (const mo_mgr_t iMgr, const accountDesc_t * acc
 int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags);
 int validate_package_0 (internals_t * internP, buffer_t pkg0);
 
+// implemented in uricheck.c
+int uri_validate_path(char * path_str, const uint16_t max_depth, const uint16_t max_len);
+int uri_validate(const uint16_t max_total_len, const uint16_t max_depth, const uint16_t max_segment_len,
+                 const char * uri, char ** oNodeURI, char ** oPropId);
 
 #endif // INTERNALS_H

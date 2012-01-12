@@ -17,6 +17,7 @@ libdmclient_la_SOURCES = src/omadmclient.c \
                          src/utils.c \
                          src/momgr.c \
                          src/dmtree.c \
+                         src/uricheck.c \
                          src/defaultroot.c \
                          src/log.c
 
