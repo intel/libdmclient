@@ -246,7 +246,7 @@ static void prv_removePlugin(mo_mgr_t * iMgrP,
     plugin_elem_t * elem = iMgrP->first;
     plugin_elem_t * target = NULL;
 
-    if (elem)
+    if (iURx && elem)
     {
         if ((!URI(elem->plugin) || strcmp(iURx, URI(elem->plugin)))
          && (!URN(elem->plugin) || strcmp(iURx, URN(elem->plugin))))
