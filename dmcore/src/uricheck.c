@@ -140,6 +140,11 @@ int uri_validate_path(char * path_str,
         }
     }
 
+    if (0 == len)
+    {
+        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+    }
+
     if (*path_str == '/')
     {
         switch (max_depth)
