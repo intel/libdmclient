@@ -83,61 +83,215 @@ static void prv_freePlugin(dmtree_plugin_t *iPlugin)
     free(iPlugin);
 }
 
-static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
-                                        const char *iURI,
-                                        const char *iURN)
+static void prv_freeMoDir(mo_dir_t * origin)
 {
-    plugin_elem_t * elem = iMgr.first;
+    mo_dir_t * child;
 
-    while(elem
-       && ((iURI && URI(elem->plugin) && strncmp(URI(elem->plugin), iURI, strlen(URI(elem->plugin))))
-        || (iURN && URN(elem->plugin) && strncmp(URN(elem->plugin), iURN, strlen(URN(elem->plugin))))))
+    child = origin->children;
+    while (NULL != child)
     {
-        elem = elem->next;
+        child->parent = NULL;
+        prv_freeMoDir(child);
+        child = child->next;
     }
-
-    if (elem)
+    if (NULL != origin->plugin)
     {
-        return elem->plugin;
+        prv_freePlugin(origin->plugin);
     }
-    return NULL;
-}
-
-static void prv_removePlugin(mo_mgr_t * iMgrP,
-                             const char *iURx)
-{
-    plugin_elem_t * elem = iMgrP->first;
-    plugin_elem_t * target = NULL;
-
-    if (iURx && elem)
+    if (NULL != origin->name)
     {
-        if ((!URI(elem->plugin) || strcmp(iURx, URI(elem->plugin)))
-         && (!URN(elem->plugin) || strcmp(iURx, URN(elem->plugin))))
+        free(origin->name);
+    }
+    if (NULL != origin->parent)
+    {
+        if (origin->parent->children == origin)
         {
-            while ((elem->next)
-                && (!URI(elem->next->plugin) || strcmp(iURx, URI(elem->next->plugin)))
-                && (!URN(elem->next->plugin) || strcmp(iURx, URN(elem->next->plugin))))
-            {
-                elem = elem->next;
-            }
-            if (elem->next)
-            {
-                target = elem->next;
-                elem->next = elem->next->next;
-            }
+            origin->parent->children = origin->next;
         }
         else
         {
-            target = elem;
-            iMgrP->first = iMgrP->first->next;
-        }
-
-        if (target)
-        {
-            prv_freePlugin(target->plugin);
-            free(target);
+            child = origin->parent->children;
+            while (NULL != child && child->next != origin)
+            {
+                child = child->next;
+            }
+            if (NULL != child)
+            {
+                child->next = origin->next;
+            }
         }
     }
+    free(origin);
+}
+
+static mo_dir_t * prv_findNode(mo_dir_t * origin,
+                               char *iURI)
+{
+    char * name = NULL;
+    char * nextName;
+    mo_dir_t * child;
+    mo_dir_t * result;
+
+    nextName = strchr(iURI, '/');
+    if (nextName)
+    {
+        name = (char*)malloc(nextName - iURI + 1);
+        if (NULL == name) return NULL;
+        strncpy(name, iURI, nextName - iURI);
+        name[nextName - iURI] = 0;
+        nextName++;
+    }
+    else
+    {
+        name = iURI;
+    }
+
+    child = origin->children;
+    while(child && strcmp(child->name, name))
+    {
+        child = child->next;
+    }
+
+    if (NULL != child)
+    {
+        if (NULL != nextName)
+        {
+            result = prv_findNode(child, nextName);
+        }
+        else
+        {
+            result = child;
+        }
+    }
+    else
+    {
+        result = origin;
+    }
+
+    if (NULL != nextName) free(name) ;
+    return result;
+}
+
+static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
+                                        const char *iURI)
+{
+    char * uriCopy = NULL;
+    char * subUri;
+    mo_dir_t * nodeP;
+
+    uriCopy = strdup(iURI);
+    if (NULL == uriCopy)
+    {
+        return NULL;
+    }
+
+    subUri = uriCopy;
+    if ('.' == subUri[0])
+    {
+        if ('/' == subUri[1])
+        {
+            subUri += 2;
+        }
+        else if (0 == subUri[1])
+        {
+            // invalid URI
+            free(uriCopy);
+            return NULL;
+        }
+    }
+
+    nodeP = prv_findNode(iMgr.root, subUri);
+    free(uriCopy);
+
+    while (NULL != nodeP && NULL == nodeP->plugin)
+    {
+        nodeP = nodeP->parent;
+    }
+
+    if (NULL != nodeP)
+    {
+        return nodeP->plugin;
+    }
+
+    return NULL;
+}
+
+static dmtree_plugin_t * prv_findPluginByUrn(const mo_mgr_t iMgr,
+                                             const char *iURN)
+{
+    return NULL;
+}
+
+static int prv_createMoDir(mo_mgr_t * iMgr,
+                           const char * uri,
+                           mo_dir_t ** elemP)
+{
+    DMC_ERR_MANAGE;
+    char * uriCopy = NULL;
+    char * curNode;
+    mo_dir_t * pointer;
+    mo_dir_t * child = NULL;
+
+    *elemP = NULL;
+    DMC_FAIL_NULL(uriCopy, strdup(uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+    pointer = iMgr->root;
+
+    curNode = uriCopy;
+    if ('.' == curNode[0])
+    {
+        if ('/' == curNode[1])
+        {
+            curNode += 2;
+        }
+        else if (0 == curNode[1])
+        {
+            // we can not have a root plugin
+            DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
+        }
+    }
+    while (curNode && 0 != *curNode)
+    {
+        char * nextNode;
+
+        nextNode = strchr(curNode, '/');
+        if (nextNode)
+        {
+            *nextNode = 0;
+            nextNode++;
+        }
+        // find children or create one
+        child = pointer->children;
+        while(child
+           && strcmp(child->name, curNode))
+        {
+            child = child->next;
+        }
+        if (NULL == child)
+        {
+            DMC_FAIL_NULL(child, malloc(sizeof(mo_dir_t)), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            memset(child, 0, sizeof(mo_dir_t));
+            DMC_FAIL_NULL(child->name, strdup(curNode), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            child->parent = pointer;
+            child->next = pointer->children;
+            pointer->children = child;
+        }
+        pointer = child;
+        child = NULL;
+        curNode = nextNode;
+    }
+
+    // pointer is on the right one
+    *elemP = pointer;
+
+DMC_ON_ERR:
+    if (uriCopy) free(uriCopy);
+    if (child)
+    {
+        if (child->name) free(child->name);
+        free(child);
+    }
+
+    return DMC_ERR;
 }
 
 static int prv_add_plugin(mo_mgr_t * iMgr,
@@ -145,13 +299,16 @@ static int prv_add_plugin(mo_mgr_t * iMgr,
                           void * handle)
 {
     DMC_ERR_MANAGE;
-    plugin_elem_t * newElem = NULL;
+    mo_dir_t * newElem = NULL;
     void * pluginData = NULL;
-    char * uriCopy = NULL;
+    uint8_t uriOffset = 0;
 
     DMC_LOGF("uri <%s>", iPlugin->base_uri);
 
-    /* Plugin base URI must be root (".") or a direct child of root ("./[^/]*") The "./" part is optionnal. */
+    DMC_FAIL_ERR(NULL == iPlugin, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    DMC_FAIL_ERR(NULL == iPlugin->initFunc, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    DMC_FAIL(iPlugin->initFunc(&pluginData));
+
     if (iPlugin->base_uri)
     {
         if ('.' == iPlugin->base_uri[0])
@@ -159,58 +316,44 @@ static int prv_add_plugin(mo_mgr_t * iMgr,
             switch(iPlugin->base_uri[1])
             {
             case 0:
+                // we can not have a root plugin
+                DMC_FAIL(OMADM_SYNCML_ERROR_NOT_ALLOWED);
                 break;
             case '/':
-                uriCopy = strdup(iPlugin->base_uri + 2);
-                DMC_FAIL(uri_validate_path(uriCopy, 1, iMgr->max_segment_len));
+                uriOffset = 2;
                 break;
             default:
-                DMC_FAIL(OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+                break;
             }
         }
-        else
-        {
-            uriCopy = strdup(iPlugin->base_uri + 2);
-            DMC_FAIL(uri_validate_path(uriCopy, 1, iMgr->max_segment_len));
-        }
+        DMC_FAIL(uri_validate_path(iPlugin->base_uri + uriOffset, iMgr->max_depth, iMgr->max_segment_len));
+
+        // Find where to put the new plugin
+        DMC_FAIL(prv_createMoDir(iMgr, iPlugin->base_uri, &newElem));
+
+        DMC_FAIL_NULL(newElem->plugin, (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t)),
+                  OMADM_SYNCML_ERROR_DEVICE_FULL);
+
+        memset(newElem->plugin, 0, sizeof(dmtree_plugin_t));
+
+        newElem->plugin->interface = iPlugin;
+        newElem->plugin->data = pluginData;
+        newElem->plugin->dl_handle = handle;
+        newElem->plugin->container = newElem;
+
+        newElem = NULL;
     }
-
-    // check urn is valid
-
-    DMC_FAIL_ERR(NULL == iPlugin, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
-    DMC_FAIL_ERR(NULL == iPlugin->initFunc, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
-    DMC_FAIL(iPlugin->initFunc(&pluginData));
-
-    DMC_FAIL_NULL(newElem, (plugin_elem_t *) malloc(sizeof(plugin_elem_t)),
-              OMADM_SYNCML_ERROR_DEVICE_FULL);
-    memset(newElem, 0, sizeof(plugin_elem_t));
-    DMC_FAIL_NULL(newElem->plugin, (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t)),
-              OMADM_SYNCML_ERROR_DEVICE_FULL);
-
-    memset(newElem->plugin, 0, sizeof(dmtree_plugin_t));
-
-    newElem->plugin->interface = iPlugin;
-    newElem->plugin->data = pluginData;
-    newElem->plugin->dl_handle = handle;
-
-    prv_removePlugin(iMgr, iPlugin->base_uri);
-    prv_removePlugin(iMgr, iPlugin->urn);
-    newElem->next = iMgr->first;
-    iMgr->first = newElem;
-
-    newElem = NULL;
+    if (iPlugin->urn)
+    {
+    // TODO
+    }
 
 DMC_ON_ERR:
 
     if (newElem)
     {
-        if (newElem->plugin)
-        {
-            prv_freePlugin(newElem->plugin);
-        }
-        free(newElem);
+        prv_freeMoDir(newElem);
     }
-    if (uriCopy) free(uriCopy);
 
     DMC_LOGF("exit <0x%x>", DMC_ERR);
 
@@ -260,6 +403,24 @@ int momgr_init(mo_mgr_t * iMgrP)
 
     memset(iMgrP, 0, sizeof(mo_mgr_t));
 
+    // set the root plugin
+    iMgrP->root = (mo_dir_t *) malloc(sizeof(mo_dir_t));
+    if (NULL == iMgrP->root) return OMADM_SYNCML_ERROR_DEVICE_FULL;
+    memset(iMgrP->root, 0, sizeof(mo_dir_t));
+    iMgrP->root->name = strdup(".");
+
+    iMgrP->root->plugin = (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t));
+    if (NULL == iMgrP->root->plugin)
+    {
+        free(iMgrP->root);
+        return OMADM_SYNCML_ERROR_DEVICE_FULL;
+    }
+    memset(iMgrP->root->plugin, 0, sizeof(dmtree_plugin_t));
+
+    iMgrP->root->plugin->interface = getDefaultRootPlugin();
+    iMgrP->root->plugin->container = iMgrP->root;
+
+    // load plugins from the plugins directory
     folderP = opendir(MO_INSTALL_DIR);
     if (folderP != NULL)
     {
@@ -279,29 +440,10 @@ int momgr_init(mo_mgr_t * iMgrP)
         closedir(folderP);
     }
 
-    // Check if we have all mandatory MOs
-    if (NULL == prv_findPlugin(*iMgrP, NULL, URN_MO_DMACC))
-    {
-        error = OMADM_SYNCML_ERROR_NOT_FOUND;
-    }
-    else if (NULL == prv_findPlugin(*iMgrP, NULL, URN_MO_DEVDETAIL))
-    {
-        error = OMADM_SYNCML_ERROR_NOT_FOUND;
-    }
-    else if (NULL == prv_findPlugin(*iMgrP, NULL, URN_MO_DEVINFO))
-    {
-        error = OMADM_SYNCML_ERROR_NOT_FOUND;
-    }
-    else if (NULL == prv_findPlugin(*iMgrP, ".", NULL))
-    {
-        // Check if we have a root plugin
-        error = prv_add_plugin(iMgrP, getDefaultRootPlugin(), NULL);
-    }
-
     if (OMADM_SYNCML_ERROR_NONE == error)
     {
         // retrieve uri limits
-        detailPluginP = prv_findPlugin(*iMgrP, "./DevDetail", NULL);
+        detailPluginP = prv_findPlugin(*iMgrP, "./DevDetail");
         if (detailPluginP && detailPluginP->interface->getFunc)
         {
             error = prv_get_short(detailPluginP, "./DevDetail/URI/MaxDepth", &(iMgrP->max_depth));
@@ -329,13 +471,9 @@ int momgr_init(mo_mgr_t * iMgrP)
 
 void momgr_free(mo_mgr_t * iMgrP)
 {
-    while(iMgrP->first)
+    if(iMgrP->root)
     {
-        plugin_elem_t * elem = iMgrP->first;
-
-        iMgrP->first = elem->next;
-        prv_freePlugin(elem->plugin);
-        free(elem);
+        prv_freeMoDir(iMgrP->root);
     }
 }
 
@@ -348,7 +486,7 @@ int momgr_exists(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_node_exists <%s>", iURI);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->isNodeFunc,
@@ -367,62 +505,69 @@ int momgr_get_value(const mo_mgr_t iMgr,
 {
     DMC_ERR_MANAGE;
     dmtree_plugin_t *plugin = NULL;
-    char * childNode = NULL;
-    omadmtree_node_type_t exists = OMADM_NODE_NOT_EXIST;
-    plugin_elem_t * elem;
 
     DMC_FAIL_ERR(NULL == nodeP, OMADM_SYNCML_ERROR_SESSION_INTERNAL);
 
     DMC_LOGF("momgr_get_value <%s>", nodeP->uri);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->getFunc,
                  OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
-    DMC_FAIL(plugin->interface->getFunc(nodeP, plugin->data));
+    DMC_ERR = plugin->interface->getFunc(nodeP, plugin->data);
 
-    if (strcmp(nodeP->uri, ".")) goto DMC_ON_ERR;
-
-    /* Special case for the root node. */
-    elem = iMgr.first;
-    while(elem)
+    // handle nested plugins
+    if (OMADM_SYNCML_ERROR_NONE == DMC_ERR
+     && OMADM_SYNCML_ERROR_NOT_FOUND == DMC_ERR)
     {
-        if (strcmp(URI(elem->plugin), "."))
+        char * uriCopy = NULL;
+
+        uriCopy = strdup(nodeP->uri);
+        if (NULL != uriCopy)
         {
-            DMC_FAIL_NULL(childNode, strdup(URI(elem->plugin)), OMADM_SYNCML_ERROR_DEVICE_FULL);
+            char * subUri;
+            mo_dir_t * dirP;
 
-            DMC_FAIL(elem->plugin->interface->isNodeFunc(childNode, &exists, elem->plugin->data));
-
-            if (exists != OMADM_NODE_NOT_EXIST)
+            subUri = uriCopy;
+            if ('.' == subUri[0])
             {
-                if (nodeP->data_buffer)
+                if ('/' == subUri[1])
                 {
-                    char * tmp_str;
-
-                    DMC_FAIL_NULL(tmp_str, str_cat_3(nodeP->data_buffer, "/", childNode+2), OMADM_SYNCML_ERROR_DEVICE_FULL);
-                    free(nodeP->data_buffer);
-                    nodeP->data_buffer = tmp_str;
-                }
-                else
-                {
-                    nodeP->data_buffer = strdup(childNode+2);
+                    subUri += 2;
                 }
             }
-            free(childNode);
-            childNode = NULL;
+            dirP = prv_findNode(iMgr.root, subUri);
+            free(uriCopy);
+            if (dirP)
+            {
+                mo_dir_t * child;
+
+                child = dirP->children;
+                while (NULL != child)
+                {
+                    if (NULL == nodeP->data_buffer)
+                    {
+                        // this macro also sets DMC_ERR to OMADM_SYNCML_ERROR_NONE
+                        DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                        DMC_FAIL_NULL(nodeP->data_buffer, strdup(dirP->name), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                        nodeP->data_buffer = strdup(dirP->name);
+                    }
+                    else
+                    {
+                        char * tmp_str;
+
+                        DMC_FAIL_NULL(tmp_str, str_cat_3(nodeP->data_buffer, "/", dirP->name), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                        free(nodeP->data_buffer);
+                        nodeP->data_buffer = tmp_str;
+                    }
+                }
+            }
         }
-        elem= elem->next;
-    }
-    if (!nodeP->format)
-    {
-        DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     }
 
 DMC_ON_ERR:
-
-    if (childNode) free(childNode);
 
     DMC_LOGF("momgr_get_value exit <0x%x>", DMC_ERR);
 
@@ -439,7 +584,7 @@ int momgr_set_value(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_set_value <%s>", nodeP->uri);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, nodeP->uri),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->setFunc,
@@ -466,7 +611,7 @@ int momgr_get_ACL(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_get_ACL <%s>", iURI);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->getACLFunc,
@@ -495,7 +640,7 @@ int momgr_set_ACL(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_set_ACL <%s> <%s>", iURI, iACL);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->setACLFunc,
@@ -525,7 +670,7 @@ int momgr_rename_node(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_rename_node <%s> <%s>", iURI, iNewName);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->renameFunc,
@@ -554,7 +699,7 @@ int momgr_delete_node(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_delete_node <%s>", iURI);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->deleteFunc,
@@ -581,7 +726,7 @@ int momgr_exec_node(const mo_mgr_t iMgr,
 
     DMC_LOGF("momgr_exec_node <%s> <%s> <%s>", iURI, iData, iCorrelator);
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iURI),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
 
     DMC_FAIL_ERR(NULL == plugin->interface->execFunc,
@@ -618,7 +763,7 @@ int momgr_get_uri_from_urn(const mo_mgr_t iMgr,
 
     *oUri = NULL;
 
-    plugin = prv_findPlugin(iMgr, NULL, iUrn);
+    plugin = prv_findPluginByUrn(iMgr, iUrn);
     if (plugin)
     {
         if (URI(plugin))
@@ -651,7 +796,7 @@ int momgr_find_subtree(const mo_mgr_t iMgr,
 
     memset(&node, 0, sizeof(dmtree_node_t));
 
-    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iUri, NULL),
+    DMC_FAIL_NULL(plugin, prv_findPlugin(iMgr, iUri),
                   OMADM_SYNCML_ERROR_NOT_FOUND);
     DMC_FAIL_ERR(NULL == iCriteriaName, OMADM_SYNCML_ERROR_NOT_FOUND);
     DMC_FAIL_ERR(NULL == plugin->interface->getFunc || NULL == plugin->interface->isNodeFunc, OMADM_SYNCML_ERROR_NOT_FOUND);

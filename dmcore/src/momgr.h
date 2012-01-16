@@ -21,19 +21,26 @@
 typedef struct
 {
     omadm_mo_interface_t * interface;
-    void * data;
-    void * dl_handle;
+    void *                 data;
+    void *                 dl_handle;
+    struct _mo_dir *       container;
 } dmtree_plugin_t;
 
-typedef struct _plugin_elem
+// plugins are stored in a tree structure.
+// Be careful to not mix this with the DM tree.
+// Functions manipulating this tree structure are named prv_*MoDir()
+typedef struct _mo_dir
 {
+    char *            name;
     dmtree_plugin_t * plugin;
-    struct _plugin_elem * next;
-} plugin_elem_t;
+    struct _mo_dir *  children;
+    struct _mo_dir *  parent;
+    struct _mo_dir *  next;
+} mo_dir_t;
 
 typedef struct
 {
-    plugin_elem_t * first;
+    mo_dir_t * root;
     uint16_t max_depth;
     uint16_t max_total_len;
     uint16_t max_segment_len;
