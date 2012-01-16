@@ -6,7 +6,7 @@ testdmclient_LDADD = $(top_builddir)/dmcore/libdmclient.la \
 		      $(GLIB_LIBS) $(LIBSOUP_LIBS)
 
 libdir = $(MO_INSTALL_DIR)
-lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la moroot.la modmacc.la
+lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la mostorage.la modmacc.la
 
 modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c mgtobj/utils/static_mo_util.c
 modevdetails_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
@@ -32,11 +32,11 @@ moinbox_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                       -I $(top_srcdir)/dmcore/include
 moinbox_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
 
-moroot_la_SOURCES = mgtobj/Root/plugin_root.c \
-                    mgtobj/Root/dyn_buf.c \
-                    mgtobj/Root/dmsettings.c \
-                    mgtobj/Root/dmsettings_utils.c
-moroot_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
-                     -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
-                     -I $(top_srcdir)/dmcore/include
-moroot_la_LDFLAGS = $(SQLITE3_LIBS) -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
+mostorage_la_SOURCES = mgtobj/Storage/plugin_root.c \
+                       mgtobj/Storage/dyn_buf.c \
+                       mgtobj/Storage/dmsettings.c \
+                       mgtobj/Storage/dmsettings_utils.c
+mostorage_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
+                        -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
+                        -I $(top_srcdir)/dmcore/include
+mostorage_la_LDFLAGS = $(SQLITE3_LIBS) -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
