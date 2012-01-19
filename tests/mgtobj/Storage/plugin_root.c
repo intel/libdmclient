@@ -23,6 +23,8 @@
 #include "dmsettings_utils.h"
 #include "syncml_error.h"
 
+#define PRV_BASE_URI "./Vendor/test"
+
 static char * prv_str_cat(char * first,
                           char * second)
 {
@@ -59,7 +61,7 @@ static int prv_rootIsNodeFN(const char *iURI,
 
     DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, iURI, oNodeType));
 
-    if ((*oNodeType == OMADM_NODE_NOT_EXIST) && !strcmp(iURI,"."))
+    if ((*oNodeType == OMADM_NODE_NOT_EXIST) && !strcmp(iURI, PRV_BASE_URI))
         *oNodeType = OMADM_NODE_IS_INTERIOR;
 
 DMC_ON_ERR:
@@ -75,7 +77,7 @@ static int prv_rootGetFN(dmtree_node_t * nodeP,
     dmsettings *settings = (dmsettings *)iData;
     omadmtree_node_type_t type;
 
-    if (strcmp(nodeP->uri,"."))
+    if (strcmp(nodeP->uri, PRV_BASE_URI))
     {
         DMC_FAIL(omadm_dmsettings_utils_node_exists(settings, nodeP->uri, &type));
     }
@@ -172,7 +174,7 @@ static int prv_rootGetACLFN(const char *iURI,
     DMC_ERR_MANAGE;
     dmsettings *settings = (dmsettings *)iData;
 
-    if (!strcmp(iURI,"."))
+    if (!strcmp(iURI, PRV_BASE_URI))
     {
         DMC_FAIL_NULL(*oValue, strdup("Add=*&Get=*"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     }
@@ -210,7 +212,7 @@ omadm_mo_interface_t * omadm_get_mo_interface()
     retVal = malloc(sizeof(*retVal));
     if (retVal) {
         memset(retVal, 0, sizeof(*retVal));
-        retVal->base_uri = strdup("Vendor/test");
+        retVal->base_uri = strdup(PRV_BASE_URI);
         retVal->initFunc = prv_rootInitFN;
         retVal->closeFunc = prv_rootCloseFN;
         retVal->isNodeFunc = prv_rootIsNodeFN;

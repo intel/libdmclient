@@ -124,7 +124,8 @@ static void prv_freeMoDir(mo_dir_t * origin)
 }
 
 static mo_dir_t * prv_findMoDir(mo_dir_t * origin,
-                                const char *iURI)
+                                const char *iURI,
+                                bool exact)
 {
     char * name = NULL;
     char * nextName;
@@ -155,7 +156,7 @@ static mo_dir_t * prv_findMoDir(mo_dir_t * origin,
     {
         if (NULL != nextName)
         {
-            result = prv_findMoDir(child, nextName);
+            result = prv_findMoDir(child, nextName, exact);
         }
         else
         {
@@ -164,7 +165,14 @@ static mo_dir_t * prv_findMoDir(mo_dir_t * origin,
     }
     else
     {
-        result = origin;
+        if (false == exact)
+        {
+            result = origin;
+        }
+        else
+        {
+            result = NULL;
+        }
     }
 
     if (NULL != nextName) free(name);
@@ -204,7 +212,7 @@ static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
         }
     }
 
-    dirP = prv_findMoDir(iMgr.root, subUri);
+    dirP = prv_findMoDir(iMgr.root, subUri, false);
     free(uriCopy);
 
     while (NULL != dirP && NULL == dirP->plugin)
@@ -487,7 +495,7 @@ int momgr_exists(const mo_mgr_t iMgr,
                  OMADM_SYNCML_ERROR_NOT_ALLOWED);
     DMC_ERR = plugin->interface->isNodeFunc(iURI, oExists, plugin->data);
     // handle nested plugins
-    if (OMADM_SYNCML_ERROR_NONE == DMC_ERR
+    if ((OMADM_SYNCML_ERROR_NONE == DMC_ERR && OMADM_NODE_NOT_EXIST == *oExists)
      || OMADM_SYNCML_ERROR_NOT_FOUND == DMC_ERR)
     {
         char * subUri;
@@ -498,12 +506,16 @@ int momgr_exists(const mo_mgr_t iMgr,
         {
             subUri += 2;
         }
-        dirP = prv_findMoDir(iMgr.root, subUri);
+        dirP = prv_findMoDir(iMgr.root, subUri, true);
 
         if (dirP)
         {
             *oExists = OMADM_NODE_IS_INTERIOR;
             DMC_ERR = OMADM_SYNCML_ERROR_NONE;
+        }
+        else
+        {
+            *oExists = OMADM_NODE_NOT_EXIST;
         }
     }
     DMC_LOGF("momgr_node_exists exit <0x%x> %d", DMC_ERR, *oExists);
@@ -543,7 +555,7 @@ int momgr_get_value(const mo_mgr_t iMgr,
         {
             subUri += 2;
         }
-        dirP = prv_findMoDir(iMgr.root, subUri);
+        dirP = prv_findMoDir(iMgr.root, subUri, false);
 
         if (dirP)
         {
@@ -905,7 +917,7 @@ int momgr_find_subtree(const mo_mgr_t iMgr,
             subUri += 2;
         }
 
-        DMC_FAIL_NULL(dirP, prv_findMoDir(iMgr.root, subUri), OMADM_SYNCML_ERROR_NOT_FOUND);
+        DMC_FAIL_NULL(dirP, prv_findMoDir(iMgr.root, subUri, false), OMADM_SYNCML_ERROR_NOT_FOUND);
     }
     else
     {
