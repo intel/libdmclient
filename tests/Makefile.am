@@ -32,7 +32,7 @@ moinbox_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                       -I $(top_srcdir)/dmcore/include
 moinbox_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
 
-mostorage_la_SOURCES = mgtobj/Storage/plugin_root.c \
+mostorage_la_SOURCES = mgtobj/Storage/plugin_storage.c \
                        mgtobj/Storage/dyn_buf.c \
                        mgtobj/Storage/dmsettings.c \
                        mgtobj/Storage/dmsettings_utils.c

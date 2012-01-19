@@ -5,9 +5,9 @@
  *****************************************************************************/
 
 /*!
- * @file plugin_root.c
+ * @file plugin_storage.c
  *
- * @brief C file for the root plugin
+ * @brief C file for a test storage plugin
  *
  */
 
