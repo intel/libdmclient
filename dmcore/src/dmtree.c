@@ -149,14 +149,20 @@ static int prv_get_inherited_acl(dmtree_t * handle,
 
     while ((uriLen > 0) && (NULL == *oACL))
     {
-        DMC_FAIL(momgr_get_ACL(handle->MOs, uri, oACL));
+        DMC_ERR = momgr_get_ACL(handle->MOs, uri, oACL);
+        if (OMADM_SYNCML_ERROR_NOT_FOUND != DMC_ERR)
+        {
+            DMC_FAIL(DMC_ERR);
+        }
 
         while (uriLen > 0)
+        {
             if (uri[--uriLen] == '/')
             {
                 uri[uriLen] = 0;
                 break;
             }
+        }
     }
 
 DMC_ON_ERR:

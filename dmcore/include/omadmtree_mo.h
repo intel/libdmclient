@@ -74,6 +74,17 @@ typedef void (*omadm_mo_close_fn) (void * data);
 typedef int (*omadm_mo_is_node_fn) (const char * uri, omadmtree_node_type_t * type, void * data);
 
 /*!
+ * @brief Callback to find the URLs associated to an URN
+ *
+ * @param urn (in) URN to find
+ * @param urlsP (out) null-terminated array of urls, freed by the caller
+ * @param data (in) MO internal data as created by #omadm_mo_init_fn
+ *
+ * @returns a SyncML error code
+ */
+typedef int (*omadm_mo_find_urn_fn) (const char * urn, char *** urlsP, void * data);
+
+/*!
  * @brief Callback to set the value of a node
  *
  * result is stored in the nodeP parameter. If the targeted node is an
@@ -167,20 +178,17 @@ typedef int (*omadm_mo_exec_fn) (const char * uri, const char * cmdData, const c
 /*!
  * @brief Structure containing the interface of the MO
  *
- * uri and initFunc must be set. Other callbacks can be null.
- * The MO must be a direct child of root i.e. uri must start with "./"
- * and should not contains other '/'.
- * The MO can also be root (uri being ".") In this case, the MO will have no
- * knowledge of other loaded MOs.
+ * base_uri and initFunc must be set. Other callbacks can be null.
+ * The MO can not be root (i.e. base_uri must differ from ".").
  *
  */
 typedef struct
 {
     char * base_uri;                    /*!< base URI of the MO */
-    char * urn;                         /*!< URN of the MO */
     omadm_mo_init_fn      initFunc;     /*!< initialization function */
     omadm_mo_close_fn     closeFunc;
     omadm_mo_is_node_fn   isNodeFunc;
+    omadm_mo_find_urn_fn  findURNFunc;
     omadm_mo_get_fn       getFunc;
     omadm_mo_set_fn       setFunc;
     omadm_mo_get_ACL_fn   getACLFunc;

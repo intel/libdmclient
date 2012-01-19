@@ -145,6 +145,10 @@ char * str_cat_2 (const char * first, const char * second);
 char * str_cat_3 (const char * first, const char * second, const char * third);
 char * str_cat_5 (const char * first, const char * second, const char * third, const char * fourth, const char* fifth);
 
+char ** strArray_concat (const char ** first, const char ** second);
+void    strArray_free   (char ** array);
+char ** strArray_add    (const char ** array, const char * newStr);
+
 void   set_pcdata_string (SmlPcdataPtr_t dataP, char * string);
 void   set_pcdata_int    (SmlPcdataPtr_t dataP, int value);
 void   set_pcdata_hex    (SmlPcdataPtr_t dataP, int value);
@@ -175,8 +179,6 @@ void set_new_uri (internals_t * internP, char * uri);
 void dmtree_node_free(dmtree_node_t *node);
 void dmtree_node_clean(dmtree_node_t *node, bool full);
 
-char ** get_child_uri_list(const char * iBaseUri, const char * iChildList);
-void free_uri_list(char ** list);
 
 // implemented in callbacks.c
 SmlCallbacksPtr_t get_callbacks();

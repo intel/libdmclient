@@ -65,8 +65,8 @@ int momgr_delete_node(const mo_mgr_t iMgr, const char *iUri);
 int momgr_exec_node(const mo_mgr_t iMgr, const char *iUri, const char *iData, const char *iCorrelator);
 
 int momgr_validate_uri(const mo_mgr_t iMgr, const char *uri, char ** oNodeURI, char ** oPropId);
-int momgr_get_uri_from_urn(const mo_mgr_t iMgr, const char * iUrn, char ** oUri);
-int momgr_find_subtree(const mo_mgr_t iMgr, const char * iUri, const char * iCriteriaName, const char * iCriteriaValue, char ** oUri);
+
+int momgr_find_subtree(const mo_mgr_t iMgr, const char * iUri, const char * iUrn, const char * iCriteriaName, const char * iCriteriaValue, char ** oUri);
 
 
 #endif

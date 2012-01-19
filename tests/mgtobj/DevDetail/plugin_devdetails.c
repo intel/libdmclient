@@ -27,19 +27,19 @@
 
 static static_node_t gDevDetailNodes[] =
 {
-    {PRV_BASE_URI, OMADM_NODE_IS_INTERIOR, "Get=*", "URI/DevTyp/OEM/FwV/SwV/HwV/LrgObj"},
-    {PRV_BASE_URI"/DevTyp", OMADM_NODE_IS_LEAF, NULL, "mobile"},
-    {PRV_BASE_URI"/OEM", OMADM_NODE_IS_LEAF, NULL, "TODO"},
-    {PRV_BASE_URI"/FwV", OMADM_NODE_IS_LEAF, NULL, "TODO"},
-    {PRV_BASE_URI"/SwV", OMADM_NODE_IS_LEAF, NULL, "TODO"},
-    {PRV_BASE_URI"/HwV", OMADM_NODE_IS_LEAF, NULL, "1.0"},
-    {PRV_BASE_URI"/LrgObj", OMADM_NODE_IS_LEAF, NULL, "true"},
-    {PRV_BASE_URI"/URI", OMADM_NODE_IS_INTERIOR, NULL, "MaxDepth/MaxTotLen/MaxSegLen"},
-    {PRV_BASE_URI"/URI/MaxDepth", OMADM_NODE_IS_LEAF, NULL, "0"},
-    {PRV_BASE_URI"/URI/MaxTotLen", OMADM_NODE_IS_LEAF, NULL, "0"},
-    {PRV_BASE_URI"/URI/MaxSegLen", OMADM_NODE_IS_LEAF, NULL, "0"},
+    {PRV_BASE_URI, PRV_URN, OMADM_NODE_IS_INTERIOR, "Get=*", "URI/DevTyp/OEM/FwV/SwV/HwV/LrgObj"},
+    {PRV_BASE_URI"/DevTyp", NULL, OMADM_NODE_IS_LEAF, NULL, "mobile"},
+    {PRV_BASE_URI"/OEM", NULL, OMADM_NODE_IS_LEAF, NULL, "TODO"},
+    {PRV_BASE_URI"/FwV", NULL, OMADM_NODE_IS_LEAF, NULL, "TODO"},
+    {PRV_BASE_URI"/SwV", NULL, OMADM_NODE_IS_LEAF, NULL, "TODO"},
+    {PRV_BASE_URI"/HwV", NULL, OMADM_NODE_IS_LEAF, NULL, "1.0"},
+    {PRV_BASE_URI"/LrgObj", NULL, OMADM_NODE_IS_LEAF, NULL, "true"},
+    {PRV_BASE_URI"/URI", NULL, OMADM_NODE_IS_INTERIOR, NULL, "MaxDepth/MaxTotLen/MaxSegLen"},
+    {PRV_BASE_URI"/URI/MaxDepth", NULL, OMADM_NODE_IS_LEAF, NULL, "0"},
+    {PRV_BASE_URI"/URI/MaxTotLen", NULL, OMADM_NODE_IS_LEAF, NULL, "0"},
+    {PRV_BASE_URI"/URI/MaxSegLen", NULL, OMADM_NODE_IS_LEAF, NULL, "0"},
 
-    {NULL, OMADM_NODE_NOT_EXIST, NULL},
+    {NULL, NULL, OMADM_NODE_NOT_EXIST, NULL},
 };
 
 static int prv_initFN(void **oData)
@@ -57,9 +57,9 @@ omadm_mo_interface_t * omadm_get_mo_interface()
     if (retVal) {
         memset(retVal, 0, sizeof(*retVal));
         retVal->base_uri = strdup(PRV_BASE_URI);
-        retVal->urn = strdup(PRV_URN);
         retVal->initFunc = prv_initFN;
         retVal->isNodeFunc = static_mo_is_node;
+        retVal->findURNFunc = static_mo_findURN;
         retVal->getFunc = static_mo_get;
         retVal->getACLFunc = static_mo_getACL;
     }

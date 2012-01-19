@@ -117,3 +117,55 @@ int static_mo_getACL(const char *iURI,
 
     return OMADM_SYNCML_ERROR_NOT_FOUND;
 }
+
+int static_mo_findURN(const char *iURN,
+                      char ***oURL,
+                      void *iData)
+{
+    static_node_t * nodes = (static_node_t *)iData;
+    int i;
+    int count;
+
+    *oURL = NULL;
+    count = 0;
+    i = 0;
+    while(nodes[i].uri)
+    {
+        if (nodes[i].urn && !strcmp(iURN, nodes[i].urn))
+        {
+            char ** tmpP;
+            count++;
+            tmpP = (char **)malloc((count + 1) * sizeof(char*));
+            if (NULL == tmpP)
+            {
+                if (NULL != *oURL)
+                {
+                    int j;
+                    j = 0;
+                    while(NULL != (*oURL)[j])
+                    {
+                        free((*oURL)[j]);
+                        j++;
+                    }
+                    free(*oURL);
+                }
+                return OMADM_SYNCML_ERROR_DEVICE_FULL;
+            }
+            tmpP[count - 1] = strdup(nodes[i].uri);
+            tmpP[count] = NULL;
+            if (count > 1)
+            {
+                memcpy(tmpP, *oURL, (count-1) * sizeof(char*));
+                free(*oURL);
+            }
+            *oURL = tmpP;
+        }
+        i++;
+    }
+
+    if (count > 0)
+    {
+        return OMADM_SYNCML_ERROR_NONE;
+    }
+    return OMADM_SYNCML_ERROR_NOT_FOUND;
+}

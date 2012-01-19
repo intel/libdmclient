@@ -268,6 +268,86 @@ char * str_cat_5 (const char * first,
     return string;
 }
 
+char ** strArray_concat(const char ** first,
+                        const char ** second)
+{
+    char ** result;
+    int firstCount = 0;
+    int secondCount = 0;
+
+    if (NULL == first && NULL == second)
+    {
+        return NULL;
+    }
+    if (NULL != first)
+    {
+        while(NULL != first[firstCount])
+        {
+            firstCount++;
+        }
+    }
+    if (NULL != second)
+    {
+        while(NULL != second[secondCount])
+        {
+            secondCount++;
+        }
+    }
+
+    result = (char **)malloc((firstCount + secondCount + 1) * sizeof(char*));
+    if (NULL != result && NULL != first)
+    {
+        if (NULL == memcpy(result, first, firstCount * sizeof(char*)))
+        {
+            free(result);
+            result = NULL;
+        }
+    }
+    if (NULL != result && NULL != second)
+    {
+        if (NULL == memcpy(result + (firstCount * sizeof(char*)), second, secondCount * sizeof(char*)))
+        {
+            free(result);
+            result = NULL;
+        }
+    }
+    if (NULL != result)
+    {
+        result[firstCount + secondCount] = NULL;
+    }
+
+    return result;
+}
+
+void strArray_free(char ** array)
+{
+    int i;
+
+    if (NULL == array)
+    {
+        return;
+    }
+
+    i = 0;
+    while(NULL != array[i])
+    {
+        free(array[i]);
+        i++;
+    }
+    free(array);
+}
+
+char ** strArray_add(const char ** array,
+                     const char * newStr)
+{
+    const char * tmp[2];
+
+    tmp[0] = newStr;
+    tmp[1] = NULL;
+
+    return strArray_concat(array, tmp);
+}
+
 void set_new_uri(internals_t * internP,
                  char * uri)
 {
@@ -768,70 +848,4 @@ void dmtree_node_free(dmtree_node_t *node)
     dmtree_node_clean(node, true);
 
     free(node);
-}
-
-void free_uri_list(char ** list)
-{
-    int i = 0;
-
-    if (NULL == list) return;
-
-    while(list[i])
-    {
-        free(list[i]);
-        i++;
-    }
-
-    free(list);
-}
-
-char ** get_child_uri_list(const char * iBaseUri,
-                           const char * iChildList)
-{
-    char ** result = NULL;
-    int nb_child = 0;
-    char * childName;
-    char * listCopy = NULL;
-
-    listCopy = strdup(iChildList);
-    if (NULL == listCopy) return NULL;
-
-    childName = listCopy;
-    while(childName && *childName)
-    {
-        nb_child++;
-        childName = strchr(childName, '/');
-        if (childName) childName += 1;
-    }
-    if (0 == nb_child) return NULL;
-
-    result = (char**)malloc((nb_child + 1) * sizeof(char*));
-    memset(result, 0, (nb_child + 1) * sizeof(char*));
-    if (result)
-    {
-        nb_child = 0;
-        childName = listCopy;
-        while(childName && *childName)
-        {
-            char * slashStr;
-
-            slashStr = strchr(childName, '/');
-            if (slashStr)
-            {
-                *slashStr = 0;
-                slashStr++;
-            }
-
-            result[nb_child] = str_cat_3(iBaseUri, "/", childName);
-            if (NULL == result[nb_child])
-            {
-                free_uri_list(result);
-                return NULL;
-            }
-            nb_child++;
-            childName = slashStr;
-        }
-    }
-
-    return result;
 }

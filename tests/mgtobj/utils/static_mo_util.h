@@ -17,6 +17,7 @@
 typedef struct
 {
     char * uri;
+    char * urn;
     omadmtree_node_type_t type;
     char * acl;
     char * value;
@@ -26,5 +27,6 @@ typedef struct
 int static_mo_is_node(const char *iURI, omadmtree_node_type_t *oNodeType, void *iData);
 int static_mo_get(dmtree_node_t * nodeP, void *iData);
 int static_mo_getACL(const char *iURI, char **oValue, void *iData);
+int static_mo_findURN(const char *iURN, char ***oURL, void *iData);
 
 #endif

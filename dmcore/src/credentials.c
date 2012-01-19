@@ -382,9 +382,7 @@ int get_server_account(const mo_mgr_t iMgr,
 
     memset(&node, 0, sizeof(dmtree_node_t));
 
-    DMC_FAIL(momgr_get_uri_from_urn(iMgr, DMACC_MO_URN, &accMoUri));
-
-    DMC_FAIL(momgr_find_subtree(iMgr, accMoUri, "ServerID", serverID, &accountUri));
+    DMC_FAIL(momgr_find_subtree(iMgr, NULL, DMACC_MO_URN, "ServerID", serverID, &accountUri));
 
     DMC_FAIL_NULL(*accountP, malloc(sizeof(accountDesc_t)), OMADM_SYNCML_ERROR_DEVICE_FULL);
     memset(*accountP, 0, sizeof(accountDesc_t));
@@ -398,7 +396,7 @@ int get_server_account(const mo_mgr_t iMgr,
 
     // TODO handle IPv4 and IPv6 cases
     DMC_FAIL_NULL(uri, str_cat_2((*accountP)->dmtree_uri, "/AppAddr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-    DMC_FAIL(momgr_find_subtree(iMgr, uri, "AddrType", "URI", &subUri));
+    DMC_FAIL(momgr_find_subtree(iMgr, uri, NULL, "AddrType", "URI", &subUri));
     free(uri);
     uri = NULL;
     DMC_FAIL_NULL(node.uri, str_cat_2(subUri, "/Addr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
@@ -410,7 +408,7 @@ int get_server_account(const mo_mgr_t iMgr,
 
     // TODO handle OBEX and HTTP authentification levels
     DMC_FAIL_NULL(uri, str_cat_2((*accountP)->dmtree_uri, "/AppAuth"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-    code = momgr_find_subtree(iMgr, uri, "AAuthLevel", "CLCRED", &subUri);
+    code = momgr_find_subtree(iMgr, uri, NULL, "AAuthLevel", "CLCRED", &subUri);
     switch (code)
     {
     case OMADM_SYNCML_ERROR_NONE:
@@ -425,7 +423,7 @@ int get_server_account(const mo_mgr_t iMgr,
     free(subUri);
     subUri = NULL;
 
-    code = momgr_find_subtree(iMgr, uri, "AAuthLevel", "SRVCRED", &subUri);
+    code = momgr_find_subtree(iMgr, uri, NULL, "AAuthLevel", "SRVCRED", &subUri);
     switch (code)
     {
     case OMADM_SYNCML_ERROR_NONE:
@@ -457,7 +455,7 @@ void store_nonce(const mo_mgr_t iMgr,
 {
     char * subUri = NULL;
 
-    if (OMADM_SYNCML_ERROR_NONE == momgr_find_subtree(iMgr, accountP->dmtree_uri, "AAuthLevel", server?"CLCRED":"SRVCRED", &subUri))
+    if (OMADM_SYNCML_ERROR_NONE == momgr_find_subtree(iMgr, accountP->dmtree_uri, NULL, "AAuthLevel", server?"CLCRED":"SRVCRED", &subUri))
     {
         dmtree_node_t node;
 
