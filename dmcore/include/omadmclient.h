@@ -4,7 +4,7 @@
 /*!
  * @file omadmclient.h
  *
- * @brief Interface to the omadmclient library.
+ * @brief Interface to the dmclient library.
  *
  ******************************************************************************/
 
@@ -85,31 +85,40 @@ typedef void * dmclt_session;
 
 
 /*!
- * @brief Opens an OMA DM session to the specified server
+ * @brief Initializes an OMA DM session
  *
  * @param sessionH (out) session handle
- * @param serverID id of the DM server to connect to
  * @param flags (in/out) sessions flags. See DMCLT_FLAG_*
  * @param UICallbacksP callback for user interaction. Can be nil.
  * @param userData past as parameter to UICallbacksP
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open(dmclt_session * sessionH, char * serverID, int sessionID, char * flags, dmclt_callback_t UICallbacksP, void * userData);
+dmclt_err_t omadmclient_session_init(dmclt_session * sessionH, char * flags, dmclt_callback_t UICallbacksP, void * userData);
+
+/*!
+ * @brief Opens an OMA DM session to the specified server
+ *
+ * @param sessionH session handle
+ * @param serverID id of the DM server to connect to
+ * @param sessionID id for the session
+ * @param flags (in/out) sessions flags. See DMCLT_FLAG_*. Can be nil.
+ *
+ * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
+ */
+dmclt_err_t omadmclient_session_open(dmclt_session sessionH, char * serverID, int sessionID, char * flags);
 
 /*!
  * @brief Opens an OMA DM session in reply to an package #0
  *
- * @param sessionH (out) session handle
+ * @param sessionH session handle
  * @param pkg0 buffer containing the received package #0
  * @param pkg0_len length of the pkg0 buffer
- * @param flags (in/out) sessions flags. See DMCLT_FLAG_*
- * @param UICallbacksP callback for user interaction. Can be nil
- * @param userData past as parameter to UICallbacksP
+ * @param flags (out) sessions flags. See DMCLT_FLAG_*. Can be nil.
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionH, uint8_t * pkg0, int pkg0_len, char * flags, dmclt_callback_t UICallbacksP, void * userData);
+dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH, uint8_t * pkg0, int pkg0_len, char * flags);
 
 /*!
  * @brief Closes an open OMA DM session
@@ -138,8 +147,6 @@ dmclt_err_t omadmclient_get_next_packet(dmclt_session sessionH, dmclt_buffer_t *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
 dmclt_err_t omadmclient_process_reply(dmclt_session sessionH, dmclt_buffer_t * packetP);
-
-dmclt_err_t omadmclient_cancel(dmclt_session sessionH);
 
 /*!
  * @brief Frees internal data of a dmclt_buffer_t.

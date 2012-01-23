@@ -101,20 +101,23 @@ int decode_package_0(buffer_t pkg0,
         return OMADM_SYNCML_ERROR_COMMAND_NOT_IMPLEMENTED;
     }
 
-    field = (header & PRV_UI_MODE_MASK) >> PRV_UI_MODE_SHIFT;
-    switch (field)
+    if (NULL != flags)
     {
-    case PRV_UI_BACKGROUND:
-        *flags &= ~(DMCLT_FLAG_UI_INFORM | DMCLT_FLAG_UI_ACCEPT);
-        break;
-    case PRV_UI_INFORMATIVE:
-        *flags |= DMCLT_FLAG_UI_INFORM;
-        break;
-    case PRV_UI_USER_INTERACTION:
-        *flags |= DMCLT_FLAG_UI_ACCEPT;
-        break;
-    default:
-        break;
+        field = (header & PRV_UI_MODE_MASK) >> PRV_UI_MODE_SHIFT;
+        switch (field)
+        {
+        case PRV_UI_BACKGROUND:
+            *flags &= ~(DMCLT_FLAG_UI_INFORM | DMCLT_FLAG_UI_ACCEPT);
+            break;
+        case PRV_UI_INFORMATIVE:
+            *flags |= DMCLT_FLAG_UI_INFORM;
+            break;
+        case PRV_UI_USER_INTERACTION:
+            *flags |= DMCLT_FLAG_UI_ACCEPT;
+            break;
+        default:
+            break;
+        }
     }
 
     field = (header & PRV_SESSION_ID_MASK) >> PRV_SESSION_ID_SHIFT;

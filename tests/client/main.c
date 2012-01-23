@@ -246,15 +246,22 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    err = omadmclient_session_open(&session,
-                                   server?server:"funambol",
-                                   1,
+    err = omadmclient_session_init(&session,
                                    &flags,
                                    uiCallback,
                                    NULL);
     if (err != DMCLT_ERR_NONE)
     {
         fprintf(stderr, "Initialization failed: %d\r\n", err);
+        return err;
+    }
+    err = omadmclient_session_open(session,
+                                   server?server:"funambol",
+                                   1,
+                                   &flags);
+    if (err != DMCLT_ERR_NONE)
+    {
+        fprintf(stderr, "Session opening to \"%s\" failed: %d\r\n", server?server:"funambol", err);
         return err;
     }
     if (!file)

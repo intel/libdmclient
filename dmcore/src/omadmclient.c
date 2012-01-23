@@ -178,18 +178,16 @@ static void prvFreeAuth(authDesc_t * authP)
     free(authP);
 }
 
-dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
-                                     char * serverID,
-                                     int sessionID,
+dmclt_err_t omadmclient_session_init(dmclt_session * sessionHP,
                                      char * flags,
                                      dmclt_callback_t UICallbacksP,
                                      void * userData)
 {
-    internals_t *       internP;
+    internals_t *        internP;
     SmlInstanceOptions_t options;
     SmlCallbacksPtr_t    callbacksP;
 
-    if (sessionHP == NULL || serverID == NULL)
+    if (sessionHP == NULL)
     {
         return DMCLT_ERR_USAGE;
     }
@@ -203,26 +201,15 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
 
     memset(internP, 0, sizeof(internals_t));
 
-    if (OMADM_SYNCML_ERROR_NONE != dmtree_open(serverID, &(internP->dmtreeH)))
-    {
-        goto error;
-    }
-    if (OMADM_SYNCML_ERROR_NONE != get_server_account(internP->dmtreeH->MOs, serverID, &(internP->account)))
-    {
-        goto error;
-    }
-
-    if (NULL == internP->account->toClientCred)
-    {
-        internP->srv_auth = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
-    }
-    if (NULL == internP->account->toServerCred)
-    {
-        internP->clt_auth = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
-    }
-
     memset(&options, 0, sizeof(options));
-    options.encoding= ((*flags)&DMCLT_FLAG_WBXML)?SML_WBXML:SML_XML;
+    if (NULL != flags && (*flags)&DMCLT_FLAG_WBXML)
+    {
+        options.encoding= SML_WBXML;
+    }
+    else
+    {
+        options.encoding= SML_XML;
+    }
     options.workspaceSize= PRV_MAX_WORKSPACE_SIZE;
 
     callbacksP = get_callbacks();
@@ -230,17 +217,6 @@ dmclt_err_t omadmclient_session_open(dmclt_session * sessionHP,
     if (SML_ERR_OK != smlInitInstance(callbacksP, &options, NULL, &(internP->smlH)))
     {
         goto error;
-    }
-
-    internP->session_id = sessionID;
-    internP->message_id = 0;
-    if ((*flags)&DMCLT_FLAG_CLIENT_INIT)
-    {
-        internP->state = STATE_CLIENT_INIT;
-    }
-    else
-    {
-        internP->state = STATE_SERVER_INIT;
     }
 
     internP->alert_cb = UICallbacksP;
@@ -257,19 +233,62 @@ error:
     return DMCLT_ERR_INTERNAL;
 }
 
-dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionHP,
+dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
+                                     char * serverID,
+                                     int sessionID,
+                                     char * flags)
+{
+    internals_t * internP = (internals_t *)sessionH;
+
+    if (internP == NULL || serverID == NULL)
+    {
+        return DMCLT_ERR_USAGE;
+    }
+
+    if (OMADM_SYNCML_ERROR_NONE != dmtree_open(serverID, &(internP->dmtreeH)))
+    {
+        return DMCLT_ERR_INTERNAL;
+    }
+    if (OMADM_SYNCML_ERROR_NONE != get_server_account(internP->dmtreeH->MOs, serverID, &(internP->account)))
+    {
+        return DMCLT_ERR_INTERNAL;
+    }
+
+    if (NULL == internP->account->toClientCred)
+    {
+        internP->srv_auth = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+    }
+    if (NULL == internP->account->toServerCred)
+    {
+        internP->clt_auth = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+    }
+
+    internP->session_id = sessionID;
+    internP->message_id = 0;
+    if (NULL == flags || (*flags)&DMCLT_FLAG_CLIENT_INIT)
+    {
+        internP->state = STATE_CLIENT_INIT;
+    }
+    else
+    {
+        internP->state = STATE_SERVER_INIT;
+    }
+
+    return DMCLT_ERR_NONE;
+}
+
+dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
                                               uint8_t * pkg0,
                                               int pkg0_len,
-                                              char * flags,
-                                              dmclt_callback_t UICallbacksP,
-                                              void * userData)
+                                              char * flags)
 {
+    internals_t * internP = (internals_t *)sessionH;
     char * serverID;
     int sessionID;
     dmclt_err_t err;
     buffer_t package;
 
-    if (sessionHP == NULL || pkg0 == NULL || pkg0_len <= 0)
+    if (internP == NULL || pkg0 == NULL || pkg0_len <= 0)
     {
         return DMCLT_ERR_USAGE;
     }
@@ -283,18 +302,16 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session * sessionHP,
     }
 
     // We open the session now since we need to access the DM tree to validate the received package0.
-    err = omadmclient_session_open(sessionHP,
-                                   serverID, sessionID, flags,
-                                   UICallbacksP, userData);
+    err = omadmclient_session_open(sessionH,
+                                   serverID,
+                                   sessionID,
+                                   flags);
 
     if (DMCLT_ERR_NONE == err)
     {
-        internals_t * internP = (internals_t *)sessionHP;
-
         if (OMADM_SYNCML_ERROR_NONE != validate_package_0(internP, package))
         {
             err = DMCLT_ERR_USAGE;
-            omadmclient_session_close(sessionHP);
         }
     }
 
@@ -402,12 +419,6 @@ dmclt_err_t omadmclient_process_reply(dmclt_session sessionH,
 
     PRV_CHECK_SML_CALL(smlProcessData(internP->smlH, SML_ALL_COMMANDS));
 
-    return DMCLT_ERR_NONE;
-}
-
-dmclt_err_t omadmclient_cancel(dmclt_session sessionH)
-{
-#warning TODO: Implement the real stuff
     return DMCLT_ERR_NONE;
 }
 
