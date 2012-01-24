@@ -12,6 +12,7 @@
 #define OMADMCLIENT_H
 
 #include <stdint.h>
+#include <omadmtree_mo.h>
 
 
 #define DMCLT_FLAG_NONE         0x00
@@ -95,6 +96,16 @@ typedef void * dmclt_session;
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
 dmclt_err_t omadmclient_session_init(dmclt_session * sessionH, char * flags, dmclt_callback_t UICallbacksP, void * userData);
+
+/*!
+ * @brief Adds an OMA Management Object to the DM tree used by the session
+ *
+ * @param sessionH session handle
+ * @param moP interface of the MO to add. This will be freed by the lib on omadmclient_session_close().
+ *
+ * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
+ */
+dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH, omadm_mo_interface_t * moP);
 
 /*!
  * @brief Opens an OMA DM session to the specified server

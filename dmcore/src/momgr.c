@@ -300,9 +300,9 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-static int prv_add_plugin(mo_mgr_t * iMgr,
-                          omadm_mo_interface_t *iPlugin,
-                          void * handle)
+int momgr_add_plugin(mo_mgr_t * iMgr,
+                     omadm_mo_interface_t *iPlugin,
+                     void * handle)
 {
     DMC_ERR_MANAGE;
     mo_dir_t * newElem = NULL;
@@ -382,7 +382,7 @@ void momgr_load_plugin(mo_mgr_t * iMgrP,
     moInterfaceP = getMoIfaceF();
     if ((!moInterfaceP) || (!moInterfaceP->base_uri)) goto error;
 
-    if (OMADM_SYNCML_ERROR_NONE == prv_add_plugin(iMgrP, moInterfaceP, handle))
+    if (OMADM_SYNCML_ERROR_NONE == momgr_add_plugin(iMgrP, moInterfaceP, handle))
     {
         handle = NULL;
     }

@@ -7,6 +7,9 @@
 #include <libsoup/soup.h>
 #include <gio/gio.h>
 
+// implemented in test_plugin.c
+omadm_mo_interface_t * test_get_mo_interface();
+
 // HACK
 typedef struct
 {
@@ -210,6 +213,7 @@ int main(int argc, char *argv[])
     SoupSession * soupH;
     char * server = NULL;
     char * file = NULL;
+    omadm_mo_interface_t * testMoP;
 
     g_type_init();
     soupH = soup_session_sync_new();
@@ -263,6 +267,22 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Session opening to \"%s\" failed: %d\r\n", server?server:"funambol", err);
         return err;
+    }
+
+    testMoP = test_get_mo_interface();
+    if (testMoP)
+    {
+        err = omadmclient_session_add_mo(session, testMoP);
+        if (err != DMCLT_ERR_NONE)
+        {
+            fprintf(stderr, "Adding test MO failed: %d\r\n", err);
+            if (testMoP->base_uri) free(testMoP->base_uri);
+            free(testMoP);
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Loading test MO failed\r\n");
     }
     if (!file)
     {

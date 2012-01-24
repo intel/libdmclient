@@ -233,6 +233,23 @@ error:
     return DMCLT_ERR_INTERNAL;
 }
 
+dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH,
+                                       omadm_mo_interface_t * moP)
+{    internals_t * internP = (internals_t *)sessionH;
+
+    if (internP == NULL || moP == NULL)
+    {
+        return DMCLT_ERR_USAGE;
+    }
+
+    if (OMADM_SYNCML_ERROR_NONE != momgr_add_plugin(&(internP->dmtreeH->MOs), moP, NULL))
+    {
+        return DMCLT_ERR_INTERNAL;
+    }
+
+    return DMCLT_ERR_NONE;
+}
+
 dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
                                      char * serverID,
                                      int sessionID,
