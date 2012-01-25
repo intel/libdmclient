@@ -32,6 +32,7 @@ For the SyncML parsing, we are using the SyncML Reference Toolkit published by O
 The DMclient application is platform specific. Its role is to open the communicate with the server, receive Wap Push messages and display some UI.
 A DM Client algorithm is:
 
+    omadmclient_session_init()
     omadmclient_session_open()
     while (packet = omadmclient_get_next_packet())
     {
@@ -41,12 +42,13 @@ A DM Client algorithm is:
     }
     omadmclient_session_close()
 
-One of omadmclient_session_open() parameters is a callback called when there is some UI to display.
+One of omadmclient_session_init() parameters is a callback called when there is some UI to display.
 
-The MOs are shared libraries, one lib per MO. They are loaded at runtime during the DM session opening.
+The MOs are plugins. They are loaded by the DM client using the omadmclient_session_add_mo() API. They can also be shared libraries, one lib per MO. In this case they are loaded at runtime during the DM session opening.
 
-The MO interface contains 8 APIs apart from the classic open and close:
-   - is_node() to test the existence of a node and determine if it is a leaf or an interior node.
+The MO interface contains 9 APIs apart from the classic open and close:
+   - isNode() to test the existence of a node and determine if it is a leaf or an interior node.
+   - findURN() to find the URLs associated to an URN
    - get() to retrieve a node value or list of children along with its meta data.
    - set() to set a node's value or create a node.
    - getACL() and setACL() to get and set the Access Control List of a node.
@@ -84,7 +86,7 @@ Source Layout
            |
            +- Inbox     (empty MO)
            |
-           +- Root      (stores added nodes in a SQL DB)
+           +- Storage   (stores added nodes in a SQL DB)
            |
            +- utils     (utility functions for hard-coded nodes)
 
@@ -105,7 +107,7 @@ Two other packages are optionnal:
   - libsoup-devel
       for the test client
   - sqlite-devel
-      for test Root MO
+      for test Storage MO
 
 In the source top directory, run the following commands:
     autoreconf -i
@@ -123,3 +125,24 @@ Install
 
 libdmclient.so is installed in ${prefix}/lib/dmclient
 MOs plugin libraries must be installed in ${prefix}/lib/dmclient/plugins
+
+
+Testing
+-------
+If configure was run with the option '--enable-tests', 'make install' will build and install some test MOs. The command-line dmclient application is ${prefix}/bin/testdmclient.
+
+Usage: testdmclient [-w] [-f FILE | -s SERVERID]
+  -w	use WBXML
+  -f	use the file as a server's packet
+  -s	open a DM session with server SERVERID
+Options f and s are mutually exclusive.
+
+testdmclient launches a DM session with the server "SERVERID". If "SERVERID" is not specified, "funambol" is used by default. The DmAcc test MO contains a DM account for "funambol". Settings for it can be modified in tests/mgtobj/DmAcc/plugin_dmacc.c
+the '-f' option is used to test libdmclient handling of specific SyncML packet stored in a file. In this case, there is no connection to any server and the authentification mechanism is disabled.
+testdmclient outputs the UI alerts on stdout ans dumps the sent and received packets on stderr.
+
+
+Usage
+-----
+All the libdmclient functions are defined in dmcore/include/omadmclient.h
+The plugin interface is defined in dmcore/include/omadmtree_mo.h
