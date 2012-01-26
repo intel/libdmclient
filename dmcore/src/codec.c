@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
 
 #include "internals.h"
 

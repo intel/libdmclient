@@ -23,7 +23,7 @@ AC_ARG_ENABLE([tests], AS_HELP_STRING([--enable-tests], [Build test client and p
 PKG_PROG_PKG_CONFIG(0.16)
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBWBXML], [libwbxml2])
-PKG_CHECK_MODULES([GNUTLS], [gnutls])
+PKG_CHECK_MODULES([GNUTLS], [gnutls >= 2.10.0])
 AC_CHECK_LIB(dl, dlopen)
 AS_IF([test "x$enable_tests" = "xyes"], [
     PKG_CHECK_MODULES([LIBSOUP], [libsoup-2.4])
