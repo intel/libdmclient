@@ -268,7 +268,7 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
         else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
         {
             DMC_FAIL(momgr_get_ACL(handle->MOs, target_uri, &(node->data_buffer)));
-            node->data_size = strlen(node->data_buffer);
+            node->data_size = node->data_buffer?strlen(node->data_buffer):0;
             node->format = strdup("chr");
             node->type = strdup("text/plain");
         }
@@ -276,9 +276,31 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
         {
            DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
         }
+        else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_FORMAT) || !strcmp(prop_id, OMADM_NODE_PROPERTY_TYPE))
+        {
+            char * tmp_uri;
+
+            tmp_uri = node->uri;
+            node->uri = target_uri;
+            DMC_ERR = momgr_get_value(handle->MOs, node);
+            node->uri = tmp_uri;
+            DMC_FAIL(DMC_ERR);
+            if (node->data_buffer) free(node->data_buffer);
+            if (!strcmp(prop_id, OMADM_NODE_PROPERTY_FORMAT))
+            {
+                node->data_buffer = node->format;
+            }
+            else
+            {
+                node->data_buffer = node->type;
+            }
+            node->data_size = node->data_buffer?strlen(node->data_buffer) + 1:0;
+            node->format = strdup("chr");
+            node->type = strdup("text/plain");
+        }
         else
         {
-            DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_NOT_ALLOWED);
+            DMC_FAIL_FORCE(OMADM_SYNCML_ERROR_OPTIONAL_FEATURE_NOT_SUPPORTED);
         }
     }
     else
@@ -374,7 +396,7 @@ int dmtree_add(dmtree_t * handle, dmtree_node_t *node)
     *token = 0;
     // If the parent is a leaf node we cannot add. Neither if it does not exist.
     DMC_FAIL(momgr_exists(handle->MOs, parent_uri, &node_exists));
-    DMC_FAIL_ERR((node_exists != OMADM_NODE_IS_INTERIOR), OMADM_SYNCML_ERROR_NOT_FOUND);
+    DMC_FAIL_ERR((node_exists == OMADM_NODE_IS_LEAF), OMADM_SYNCML_ERROR_NOT_ALLOWED);
 
     DMC_FAIL(prv_get_inherited_acl(handle, parent_uri, &parent_acl));
     DMC_FAIL_ERR(!parent_acl, OMADM_SYNCML_ERROR_COMMAND_FAILED);
@@ -426,6 +448,7 @@ int dmtree_replace(dmtree_t * handle, dmtree_node_t *node)
     omadmtree_node_type_t node_exists;
     char *target_uri = NULL;
     char *prop_id = NULL;
+    char *parent_uri = NULL;
 
     DMC_LOGF("%s called.", __FUNCTION__);
 
@@ -440,15 +463,28 @@ int dmtree_replace(dmtree_t * handle, dmtree_node_t *node)
     {
         DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
         DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
-        DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
 
         if (!strcmp(prop_id, OMADM_NODE_PROPERTY_NAME))
         {
+            DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
             DMC_FAIL_ERR(!strstr(node->data_buffer, "/"), OMADM_SYNCML_ERROR_COMMAND_FAILED);
             DMC_FAIL(momgr_rename_node(handle->MOs, target_uri, node->data_buffer));
         }
         else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))
         {
+            if (OMADM_NODE_IS_INTERIOR == node_exists)
+            {
+                DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
+            }
+            else
+            {
+                char * token;
+
+                DMC_FAIL_NULL(parent_uri, strdup(target_uri), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                DMC_FAIL_NULL(token, strrchr(parent_uri, '/'), OMADM_SYNCML_ERROR_COMMAND_FAILED);
+                *token = 0;
+                DMC_FAIL(prv_check_node_acl_rights(handle, parent_uri, OMADM_COMMAND_REPLACE));
+            }
             DMC_FAIL(prv_check_acl_syntax(node->data_buffer));
             DMC_FAIL(momgr_set_ACL(handle->MOs, target_uri, node->data_buffer));
         }
@@ -479,6 +515,7 @@ DMC_ON_ERR:
 
     if (target_uri) free(target_uri);
     if (prop_id) free(prop_id);
+    if (parent_uri) free(parent_uri);
 
     DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
 

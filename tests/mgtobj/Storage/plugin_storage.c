@@ -176,7 +176,7 @@ static int prv_rootGetACLFN(const char *iURI,
 
     if (!strcmp(iURI, PRV_BASE_URI))
     {
-        DMC_FAIL_NULL(*oValue, strdup("Add=*&Get=*"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        DMC_FAIL_NULL(*oValue, strdup("Add=*&Get=*&Replace=*&Delete=*"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     }
     else
     {
@@ -194,7 +194,7 @@ static int prv_rootSetACLFN(const char *iURI,
 {
     dmsettings *settings = (dmsettings *)iData;
 
-    return omadm_dmsettings_utils_set_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL,    acl);
+    return omadm_dmsettings_utils_set_meta(settings, iURI, OMADM_NODE_PROPERTY_ACL, acl);
 }
 
 static int prv_rootDeleteFN(const char *iURI,

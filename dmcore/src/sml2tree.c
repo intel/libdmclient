@@ -153,7 +153,14 @@ int add_node(internals_t * internP,
     node.uri = smlPcdata2String(itemP->target->locURI);
     extract_from_meta(itemP->meta, &(node.format), &(node.type));
     node.data_size = itemP->data->length;
-    node.data_buffer = itemP->data->content;
+    if (node.data_size)
+    {
+        node.data_buffer = itemP->data->content;
+    }
+    else
+    {
+        node.data_buffer = strdup("");
+    }
 
     code = dmtree_add(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
@@ -184,7 +191,14 @@ int replace_node(internals_t * internP,
     node.uri = smlPcdata2String(itemP->target->locURI);
     extract_from_meta(itemP->meta, &(node.format), &(node.type));
     node.data_size = itemP->data->length;
-    node.data_buffer = itemP->data->content;
+    if (node.data_size)
+    {
+        node.data_buffer = itemP->data->content;
+    }
+    else
+    {
+        node.data_buffer = strdup("");
+    }
 
     code = dmtree_replace(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
