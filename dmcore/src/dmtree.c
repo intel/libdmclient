@@ -19,13 +19,24 @@
  * David Navarro <david.navarro@intel.com>
  *
  */
+/******************************************************************************
+ * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
+ * Copyright (c) 2007 PalmSource, Inc (an ACCESS company). All rights reserved.
+ * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
+ * Copyright (c) 2007, ACCESS Systems Americas, Inc. All rights reserved.
+ *****************************************************************************/
 
 /*!
  * @file dmtree.c
  *
  * @brief Main source file for the DM tree.
  *
- *****************************************************************************/
+ * This file is based on the ACCESS source file omadm_dmlogic.c.  All
+ * identifiers have been renamed by Intel to match the coding standards of the
+ * libdmclient.  In addition, the algorithms the functions have been modified to
+ * conform to the libdmclient architecture.
+ */
+
 
 #include "config.h"
 

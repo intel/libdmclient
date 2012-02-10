@@ -20,12 +20,23 @@
  *
  */
 
+/******************************************************************************
+ * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
+ * Copyright (c) 2007 PalmSource, Inc (an ACCESS company). All rights reserved.
+ * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
+ * Copyright (c) 2007, ACCESS Systems Americas, Inc. All rights reserved.
+ *****************************************************************************/
+
 /*!
  * @file <momgr.c>
  *
  * @brief Management Object management code
  *
- *****************************************************************************/
+ * This file is based on the ACCESS source file omadm_dmtree.c.  All
+ * identifiers have been renamed by Intel to match the coding standards of the
+ * libdmclient.  In addition, the algorithms the functions have been modified to
+ * conform to the libdmclient architecture.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -19,6 +19,16 @@
  *
  */
 
+/******************************************************************************
+ * Copyright (c) 1999-2008 ACCESS CO., LTD. All rights reserved.
+ * Copyright (c) 2006 PalmSource, Inc (an ACCESS company). All rights reserved.
+ *****************************************************************************/
+/* This file is based on the ACCESS source file omadm_dynbuf.c.  All
+ * identifiers have been renamed by Intel to match the coding standards of the
+ * libdmclient.  In addition, the formatting of the code has been modified to
+ * conform to the libdmclient coding standards.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 
