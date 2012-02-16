@@ -7,6 +7,10 @@ testdmclient_LDADD = $(top_builddir)/dmcore/libdmclient.la \
 		      $(GLIB_LIBS) $(LIBSOUP_LIBS)
 
 libdir = $(MO_INSTALL_DIR)
+
+install-exec-hook:
+	find $(libdir) -type f -name \*.la -delete
+
 lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la mostorage.la modmacc.la
 
 modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c mgtobj/utils/static_mo_util.c
