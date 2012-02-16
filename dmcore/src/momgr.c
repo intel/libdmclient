@@ -501,6 +501,7 @@ void momgr_free(mo_mgr_t * iMgrP)
     if(iMgrP->root)
     {
         prv_freeMoDir(iMgrP->root);
+        iMgrP->root = NULL;
     }
 }
 
