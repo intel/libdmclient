@@ -1,2 +1,1 @@
-SUBDIRS = SyncMLRTK
-
+SUBDIRS = SyncMLRTK libmd5-rfc

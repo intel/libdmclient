@@ -71,6 +71,8 @@ Source Layout
  +- externals
  |    |
  |    +- SyncMLRTK      (the SyncML Reference Toolkit published by OMA)
+ |    |
+ |    +- libmd5-rfc     (the libmd5-rfc available at http://sourceforge.net/projects/libmd5-rfc/)
  |
  +- tests
       |
@@ -100,8 +102,6 @@ libdmclient requires some packages:
       for the build system
   - libxml2-devel libwbxml-devel
       for the SyncML parsing
-  - gnutls-devel
-      for the MD5 hash function
 
 Two other packages are optionnal:
   - libsoup-devel

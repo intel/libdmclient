@@ -28,8 +28,9 @@ libdmclient_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
 			              -I $(top_srcdir)/externals/SyncMLRTK/src/sml/inc \
 			              -I $(top_srcdir)/externals/SyncMLRTK/src/sml/inc/win \
                           -I $(top_srcdir)/externals/SyncMLRTK/src/sml/mgr/inc \
+                          -I $(top_srcdir)/externals/libmd5-rfc \
                           $(LIBXML_CFLAGS)
 
-libdmclient_la_LIBADD = $(top_builddir)/externals/SyncMLRTK/libsyncml.a
+libdmclient_la_LIBADD = $(top_builddir)/externals/SyncMLRTK/libsyncml.a $(top_builddir)/externals/libmd5-rfc/libmd5rfc.a
 
-libdmclient_la_LDFLAGS = $(GNUTLS_LIBS) $(LIBXML_LIBS) -export-symbols-regex '^omadmclient_'
+libdmclient_la_LDFLAGS = $(LIBXML_LIBS) -export-symbols-regex '^omadmclient_'

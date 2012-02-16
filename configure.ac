@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.67])
+AC_PREREQ([2.65])
 AC_INIT([dmclient], [0.1.0], [david.navarro@intel.com])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
@@ -23,7 +23,6 @@ AC_ARG_ENABLE([tests], AS_HELP_STRING([--enable-tests], [Build test client and p
 PKG_PROG_PKG_CONFIG(0.16)
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBWBXML], [libwbxml2])
-PKG_CHECK_MODULES([GNUTLS], [gnutls >= 2.10.0])
 AC_CHECK_LIB(dl, dlopen)
 AS_IF([test "x$enable_tests" = "xyes"], [
     PKG_CHECK_MODULES([LIBSOUP], [libsoup-2.4])
@@ -69,6 +68,7 @@ AC_CONFIG_FILES([Makefile
                  dmcore/Makefile
 		         externals/Makefile
 		         externals/SyncMLRTK/Makefile
+		         externals/libmd5-rfc/Makefile
 		         tests/Makefile
 		         dmcore/libdmclient.pc])
 

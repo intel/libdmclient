@@ -29,8 +29,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <gnutls/gnutls.h>
-#include <gnutls/crypto.h>
+
+#include <md5.h>
 
 #include "internals.h"
 
@@ -184,6 +184,16 @@ void decode_b64(char * data,
     }
 }
 
+static void prv_compute_md5(buffer_t data,
+                            uint8_t * result)
+{
+	md5_state_t state;
+
+	md5_init(&state);
+	md5_append(&state, data.buffer, data.len);
+	md5_finish(&state, result);
+}
+
 char * encode_b64_md5(buffer_t data)
 {
     buffer_t temp;
@@ -192,7 +202,7 @@ char * encode_b64_md5(buffer_t data)
 
     result[PRV_MD5_DIGEST_LEN] = 0x00;
 
-    gnutls_hash_fast(GNUTLS_DIG_MD5, data.buffer, data.len, result);
+    prv_compute_md5(data, result);
 
     temp.buffer = result;
     temp.len = PRV_MD5_DIGEST_LEN;
@@ -216,7 +226,7 @@ char * encode_md5(buffer_t data)
 
     result[PRV_MD5_DIGEST_LEN] = 0x00;
 
-    gnutls_hash_fast(GNUTLS_DIG_MD5, data.buffer, data.len, result);
+    prv_compute_md5(data, (uint8_t*)result);
 
     return strdup(result);
 }
