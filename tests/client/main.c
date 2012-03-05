@@ -235,9 +235,22 @@ int main(int argc, char *argv[])
     char * server = NULL;
     char * file = NULL;
     omadm_mo_interface_t * testMoP;
+    char * proxyStr;
 
     g_type_init();
-    soupH = soup_session_sync_new();
+    proxyStr = getenv("http_proxy");
+    if (proxyStr)
+    {
+        SoupURI *proxy = NULL;
+
+        proxy = soup_uri_new(proxyStr);
+        soupH = soup_session_sync_new_with_options(SOUP_SESSION_PROXY_URI, proxy,
+                                                   NULL);
+    }
+    else
+    {
+        soupH = soup_session_sync_new();
+    }
 
     flags = DMCLT_FLAG_CLIENT_INIT;
     server = NULL;
