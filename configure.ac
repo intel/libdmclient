@@ -43,6 +43,7 @@ AC_CHECK_FUNCS([memset])
 if test "x${CFLAGS}" = "x"; then
    CFLAGS="-O2"
 fi
+CFLAGS+=" -fPIC"
 
 if test "x${logging}" = xyes; then
    AC_DEFINE([DMC_LOGGING], 1, [logging enabled])
