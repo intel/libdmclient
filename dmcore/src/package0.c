@@ -66,7 +66,7 @@
  ******************************************************************************/
 
 #define PRV_HEADER_LEN      8
-#define PRV_GNIS_ALERT_SIZE (PRV_MD5_DIGEST_LEN + PRV_HEADER_LEN)
+#define PRV_GNIS_ALERT_SIZE (size_t)(PRV_MD5_DIGEST_LEN + PRV_HEADER_LEN)
 
 #define PRV_VERSION_MASK    0xFFC0000000000000
 #define PRV_VERSION_SHIFT   54
@@ -100,7 +100,8 @@
 int decode_package_0(buffer_t pkg0,
                      char ** serverID,
                      int * sessionID,
-                     char * flags)
+                     char * flags,
+                     int * body_offset)
 {
     uint64_t header;
     uint16_t field;
@@ -143,7 +144,8 @@ int decode_package_0(buffer_t pkg0,
     *sessionID = ntohs(field);
 
     field = (header & PRV_LENGTH_ID_MASK) >> PRV_LENGTH_ID_SHIFT;
-    if (PRV_GNIS_ALERT_SIZE > pkg0.len)
+    if (field == 0
+    || field + PRV_GNIS_ALERT_SIZE > pkg0.len)
     {
         return OMADM_SYNCML_ERROR_INCOMPLETE_COMMAND;
     }
@@ -155,6 +157,10 @@ int decode_package_0(buffer_t pkg0,
     memcpy(*serverID, pkg0.buffer + PRV_GNIS_ALERT_SIZE, field);
     (*serverID)[field] = 0;
 
+    if (body_offset)
+    {
+        *body_offset = field + PRV_GNIS_ALERT_SIZE;
+    }
     return OMADM_SYNCML_ERROR_NONE;
 }
 

@@ -212,7 +212,7 @@ int          get_server_account  (const mo_mgr_t iMgr, char * serverID, accountD
 void         store_nonce         (const mo_mgr_t iMgr, const accountDesc_t * accountP, bool server);
 
 // implemented in package0.c
-int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags);
+int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags, int * body_offset);
 int validate_package_0 (internals_t * internP, buffer_t pkg0);
 
 // implemented in uricheck.c

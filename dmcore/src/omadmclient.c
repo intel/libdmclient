@@ -305,7 +305,8 @@ dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
 dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
                                               uint8_t * pkg0,
                                               int pkg0_len,
-                                              char * flags)
+                                              char * flags,
+                                              int * body_offset)
 {
     internals_t * internP = (internals_t *)sessionH;
     char * serverID;
@@ -321,7 +322,7 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
     package.buffer = pkg0;
     package.len = pkg0_len;
 
-    if (OMADM_SYNCML_ERROR_NONE != decode_package_0(package, &serverID, &sessionID, flags))
+    if (OMADM_SYNCML_ERROR_NONE != decode_package_0(package, &serverID, &sessionID, flags, body_offset))
     {
         return DMCLT_ERR_USAGE;
     }

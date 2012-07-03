@@ -149,10 +149,12 @@ dmclt_err_t omadmclient_session_open(dmclt_session sessionH, char * serverID, in
  * @param pkg0 buffer containing the received package #0
  * @param pkg0_len length of the pkg0 buffer
  * @param flags (out) sessions flags. See DMCLT_FLAG_*. Can be nil.
+ * @param body_offset (out) contains the offset to the start of the body. If there is no body, it will be
+ * equal to pkg0_len. Can be nil.
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH, uint8_t * pkg0, int pkg0_len, char * flags);
+dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH, uint8_t * pkg0, int pkg0_len, char * flags, int * body_offset);
 
 /*!
  * @brief Closes an open OMA DM session
