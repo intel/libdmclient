@@ -196,31 +196,22 @@ static void prvFreeAuth(authDesc_t * authP)
     free(authP);
 }
 
-dmclt_err_t omadmclient_session_init(dmclt_session * sessionHP,
-                                     char * flags,
-                                     dmclt_callback_t UICallbacksP,
-                                     void * userData)
+dmclt_session * omadmclient_session_init(bool useWbxml)
 {
     internals_t *        internP;
     SmlInstanceOptions_t options;
     SmlCallbacksPtr_t    callbacksP;
 
-    if (sessionHP == NULL)
-    {
-        return DMCLT_ERR_USAGE;
-    }
-    *sessionHP = NULL;
-
     internP = (internals_t *)malloc(sizeof(internals_t));
     if (!internP)
     {
-        return DMCLT_ERR_MEMORY;
+        return NULL;
     }
 
     memset(internP, 0, sizeof(internals_t));
 
     memset(&options, 0, sizeof(options));
-    if (NULL != flags && (*flags)&DMCLT_FLAG_WBXML)
+    if (useWbxml)
     {
         options.encoding= SML_WBXML;
     }
@@ -234,21 +225,28 @@ dmclt_err_t omadmclient_session_init(dmclt_session * sessionHP,
 
     if (SML_ERR_OK != smlInitInstance(callbacksP, &options, NULL, &(internP->smlH)))
     {
-        goto error;
+        omadmclient_session_close((void**)internP);
+        free(internP);
+        internP = NULL;
+    }
+
+    return (dmclt_session)internP;
+}
+
+dmclt_err_t omadmclient_set_UI_callback(dmclt_session sessionH,
+                                        dmclt_callback_t UICallbacksP,
+                                        void * userData)
+{    internals_t * internP = (internals_t *)sessionH;
+
+    if (internP == NULL)
+    {
+        return DMCLT_ERR_USAGE;
     }
 
     internP->alert_cb = UICallbacksP;
     internP->cb_data = userData;
 
-    *sessionHP = (dmclt_session)internP;
-
     return DMCLT_ERR_NONE;
-
-error:
-    omadmclient_session_close((void**)internP);
-    free(internP);
-    *sessionHP = NULL;
-    return DMCLT_ERR_INTERNAL;
 }
 
 dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH,
@@ -270,8 +268,7 @@ dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH,
 
 dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
                                      char * serverID,
-                                     int sessionID,
-                                     char * flags)
+                                     int sessionID)
 {
     internals_t * internP = (internals_t *)sessionH;
 
@@ -300,14 +297,7 @@ dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
 
     internP->session_id = sessionID;
     internP->message_id = 0;
-    if (NULL == flags || (*flags)&DMCLT_FLAG_CLIENT_INIT)
-    {
-        internP->state = STATE_CLIENT_INIT;
-    }
-    else
-    {
-        internP->state = STATE_SERVER_INIT;
-    }
+    internP->state = STATE_CLIENT_INIT;
 
     return DMCLT_ERR_NONE;
 }
@@ -339,8 +329,7 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
     // We open the session now since we need to access the DM tree to validate the received package0.
     err = omadmclient_session_open(sessionH,
                                    serverID,
-                                   sessionID,
-                                   flags);
+                                   sessionID);
 
     if (DMCLT_ERR_NONE == err)
     {
@@ -350,6 +339,8 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
         }
     }
 
+    internP->state = STATE_SERVER_INIT;
+        
     return err;
 }
 

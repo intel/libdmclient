@@ -46,7 +46,7 @@ typedef struct
     char *  unusedA;
     int     srv_auth;
     int     clt_auth;
-} internals_t;
+} hack_internals_t;
 
 void print_usage(void)
 {
@@ -59,11 +59,11 @@ void print_usage(void)
 
 }
 
-void output_buffer(FILE * fd, int flags, dmclt_buffer_t buffer)
+void output_buffer(FILE * fd, bool isWbxml, dmclt_buffer_t buffer)
 {
     int i;
 
-    if (flags&DMCLT_FLAG_WBXML)
+    if (isWbxml)
     {
         unsigned char array[16];
 
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
     dmclt_buffer_t buffer;
     dmclt_buffer_t reply;
     int c;
-    char flags;
+    bool isWbxml = false;
     int err;
     int status;
     SoupSession * soupH;
@@ -252,7 +252,6 @@ int main(int argc, char *argv[])
         soupH = soup_session_sync_new();
     }
 
-    flags = DMCLT_FLAG_CLIENT_INIT;
     server = NULL;
     file = NULL;
     opterr = 0;
@@ -262,7 +261,7 @@ int main(int argc, char *argv[])
         switch (c)
         {
         case 'w':
-            flags |= DMCLT_FLAG_WBXML;
+            isWbxml = true;
             break;
         case 's':
             server = optarg;
@@ -284,10 +283,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    err = omadmclient_session_init(&session,
-                                   &flags,
-                                   uiCallback,
-                                   NULL);
+    session = omadmclient_session_init(isWbxml);
+    if (session == NULL)
+    {
+        fprintf(stderr, "Initialization failed\r\n");
+        return 1;
+    }
+    err = omadmclient_set_UI_callback(session, uiCallback, NULL);
     if (err != DMCLT_ERR_NONE)
     {
         fprintf(stderr, "Initialization failed: %d\r\n", err);
@@ -295,8 +297,7 @@ int main(int argc, char *argv[])
     }
     err = omadmclient_session_open(session,
                                    server?server:"funambol",
-                                   1,
-                                   &flags);
+                                   1);
     if (err != DMCLT_ERR_NONE)
     {
         fprintf(stderr, "Session opening to \"%s\" failed: %d\r\n", server?server:"funambol", err);
@@ -325,17 +326,17 @@ int main(int argc, char *argv[])
             err = omadmclient_get_next_packet(session, &buffer);
             if (DMCLT_ERR_NONE == err)
             {
-                output_buffer(stderr, flags, buffer);
-                status = sendPacket(soupH, flags&DMCLT_FLAG_WBXML?"application/vnd.syncml+wbxml":"application/vnd.syncml+xml", &buffer, &reply);
+                output_buffer(stderr, isWbxml, buffer);
+                status = sendPacket(soupH, isWbxml?"application/vnd.syncml+wbxml":"application/vnd.syncml+xml", &buffer, &reply);
                 fprintf(stderr, "Reply from \"%s\": %d\r\n\n", buffer.uri, status);
 
                 omadmclient_clean_buffer(&buffer);
 
                 if (200 == status)
                 {
-                    if (flags&DMCLT_FLAG_WBXML)
+                    if (isWbxml)
                     {
-                        output_buffer(stderr, flags, reply);
+                        output_buffer(stderr, isWbxml, reply);
                     }
                     else
                     {
@@ -375,8 +376,8 @@ int main(int argc, char *argv[])
         fclose(fd);
 
         // HACK for test: override status
-        ((internals_t *)session)->srv_auth = 212;
-        ((internals_t *)session)->clt_auth = 212;
+        ((hack_internals_t *)session)->srv_auth = 212;
+        ((hack_internals_t *)session)->clt_auth = 212;
 
         err = omadmclient_process_reply(session, &reply);
         omadmclient_clean_buffer(&reply);
@@ -391,7 +392,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "SyncML generation failed.\r\n", file);
             return 2;
         }
-        output_buffer(stdout, flags, buffer);
+        output_buffer(stdout, isWbxml, buffer);
         omadmclient_clean_buffer(&buffer);
     }
     omadmclient_session_close(session);

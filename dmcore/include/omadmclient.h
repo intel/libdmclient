@@ -30,12 +30,11 @@
 #define OMADMCLIENT_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <omadmtree_mo.h>
 
 
 #define DMCLT_FLAG_NONE         0x00
-#define DMCLT_FLAG_WBXML        0x01
-#define DMCLT_FLAG_CLIENT_INIT  0x02
 #define DMCLT_FLAG_UI_INFORM    0x04
 #define DMCLT_FLAG_UI_ACCEPT    0x08
 
@@ -106,14 +105,21 @@ typedef void * dmclt_session;
 /*!
  * @brief Initializes an OMA DM session
  *
- * @param sessionH (out) session handle
- * @param flags (in/out) sessions flags. See DMCLT_FLAG_*
+ * @param useWbxml if true, libdmclient will use WBXML to encode SyncML packets
+ *
+ * @returns a new session handle if successful or NULL in case of error
+ */
+dmclt_session * omadmclient_session_init(bool useWbxml);
+
+/*!
+ * @brief Sets the callback to use when OMA DM session requires UI
+ *
  * @param UICallbacksP callback for user interaction. Can be nil.
  * @param userData past as parameter to UICallbacksP
- *
+  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_init(dmclt_session * sessionH, char * flags, dmclt_callback_t UICallbacksP, void * userData);
+dmclt_err_t omadmclient_set_UI_callback(dmclt_session sessionH, dmclt_callback_t UICallbacksP, void * userData);
 
 /*!
  * @brief Adds an OMA Management Object to the DM tree used by the session
@@ -131,11 +137,10 @@ dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH, omadm_mo_interfac
  * @param sessionH session handle
  * @param serverID id of the DM server to connect to
  * @param sessionID id for the session
- * @param flags (in/out) sessions flags. See DMCLT_FLAG_*. Can be nil.
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open(dmclt_session sessionH, char * serverID, int sessionID, char * flags);
+dmclt_err_t omadmclient_session_open(dmclt_session sessionH, char * serverID, int sessionID);
 
 /*!
  * @brief Opens an OMA DM session in reply to an package #0
