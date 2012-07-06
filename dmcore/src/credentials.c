@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "internals.h"
 
 #include "error_macros.h"
@@ -202,13 +203,18 @@ SmlChalPtr_t get_challenge(authDesc_t * authP)
         metaP = create_chal_meta(authP->type, NULL);
         break;
     case AUTH_TYPE_DIGEST:
-        // TODO generate new nonce
-        if (authP->data.buffer) free(authP->data.buffer);
-        authP->data.buffer = (uint8_t *)authP;
-        authP->data.len = 8;
-        authP->data.buffer = (uint8_t *)encode_b64(authP->data);
-        authP->data.len = strlen((const char *)(authP->data.buffer));
-        metaP = create_chal_meta(authP->type, &(authP->data));
+        {
+            int nonce;
+            
+            srand(time(0));
+            nonce = rand();
+            if (authP->data.buffer) free(authP->data.buffer);
+            authP->data.buffer = (uint8_t *)&nonce;
+            authP->data.len = 8;
+            authP->data.buffer = (uint8_t *)encode_b64(authP->data);
+            authP->data.len = strlen((const char *)(authP->data.buffer));
+            metaP = create_chal_meta(authP->type, &(authP->data));
+        }
         break;
     default:
         metaP = NULL;
