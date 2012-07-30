@@ -555,25 +555,19 @@ int dmtree_copy(dmtree_t * handle, const char *source_uri,
     return OMADM_SYNCML_ERROR_COMMAND_NOT_IMPLEMENTED;
 }
 
-int dmtree_open(const char *server_id, dmtree_t **handleP)
+int dmtree_open(dmtree_t **handleP)
 {
     DMC_ERR_MANAGE;
 
     dmtree_t *retval = NULL;
 
 dmc_log_open("/tmp/testlog");
-    DMC_LOGF("Creating dm handle with server %s", server_id);
-
-    DMC_FAIL_ERR(prv_check_server_id(server_id),
-                OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+    DMC_LOGF("Creating dm handle");
 
     DMC_FAIL_NULL(retval, malloc(sizeof(*retval)),
                OMADM_SYNCML_ERROR_DEVICE_FULL);
 
     memset(retval, 0, sizeof(*retval));
-
-    DMC_FAIL_NULL(retval->server_id, strdup(server_id),
-               OMADM_SYNCML_ERROR_DEVICE_FULL);
 
     DMC_FAIL(momgr_init(&(retval->MOs)));
 
@@ -592,6 +586,21 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
+int dmtree_setServer(dmtree_t * handle,
+                     const char *server_id)
+{
+    DMC_ERR_MANAGE;
+
+    DMC_FAIL_ERR(prv_check_server_id(server_id),
+                 OMADM_SYNCML_ERROR_SESSION_INTERNAL);
+
+    DMC_FAIL_NULL(handle->server_id, strdup(server_id),
+                  OMADM_SYNCML_ERROR_DEVICE_FULL);
+
+DMC_ON_ERR:
+    return DMC_ERR;
+}
+
 void dmtree_close(dmtree_t * handle)
 {
     DMC_LOG("Freeing dm handle");
@@ -599,7 +608,7 @@ void dmtree_close(dmtree_t * handle)
     if (handle)
     {
         momgr_free(&(handle->MOs));
-        free(handle->server_id);
+        if (handle->server_id) free(handle->server_id);
         free(handle);
     }
 }

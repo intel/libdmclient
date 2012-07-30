@@ -230,6 +230,13 @@ dmclt_session * omadmclient_session_init(bool useWbxml)
         internP = NULL;
     }
 
+    if (OMADM_SYNCML_ERROR_NONE != dmtree_open(&(internP->dmtreeH)))
+    {
+        omadmclient_session_close((void**)internP);
+        free(internP);
+        internP = NULL;
+    }
+ 
     return (dmclt_session)internP;
 }
 
@@ -297,10 +304,11 @@ dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
         return DMCLT_ERR_USAGE;
     }
 
-    if (OMADM_SYNCML_ERROR_NONE != dmtree_open(serverID, &(internP->dmtreeH)))
+    if (OMADM_SYNCML_ERROR_NONE != dmtree_setServer(internP->dmtreeH, serverID))
     {
         return DMCLT_ERR_INTERNAL;
     }
+    
     if (OMADM_SYNCML_ERROR_NONE != get_server_account(internP->dmtreeH->MOs, serverID, &(internP->account)))
     {
         return DMCLT_ERR_INTERNAL;

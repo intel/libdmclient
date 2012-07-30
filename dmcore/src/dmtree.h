@@ -38,8 +38,10 @@ typedef struct
     char *server_id;
 } dmtree_t;
 
-int dmtree_open(const char *server_id, dmtree_t ** handleP);
+int dmtree_open(dmtree_t ** handleP);
 void dmtree_close(dmtree_t * handle);
+
+int dmtree_setServer(dmtree_t * handle, const char *server_id);
 
 int dmtree_get(dmtree_t * handle, dmtree_node_t *node);
 int dmtree_add(dmtree_t * handle, dmtree_node_t *node);
