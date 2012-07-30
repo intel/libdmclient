@@ -33,7 +33,6 @@
 #include <stdbool.h>
 #include <omadmtree_mo.h>
 
-
 #define DMCLT_FLAG_NONE         0x00
 #define DMCLT_FLAG_UI_INFORM    0x04
 #define DMCLT_FLAG_UI_ACCEPT    0x08
@@ -46,6 +45,18 @@ typedef enum
     DMCLT_ERR_MEMORY,
     DMCLT_ERR_USAGE
 } dmclt_err_t;
+
+typedef struct
+{
+    char *          uri;
+    long            length;
+    unsigned char * data;
+} dmclt_buffer_t;
+
+typedef void * dmclt_session;
+
+
+/** Definitions for User Interaction **/
 
 typedef enum
 {
@@ -75,31 +86,20 @@ typedef enum
     DMCLT_UI_ECHO_PASSWD
 } dmclt_ui_echo_t;
 
-
 typedef struct
 {
-    char *          uri;
-    long            length;
-    unsigned char * data;
-} dmclt_buffer_t;
-
-
-typedef struct
-{
-    dmclt_ui_type_t type;
-    int min_disp;
-    int max_disp;
-    int max_resp_len;
+    dmclt_ui_type_t  type;
+    int              min_disp;
+    int              max_disp;
+    int              max_resp_len;
     dmclt_ui_input_t input_type;
-    dmclt_ui_echo_t echo_type;
-    char * disp_msg;
-    char * dflt_resp;
-    char ** choices;
+    dmclt_ui_echo_t  echo_type;
+    char *           disp_msg;
+    char *           dflt_resp;
+    char **          choices;
 } dmclt_ui_t;
 
 typedef int (*dmclt_callback_t) (void * userData, const dmclt_ui_t * uiData, char * userReply);
-
-typedef void * dmclt_session;
 
 
 /*!
