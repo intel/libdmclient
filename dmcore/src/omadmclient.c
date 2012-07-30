@@ -293,9 +293,9 @@ dmclt_err_t omadmclient_getUriList(dmclt_session sessionH,
     return DMCLT_ERR_NONE;
 }
 
-dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
-                                     char * serverID,
-                                     int sessionID)
+dmclt_err_t omadmclient_session_start(dmclt_session sessionH,
+                                      char * serverID,
+                                      int sessionID)
 {
     internals_t * internP = (internals_t *)sessionH;
 
@@ -330,11 +330,11 @@ dmclt_err_t omadmclient_session_open(dmclt_session sessionH,
     return DMCLT_ERR_NONE;
 }
 
-dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
-                                              uint8_t * pkg0,
-                                              int pkg0_len,
-                                              char * flags,
-                                              int * body_offset)
+dmclt_err_t omadmclient_session_start_on_alert(dmclt_session sessionH,
+                                               uint8_t * pkg0,
+                                               int pkg0_len,
+                                               char * flags,
+                                               int * body_offset)
 {
     internals_t * internP = (internals_t *)sessionH;
     char * serverID;
@@ -355,10 +355,10 @@ dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH,
         return DMCLT_ERR_USAGE;
     }
 
-    // We open the session now since we need to access the DM tree to validate the received package0.
-    err = omadmclient_session_open(sessionH,
-                                   serverID,
-                                   sessionID);
+    // We start the session now since we need to access the DM tree to validate the received package0.
+    err = omadmclient_session_start(sessionH,
+                                    serverID,
+                                    sessionID);
 
     if (DMCLT_ERR_NONE == err)
     {

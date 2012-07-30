@@ -112,6 +112,13 @@ typedef void * dmclt_session;
 dmclt_session * omadmclient_session_init(bool useWbxml);
 
 /*!
+ * @brief Closes an initialized OMA DM session
+ *
+ * @param sessionH session handle
+ */
+void omadmclient_session_close(dmclt_session sessionH);
+
+/*!
  * @brief Sets the callback to use when OMA DM session requires UI
  *
  * @param UICallbacksP callback for user interaction. Can be nil.
@@ -143,7 +150,7 @@ dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH, omadm_mo_interfac
 dmclt_err_t omadmclient_getUriList(dmclt_session sessionH, char * urn, char *** uriListP);
 
 /*!
- * @brief Opens an OMA DM session to the specified server
+ * @brief Starts an OMA DM session for the specified server
  *
  * @param sessionH session handle
  * @param serverID id of the DM server to connect to
@@ -151,10 +158,10 @@ dmclt_err_t omadmclient_getUriList(dmclt_session sessionH, char * urn, char *** 
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open(dmclt_session sessionH, char * serverID, int sessionID);
+dmclt_err_t omadmclient_session_start(dmclt_session sessionH, char * serverID, int sessionID);
 
 /*!
- * @brief Opens an OMA DM session in reply to an package #0
+ * @brief Starts an OMA DM session in reply to an package #0
  *
  * @param sessionH session handle
  * @param pkg0 buffer containing the received package #0
@@ -165,14 +172,7 @@ dmclt_err_t omadmclient_session_open(dmclt_session sessionH, char * serverID, in
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_session_open_on_alert(dmclt_session sessionH, uint8_t * pkg0, int pkg0_len, char * flags, int * body_offset);
-
-/*!
- * @brief Closes an open OMA DM session
- *
- * @param sessionH session handle
- */
-void omadmclient_session_close(dmclt_session sessionH);
+dmclt_err_t omadmclient_session_start_on_alert(dmclt_session sessionH, uint8_t * pkg0, int pkg0_len, char * flags, int * body_offset);
 
 /*!
  * @brief Retrieves the next packet to be sent to the server

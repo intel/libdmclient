@@ -295,14 +295,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Initialization failed: %d\r\n", err);
         return err;
     }
-    err = omadmclient_session_open(session,
-                                   server?server:"funambol",
-                                   1);
-    if (err != DMCLT_ERR_NONE)
-    {
-        fprintf(stderr, "Session opening to \"%s\" failed: %d\r\n", server?server:"funambol", err);
-        return err;
-    }
 
     testMoP = test_get_mo_interface();
     if (testMoP)
@@ -319,6 +311,16 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Loading test MO failed\r\n");
     }
+        
+    err = omadmclient_session_start(session,
+                                    server?server:"funambol",
+                                    1);
+    if (err != DMCLT_ERR_NONE)
+    {
+        fprintf(stderr, "Session opening to \"%s\" failed: %d\r\n", server?server:"funambol", err);
+        return err;
+    }
+    
     if (!file)
     {
         do
