@@ -55,6 +55,14 @@ typedef struct
 
 typedef void * dmclt_session;
 
+typedef struct
+{
+    char * source;
+    char * type;
+    char * format;
+    char * data;
+} dmclt_item_t;
+
 
 /** Definitions for User Interaction **/
 
@@ -194,6 +202,16 @@ dmclt_err_t omadmclient_get_next_packet(dmclt_session sessionH, dmclt_buffer_t *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
 dmclt_err_t omadmclient_process_reply(dmclt_session sessionH, dmclt_buffer_t * packetP);
+
+/*!
+ * @brief Add a generic alert to the next packet to be sent to the server
+ *
+ * @param sessionH session handle
+ * @param itemP item to add in the generic alert
+ *
+ * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
+ */
+dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH, dmclt_item_t * itemP);
 
 /*!
  * @brief Frees internal data of a dmclt_buffer_t.

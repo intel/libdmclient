@@ -38,7 +38,7 @@
 static void prvCreatePacket1(internals_t * internP)
 {
     // this is the beginning of the session
-     SmlAlertPtr_t   alertP;
+    SmlAlertPtr_t   alertP;
 
     alertP = smlAllocAlert();
     if (alertP)
@@ -473,6 +473,48 @@ dmclt_err_t omadmclient_process_reply(dmclt_session sessionH,
     PRV_CHECK_SML_CALL(smlSetUserData(internP->smlH, internP));
 
     PRV_CHECK_SML_CALL(smlProcessData(internP->smlH, SML_ALL_COMMANDS));
+
+    return DMCLT_ERR_NONE;
+}
+
+dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH,
+                                          dmclt_item_t * itemP)
+{
+    internals_t * internP = (internals_t *)sessionH;
+    SmlAlertPtr_t alertP;
+    
+    if (!internP || !itemP || !itemP->type || !itemP->format || !itemP->data)
+    {
+        return DMCLT_ERR_USAGE;
+    }
+
+    alertP = smlAllocAlert();
+    if (NULL == alertP)
+    {
+        return DMCLT_ERR_MEMORY;
+    }
+    
+    alertP->data = smlString2Pcdata("1226");
+
+    if (itemP->source)
+    {
+        alertP->itemList->item->source = smlAllocSource();
+        if (NULL == alertP->itemList->item->source)
+        {
+            smlFreeAlert(alertP);
+            return DMCLT_ERR_MEMORY;
+        }
+        alertP->itemList->item->source->locURI = smlString2Pcdata(itemP->source);
+    }
+    
+    alertP->itemList->item->meta = convert_to_meta(itemP->format, itemP->type);
+    alertP->itemList->item->data = smlString2Pcdata(itemP->data);
+    if (NULL == alertP->itemList->item->meta || NULL == alertP->itemList->item->data)
+    {
+        smlFreeAlert(alertP);
+        return DMCLT_ERR_MEMORY;
+    }
+    add_element(internP, (basicElement_t *)alertP);
 
     return DMCLT_ERR_NONE;
 }
