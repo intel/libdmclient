@@ -83,6 +83,6 @@ int momgr_exec_node(const mo_mgr_t iMgr, const char *iUri, const char *iData, co
 int momgr_validate_uri(const mo_mgr_t iMgr, const char *uri, char ** oNodeURI, char ** oPropId);
 
 int momgr_find_subtree(const mo_mgr_t iMgr, const char * iUri, const char * iUrn, const char * iCriteriaName, const char * iCriteriaValue, char ** oUri);
-
+int momgr_list_uri(const mo_mgr_t iMgr, const char * iUrn, char *** oUri);
 
 #endif

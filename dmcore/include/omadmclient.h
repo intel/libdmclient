@@ -132,6 +132,17 @@ dmclt_err_t omadmclient_set_UI_callback(dmclt_session sessionH, dmclt_callback_t
 dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH, omadm_mo_interface_t * moP);
 
 /*!
+ * @brief Retrieves the list of nodes URIs matching an URN
+ *
+ * @param sessionH session handle
+ * @param urn URN to look for 
+ * @param uriListP nil-terminated array of URI. To be freed by the caller.
+ *
+ * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
+ */
+dmclt_err_t omadmclient_getUriList(dmclt_session sessionH, char * urn, char *** uriListP);
+
+/*!
  * @brief Opens an OMA DM session to the specified server
  *
  * @param sessionH session handle

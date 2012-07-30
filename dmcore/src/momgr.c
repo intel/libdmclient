@@ -989,3 +989,22 @@ DMC_ON_ERR:
 
     return DMC_ERR;
 }
+
+int momgr_list_uri(const mo_mgr_t iMgr,
+                   const char * iUrn,
+                   char *** oUri)
+{
+    DMC_ERR_MANAGE;
+
+    DMC_FAIL_ERR(NULL == iUrn, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+    DMC_FAIL_ERR(NULL == oUri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+
+    prv_findUrn(iMgr.root, iUrn, oUri);
+
+    DMC_FAIL_ERR(NULL == *oUri, OMADM_SYNCML_ERROR_NOT_FOUND);
+
+DMC_ON_ERR:
+
+    return DMC_ERR;
+}
+ 

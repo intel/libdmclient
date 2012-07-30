@@ -251,7 +251,8 @@ dmclt_err_t omadmclient_set_UI_callback(dmclt_session sessionH,
 
 dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH,
                                        omadm_mo_interface_t * moP)
-{    internals_t * internP = (internals_t *)sessionH;
+{
+    internals_t * internP = (internals_t *)sessionH;
 
     if (internP == NULL || moP == NULL)
     {
@@ -259,6 +260,25 @@ dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH,
     }
 
     if (OMADM_SYNCML_ERROR_NONE != momgr_add_plugin(&(internP->dmtreeH->MOs), moP, NULL))
+    {
+        return DMCLT_ERR_INTERNAL;
+    }
+
+    return DMCLT_ERR_NONE;
+}
+
+dmclt_err_t omadmclient_getUriList(dmclt_session sessionH,
+                                   char * urn,
+                                   char *** uriListP)
+{
+    internals_t * internP = (internals_t *)sessionH;
+
+    if (internP == NULL || urn == NULL || uriListP == NULL)
+    {
+        return DMCLT_ERR_USAGE;
+    }
+
+    if (OMADM_SYNCML_ERROR_NONE != momgr_list_uri(internP->dmtreeH->MOs, urn, uriListP))
     {
         return DMCLT_ERR_INTERNAL;
     }
