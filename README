@@ -104,7 +104,7 @@ libdmclient requires some packages:
       for the SyncML parsing
 
 Two other packages are optionnal:
-  - libsoup-devel
+  - libcurl-devel
       for the test client
   - sqlite-devel
       for test Storage MO

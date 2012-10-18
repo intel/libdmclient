@@ -2,9 +2,9 @@ bin_PROGRAMS = testdmclient
 testdmclient_SOURCES = client/main.c \
                        client/test_plugin.c
 testdmclient_CPPFLAGS = -I $(top_srcdir)/dmcore/include \
-			$(GLIB_CFLAGS) $(LIBSOUP_CFLAGS)
+			$(GLIB_CFLAGS) $(LIBCURL_CFLAGS)
 testdmclient_LDADD = $(top_builddir)/dmcore/libdmclient.la \
-		      $(GLIB_LIBS) $(LIBSOUP_LIBS)
+		      $(GLIB_LIBS) $(LIBCURL_LIBS)
 
 libdir = $(MO_INSTALL_DIR)
 

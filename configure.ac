@@ -25,7 +25,7 @@ PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBWBXML], [libwbxml2])
 AC_CHECK_LIB(dl, dlopen)
 AS_IF([test "x$enable_tests" = "xyes"], [
-    PKG_CHECK_MODULES([LIBSOUP], [libsoup-2.4])
+    PKG_CHECK_MODULES([LIBCURL], [libcurl])
     PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 ])
 

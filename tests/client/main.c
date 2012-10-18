@@ -25,8 +25,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <omadmclient.h>
-#include <libsoup/soup.h>
-#include <gio/gio.h>
+#include <curl/curl.h>
 
 // implemented in test_plugin.c
 omadm_mo_interface_t * test_get_mo_interface();
@@ -192,34 +191,61 @@ int uiCallback(void * userData,
     return code;
 }
 
-int sendPacket(SoupSession * soupH,
-               char * type,
-               dmclt_buffer_t * packet,
-               dmclt_buffer_t * reply)
+static size_t storeReplyCallback(void * contents,
+                                 size_t size,
+                                 size_t nmemb,
+                                 void * userp)
 {
-    guint status = -1;
-    SoupMessage *msgP;
+    size_t total = size * nmemb;
+    dmclt_buffer_t * reply = (dmclt_buffer_t *)userp;
+ 
+    reply->data = realloc(reply->data, reply->length + total);
+    if (reply->data == NULL)
+    {
+        fprintf(stderr, "Not enough memory\r\n");
+        exit(EXIT_FAILURE);
+    }
+ 
+    memcpy(&(reply->data[reply->length]), contents, total);
+    reply->length += total;
+ 
+    return total;
+}
+
+long sendPacket(CURL * curlH,
+                char * type,
+                dmclt_buffer_t * packet,
+                dmclt_buffer_t * reply)
+{
+    struct curl_slist * headerList = NULL;
+    long status = 503;
 
     memset(reply, 0, sizeof(dmclt_buffer_t));
-
-    msgP = soup_message_new("POST", packet->uri);
-    if (msgP == NULL) goto error;
-
-    soup_message_set_request(msgP, type,
-                             SOUP_MEMORY_COPY, packet->data, packet->length);
-
-    status = soup_session_send_message (soupH, msgP);
-    if (status == 200)
+    if (NULL == curlH)
     {
-        reply->length = msgP->response_body->length;
-        reply->data = malloc(reply->length);
-        memcpy(reply->data, msgP->response_body->data, reply->length);
+        return status;
     }
 
-    g_object_unref(G_OBJECT(msgP));
+    curl_easy_setopt(curlH, CURLOPT_URL, packet->uri);
+    curl_easy_setopt(curlH, CURLOPT_POST, 1);
+    headerList = curl_slist_append(headerList, type);
+    curl_easy_setopt(curlH, CURLOPT_HTTPHEADER, headerList);
+    curl_easy_setopt(curlH, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)(packet->length));
+    curl_easy_setopt(curlH, CURLOPT_COPYPOSTFIELDS, (void *)(packet->data));
 
-error:
-    return (int) status;
+    curl_easy_setopt(curlH, CURLOPT_WRITEFUNCTION, storeReplyCallback);
+    curl_easy_setopt(curlH, CURLOPT_WRITEDATA, (void *)reply); 
+
+    if (CURLE_OK == curl_easy_perform(curlH))
+    {
+         if (CURLE_OK != curl_easy_getinfo(curlH, CURLINFO_RESPONSE_CODE, &status))
+         {
+              status = 503;
+         }
+    }
+    curl_slist_free_all(headerList);
+
+    return status;
 }
 
 int main(int argc, char *argv[])
@@ -230,27 +256,12 @@ int main(int argc, char *argv[])
     int c;
     bool isWbxml = false;
     int err;
-    int status;
-    SoupSession * soupH;
+    long status = 200;
+    CURL * curlH;
     char * server = NULL;
     char * file = NULL;
     omadm_mo_interface_t * testMoP;
     char * proxyStr;
-
-    g_type_init();
-    proxyStr = getenv("http_proxy");
-    if (proxyStr)
-    {
-        SoupURI *proxy = NULL;
-
-        proxy = soup_uri_new(proxyStr);
-        soupH = soup_session_sync_new_with_options(SOUP_SESSION_PROXY_URI, proxy,
-                                                   NULL);
-    }
-    else
-    {
-        soupH = soup_session_sync_new();
-    }
 
     server = NULL;
     file = NULL;
@@ -311,7 +322,7 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Loading test MO failed\r\n");
     }
-        
+    
     err = omadmclient_session_start(session,
                                     server?server:"funambol",
                                     1);
@@ -323,13 +334,15 @@ int main(int argc, char *argv[])
     
     if (!file)
     {
+        curlH = curl_easy_init();
+
         do
         {
             err = omadmclient_get_next_packet(session, &buffer);
             if (DMCLT_ERR_NONE == err)
             {
                 output_buffer(stderr, isWbxml, buffer);
-                status = sendPacket(soupH, isWbxml?"application/vnd.syncml+wbxml":"application/vnd.syncml+xml", &buffer, &reply);
+                status = sendPacket(curlH, isWbxml?"Content-Type: application/vnd.syncml+wbxml":"Content-Type: application/vnd.syncml+xml", &buffer, &reply);
                 fprintf(stderr, "Reply from \"%s\": %d\r\n\n", buffer.uri, status);
 
                 omadmclient_clean_buffer(&buffer);
@@ -353,6 +366,8 @@ int main(int argc, char *argv[])
                 }
             }
         } while (DMCLT_ERR_NONE == err && 200 == status);
+
+        curl_easy_cleanup(curlH);
     }
     else
     {
