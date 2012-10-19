@@ -33,7 +33,7 @@ static int prv_inboxInitFN(void **oData)
 }
 
 static int prv_inboxIsNodeFN(const char *iURI,
-			                 omadmtree_node_type_t *oNodeType,
+			                 omadmtree_node_kind_t *oNodeType,
 				             void *iData)
 {
 	*oNodeType = (strcmp(iURI, "./Inbox") == 0) ? OMADM_NODE_IS_INTERIOR : OMADM_NODE_NOT_EXIST;

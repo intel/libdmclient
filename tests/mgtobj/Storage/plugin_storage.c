@@ -60,7 +60,7 @@ static void prv_rootCloseFN(void *iData)
 }
 
 static int prv_rootIsNodeFN(const char *iURI,
-                            omadmtree_node_type_t *oNodeType,
+                            omadmtree_node_kind_t *oNodeType,
                             void *iData)
 {
     DMC_ERR_MANAGE;
@@ -83,7 +83,7 @@ static int prv_rootGetFN(dmtree_node_t * nodeP,
     DMC_ERR_MANAGE;
 
     dmsettings *settings = (dmsettings *)iData;
-    omadmtree_node_type_t type;
+    omadmtree_node_kind_t type;
 
     if (strcmp(nodeP->uri, PRV_BASE_URI))
     {

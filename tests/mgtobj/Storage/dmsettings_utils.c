@@ -46,7 +46,7 @@ int syncml_from_dmc_err(int dmcommon_error)
 }
 
 int omadm_dmsettings_utils_node_exists(dmsettings *handle, const char *uri,
-                       omadmtree_node_type_t *node_type)
+                       omadmtree_node_kind_t *node_type)
 {
     DMC_ERR_MANAGE;
     dmsettings_settings_type settings_type;

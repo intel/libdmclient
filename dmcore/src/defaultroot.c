@@ -39,7 +39,7 @@ static int prv_init(void ** dataP)
     return OMADM_SYNCML_ERROR_NONE;
 }
 
-static int prv_isNode(const char *uri, omadmtree_node_type_t* node_type, void *data)
+static int prv_isNode(const char *uri, omadmtree_node_kind_t* node_type, void *data)
 {
     if (!strcmp(uri,"."))
     {

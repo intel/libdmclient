@@ -257,7 +257,7 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node)
 {
     DMC_ERR_MANAGE;
 
-    omadmtree_node_type_t node_exists;
+    omadmtree_node_kind_t node_exists;
     char * target_uri = NULL;
     char * prop_id = NULL;
 
@@ -358,7 +358,7 @@ int dmtree_delete(dmtree_t * handle, const char *uri)
     DMC_ERR_MANAGE;
 
     char * target_uri = NULL;
-    omadmtree_node_type_t node_exists;
+    omadmtree_node_kind_t node_exists;
 
     DMC_LOGF("%s called.", __FUNCTION__);
 
@@ -390,7 +390,7 @@ int dmtree_add(dmtree_t * handle, dmtree_node_t *node)
     DMC_ERR_MANAGE;
 
     char * target_uri = NULL;
-    omadmtree_node_type_t node_exists;
+    omadmtree_node_kind_t node_exists;
     char *parent_uri = NULL;
     char *parent_acl = NULL;
     char * token = NULL;
@@ -471,7 +471,7 @@ DMC_ON_ERR:
 int dmtree_replace(dmtree_t * handle, dmtree_node_t *node)
 {
     DMC_ERR_MANAGE;
-    omadmtree_node_type_t node_exists;
+    omadmtree_node_kind_t node_exists;
     char *target_uri = NULL;
     char *prop_id = NULL;
     char *parent_uri = NULL;

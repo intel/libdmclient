@@ -49,7 +49,7 @@ typedef enum
     OMADM_NODE_NOT_EXIST,
     OMADM_NODE_IS_INTERIOR,
     OMADM_NODE_IS_LEAF,
-} omadmtree_node_type_t;
+} omadmtree_node_kind_t;
 
 typedef struct
 {
@@ -86,7 +86,7 @@ typedef void (*omadm_mo_close_fn) (void * data);
  *
  * @returns a SyncML error code
  */
-typedef int (*omadm_mo_is_node_fn) (const char * uri, omadmtree_node_type_t * type, void * data);
+typedef int (*omadm_mo_is_node_fn) (const char * uri, omadmtree_node_kind_t * type, void * data);
 
 /*!
  * @brief Callback to find the URLs associated to an URN

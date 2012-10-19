@@ -43,7 +43,7 @@ static int prv_find_node(static_node_t * nodes,
 }
 
 int static_mo_is_node(const char *iURI,
-                      omadmtree_node_type_t *oNodeType,
+                      omadmtree_node_kind_t *oNodeType,
                       void *iData)
 {
     static_node_t * nodes = (static_node_t *)iData;

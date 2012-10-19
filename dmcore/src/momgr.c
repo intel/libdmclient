@@ -506,7 +506,7 @@ void momgr_free(mo_mgr_t * iMgrP)
 
 int momgr_exists(const mo_mgr_t iMgr,
                  const char *iURI,
-                 omadmtree_node_type_t * oExists)
+                 omadmtree_node_kind_t * oExists)
 {
     DMC_ERR_MANAGE;
     dmtree_plugin_t *plugin = NULL;

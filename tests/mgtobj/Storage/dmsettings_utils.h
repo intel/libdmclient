@@ -29,7 +29,7 @@
 #include "dmsettings.h"
 
 int omadm_dmsettings_utils_node_exists(dmsettings *handle, const char *uri,
-                       omadmtree_node_type_t *node_type);
+                       omadmtree_node_kind_t *node_type);
 int omadm_dmsettings_utils_get_node_children(dmsettings *handle,
                          const char *uri,
                          dmc_ptr_array *children);

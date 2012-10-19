@@ -68,7 +68,7 @@ void momgr_free(mo_mgr_t * iMgr);
 void momgr_load_plugin(mo_mgr_t * iMgr, const char *iFilename);
 int momgr_add_plugin(mo_mgr_t * iMgr, omadm_mo_interface_t *iPlugin, void * handle);
 
-int momgr_exists(const mo_mgr_t iMgr, const char *iUri, omadmtree_node_type_t *oExists);
+int momgr_exists(const mo_mgr_t iMgr, const char *iUri, omadmtree_node_kind_t *oExists);
 
 int momgr_get_value(const mo_mgr_t iMgr, dmtree_node_t * nodeP);
 int momgr_set_value(const mo_mgr_t iMgr, const dmtree_node_t * nodeP);
