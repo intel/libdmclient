@@ -29,6 +29,8 @@
 #ifndef OMADMTREE_MO_H_
 #define OMADMTREE_MO_H_
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -59,6 +61,51 @@ typedef struct
     unsigned int data_size;
     char *data_buffer;
 } dmtree_node_t;
+
+/* Utility functions to manipulate dmtree_node_t */
+
+/*!
+ * @brief Frees the dmtree_node_t and all its internal pointers INCLUDING the data_buffer.
+ *        equivalent to: dmtree_node_clean(node, true); free(node);
+ *
+ * @param node the dmtree_node_t to be freed
+ *
+ */
+void dmtree_node_free(dmtree_node_t * node);
+
+/*!
+ * @brief Frees the internal pointers of dmtree_node_t and reset them to NULL.
+ *        data_size is set to 0. data_buffer is always set to NULL.
+ *        If full is false, data_buffer is not freed.
+ *
+ * @param node the dmtree_node_t to be cleaned.
+ * @param full determines if the function frees the memory pointed by data_buffer or not.
+ *
+ */
+void dmtree_node_clean(dmtree_node_t * node, bool full);
+
+/*!
+ * @brief Duplicates a dmtree_node_t.
+ *        All its internal pointers are also duplicated INCLUDING the data_buffer.
+ *
+ * @param node the dmtree_node_t to be duplicated.
+ *
+ * @returns a pointer to a new dmtree_node_t or NULL in case of error.
+ */
+dmtree_node_t * dmtree_node_dup(dmtree_node_t * src);
+
+/*!
+ * @brief Copies a dmtree_node_t to another dmtree_node_t.
+ *        All the source's internal pointers are duplicated INCLUDING the data_buffer.
+ *        If the destination's internal pointers are not NULL, they are freed before the copy is done.
+ *        In case of error, function returns NULL and dest is not modified.
+ *
+ * @param dest the destination of the copy. The dmtree_node_t memory must be allocated prior to the call.
+ * @param src the dmtree_node_t to be copied.
+ *
+ * @returns the orginal value of dest or NULL in case of error.
+ */
+dmtree_node_t * dmtree_node_copy(dmtree_node_t * dest, dmtree_node_t * src);
 
 
 /*!

@@ -33,4 +33,4 @@ libdmclient_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
 
 libdmclient_la_LIBADD = $(top_builddir)/externals/SyncMLRTK/libsyncml.a $(top_builddir)/externals/libmd5-rfc/libmd5rfc.a
 
-libdmclient_la_LDFLAGS = $(LIBXML_LIBS) -export-symbols-regex '^omadmclient_'
+libdmclient_la_LDFLAGS = $(LIBXML_LIBS) -export-symbols-regex '^omadmclient_|^dmtree_node_'

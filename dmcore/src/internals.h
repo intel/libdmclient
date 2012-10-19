@@ -194,10 +194,6 @@ void         free_dmclt_alert(dmclt_ui_t * alertP);
 
 void set_new_uri (internals_t * internP, char * uri);
 
-void dmtree_node_free(dmtree_node_t *node);
-void dmtree_node_clean(dmtree_node_t *node, bool full);
-
-
 // implemented in callbacks.c
 SmlCallbacksPtr_t get_callbacks();
 

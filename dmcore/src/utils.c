@@ -867,3 +867,71 @@ void dmtree_node_free(dmtree_node_t *node)
 
     free(node);
 }
+
+dmtree_node_t * dmtree_node_dup(dmtree_node_t * src)
+{
+    dmtree_node_t * dest;
+
+    if (NULL == src)
+    {
+        return NULL;
+    }
+
+    dest = (dmtree_node_t *)malloc(sizeof(dmtree_node_t));
+    if (NULL == dest)
+    {
+        return NULL;
+    }
+    memset(dest, 0, sizeof(dmtree_node_t));
+
+    if (src->uri)
+    {
+        dest->uri = strdup(src->uri);
+        if (NULL == dest->uri) goto on_error;
+    }
+    if (src->format)
+    {
+        dest->format = strdup(src->format);
+        if (NULL == dest->format) goto on_error;
+    }
+    if (src->type)
+    {
+        dest->type = strdup(src->type);
+        if (NULL == dest->type) goto on_error;
+    }
+    if (src->data_size && src->data_buffer)
+    {
+        dest->data_size = src->data_size;
+        dest->data_buffer = (char *)malloc(dest->data_size);
+        if (NULL == dest->data_buffer) goto on_error;
+        memcpy(dest->data_buffer, src->data_buffer, dest->data_size);
+    }
+
+    return dest;
+
+on_error:
+    dmtree_node_free(dest);
+    return NULL;
+}
+
+dmtree_node_t * dmtree_node_copy(dmtree_node_t * dest,
+                                 dmtree_node_t * src)
+{
+    dmtree_node_t * tmp;
+
+    if (NULL == dest)
+    {
+        return NULL;
+    }
+
+    tmp = dmtree_node_dup(src);
+    if (NULL == tmp)
+    {
+        return NULL;
+    }
+
+    dmtree_node_clean(dest, true);
+    memcpy(dest, tmp, sizeof(dmtree_node_t));
+
+    return dest;
+}
