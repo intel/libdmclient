@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include <syncml_error.h>
-#include "error_macros.h"
 #include "config.h"
 
 #include "static_mo_util.h"
@@ -61,12 +60,13 @@ int static_mo_is_node(const char *iURI,
 int static_mo_get(dmtree_node_t * nodeP,
                   void *iData)
 {
-    DMC_ERR_MANAGE;
+    int err = OMADM_SYNCML_ERROR_NONE;
 
     static_node_t * nodes = (static_node_t *)iData;
     int i;
 
-    DMC_FAIL_ERR(!nodeP || !nodeP->uri || !nodes, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+    if (!nodeP || !nodeP->uri || !nodes)
+	return OMADM_SYNCML_ERROR_COMMAND_FAILED;
 
     nodeP->format = NULL;
     nodeP->type = NULL;
@@ -78,30 +78,46 @@ int static_mo_get(dmtree_node_t * nodeP,
     switch (nodes[i].type)
     {
     case OMADM_NODE_IS_INTERIOR:
-        DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        nodeP->format = strdup("node");
+	if (!nodeP->format)
+        {
+	    err = OMADM_SYNCML_ERROR_DEVICE_FULL;
+            goto on_error;
+        }
         break;
     case OMADM_NODE_IS_LEAF:
-        DMC_FAIL_NULL(nodeP->format, strdup("chr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
-        DMC_FAIL_NULL(nodeP->type, strdup("text/plain"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        nodeP->format = strdup("chr");
+        nodeP->type = strdup("text/plain");
+	if (!nodeP->format || !nodeP->type)
+	{
+	    err = OMADM_SYNCML_ERROR_DEVICE_FULL;
+            goto on_error;
+        }
         break;
     default:
-        DMC_FAIL(OMADM_SYNCML_ERROR_NOT_FOUND);
+        err = OMADM_SYNCML_ERROR_NOT_FOUND;
+	goto on_error;
     }
 
     if (nodes[i].value)
     {
-        DMC_FAIL_NULL(nodeP->data_buffer, strdup(nodes[i].value), OMADM_SYNCML_ERROR_DEVICE_FULL);
+        nodeP->data_buffer = strdup(nodes[i].value);
+	if (!nodeP->data_buffer)
+	{
+	    err = OMADM_SYNCML_ERROR_DEVICE_FULL;
+            goto on_error;
+        }
         nodeP->data_size = strlen(nodes[i].value) + 1;
     }
 
     return OMADM_SYNCML_ERROR_NONE;
 
-DMC_ON_ERR:
+on_error:
     if (nodeP->format) free (nodeP->format);
     if (nodeP->type) free (nodeP->type);
     // allocating nodeP->data_buffer is the last thing that can fail so no need to free it.
 
-    return DMC_ERR;
+    return err;
 }
 
 int static_mo_getACL(const char *iURI,
