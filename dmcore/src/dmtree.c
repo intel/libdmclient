@@ -529,6 +529,7 @@ int dmtree_replace(dmtree_t * handle, dmtree_node_t *node)
 
         DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
         DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+        DMC_FAIL_ERR(node_exists == OMADM_NODE_IS_INTERIOR, OMADM_SYNCML_ERROR_NOT_ALLOWED);
         DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
         tmp_uri = node->uri;
         node->uri = target_uri;
