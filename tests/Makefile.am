@@ -11,7 +11,7 @@ libdir = $(MO_INSTALL_DIR)
 install-exec-hook:
 	find $(libdir) -type f -name \*.la -delete
 
-lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la mostorage.la modmacc.la
+lib_LTLIBRARIES = modevdetails.la modevinfo.la moinbox.la mostorage.la modmacc.la momemory.la
 
 modevdetails_la_SOURCES = mgtobj/DevDetail/plugin_devdetails.c mgtobj/utils/static_mo_util.c
 modevdetails_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
@@ -45,3 +45,9 @@ mostorage_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
                         -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
                         -I $(top_srcdir)/dmcore/include
 mostorage_la_LDFLAGS = $(SQLITE3_LIBS) -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
+
+momemory_la_SOURCES = mgtobj/Memory/plugin_memory.c mgtobj/utils/memory_mo_util.c
+momemory_la_CPPFLAGS = -Wall -Wextra -Wcast-align \
+                      -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement \
+                      -I $(top_srcdir)/dmcore/include -I $(top_srcdir)/tests/mgtobj/utils
+momemory_la_LDFLAGS = -avoid-version -module -shared -export-dynamic -export-symbols-regex '^omadm_get_mo_interface'
