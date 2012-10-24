@@ -569,7 +569,7 @@ int momgr_get_value(const mo_mgr_t iMgr,
     DMC_ERR = plugin->interface->getFunc(nodeP, plugin->data);
 
     // handle nested plugins
-    if (OMADM_SYNCML_ERROR_NONE == DMC_ERR
+    if ((OMADM_SYNCML_ERROR_NONE == DMC_ERR && 0 == strcmp(nodeP->format, "node"))
      || OMADM_SYNCML_ERROR_NOT_FOUND == DMC_ERR)
     {
         char * subUri;
@@ -605,7 +605,7 @@ int momgr_get_value(const mo_mgr_t iMgr,
                 }
                 child = child->next;
             }
-            if (NULL != nodeP->data_buffer)
+            if (NULL != dirP->children && NULL != nodeP->data_buffer)
             {
                 nodeP->data_size = strlen(nodeP->data_buffer) + 1;
             }
