@@ -92,12 +92,12 @@ void dmtree_node_clean(dmtree_node_t * node, bool full);
  *
  * @returns a pointer to a new dmtree_node_t or NULL in case of error.
  */
-dmtree_node_t * dmtree_node_dup(dmtree_node_t * src);
+dmtree_node_t * dmtree_node_dup(const dmtree_node_t * src);
 
 /*!
  * @brief Copies a dmtree_node_t to another dmtree_node_t.
  *        All the source's internal pointers are duplicated INCLUDING the data_buffer.
- *        If the destination's internal pointers are not NULL, they are freed before the copy is done.
+ *        If the destination's internal pointers are not NULL, they are not replaced.
  *        In case of error, function returns NULL and dest is not modified.
  *
  * @param dest the destination of the copy. The dmtree_node_t memory must be allocated prior to the call.
@@ -105,7 +105,7 @@ dmtree_node_t * dmtree_node_dup(dmtree_node_t * src);
  *
  * @returns the orginal value of dest or NULL in case of error.
  */
-dmtree_node_t * dmtree_node_copy(dmtree_node_t * dest, dmtree_node_t * src);
+dmtree_node_t * dmtree_node_copy(dmtree_node_t * dest, const dmtree_node_t * src);
 
 
 /*!

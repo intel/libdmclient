@@ -868,7 +868,7 @@ void dmtree_node_free(dmtree_node_t *node)
     free(node);
 }
 
-dmtree_node_t * dmtree_node_dup(dmtree_node_t * src)
+dmtree_node_t * dmtree_node_dup(const dmtree_node_t * src)
 {
     dmtree_node_t * dest;
 
@@ -915,13 +915,17 @@ on_error:
 }
 
 dmtree_node_t * dmtree_node_copy(dmtree_node_t * dest,
-                                 dmtree_node_t * src)
+                                 const dmtree_node_t * src)
 {
     dmtree_node_t * tmp;
 
     if (NULL == dest)
     {
         return NULL;
+    }
+    if (NULL == src)
+    {
+        return dest;
     }
 
     tmp = dmtree_node_dup(src);
@@ -930,8 +934,28 @@ dmtree_node_t * dmtree_node_copy(dmtree_node_t * dest,
         return NULL;
     }
 
-    dmtree_node_clean(dest, true);
-    memcpy(dest, tmp, sizeof(dmtree_node_t));
+    if (NULL == dest->uri)
+    {
+        dest->uri = tmp->uri;
+        tmp->uri = NULL;
+    }
+    if (NULL == dest->type)
+    {
+        dest->type = tmp->type;
+        tmp->type = NULL;
+    }
+    if (NULL == dest->format)
+    {
+        dest->format = tmp->format;
+        tmp->format = NULL;
+    }
+    if (NULL == dest->data_buffer)
+    {
+        dest->data_size = tmp->data_size;
+        dest->data_buffer = tmp->data_buffer;
+        tmp->data_buffer = NULL;
+    }
 
+    dmtree_node_free(tmp);
     return dest;
 }
