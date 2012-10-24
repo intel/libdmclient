@@ -66,7 +66,7 @@ int static_mo_get(dmtree_node_t * nodeP,
     int i;
 
     if (!nodeP || !nodeP->uri || !nodes)
-	return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
 
     nodeP->format = NULL;
     nodeP->type = NULL;
@@ -127,6 +127,9 @@ int static_mo_getACL(const char *iURI,
     static_node_t * nodes = (static_node_t *)iData;
     int i;
 
+    if (!nodes || !oValue || !iURI)
+        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+
     *oValue = NULL;
 
     i = prv_find_node(nodes, iURI);
@@ -151,6 +154,9 @@ int static_mo_findURN(const char *iURN,
     static_node_t * nodes = (static_node_t *)iData;
     int i;
     int count;
+
+    if (!nodes || !oURL || !iURN)
+        return OMADM_SYNCML_ERROR_COMMAND_FAILED;
 
     *oURL = NULL;
     count = 0;
