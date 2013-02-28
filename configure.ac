@@ -21,8 +21,6 @@ AC_ARG_ENABLE([tests], AS_HELP_STRING([--enable-tests], [Build test client and p
 
 # Checks for libraries.
 PKG_PROG_PKG_CONFIG(0.16)
-PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
-PKG_CHECK_MODULES([LIBWBXML], [libwbxml2])
 AC_CHECK_LIB(dl, dlopen)
 AS_IF([test "x$enable_tests" = "xyes"], [
     PKG_CHECK_MODULES([LIBCURL], [libcurl])
