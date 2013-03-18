@@ -1116,7 +1116,7 @@ buildExec(XltDecoderPtr_t pDecoder, VoidPtr_t *ppElem)
                 break;
 
             case TN_ITEM:
-                rc = buildItem(pDecoder, (VoidPtr_t)&pExec->item);
+                rc = appendItemList(pDecoder, &pExec->itemList);
                 items++;
                 break;
 

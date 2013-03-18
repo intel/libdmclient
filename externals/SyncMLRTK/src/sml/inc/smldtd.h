@@ -342,7 +342,7 @@ typedef struct sml_exec_s {
   Flag_t                flags;      // NoResp
   SmlCredPtr_t          cred;       // opt.
   SmlPcdataPtr_t        meta;       // opt.
-  SmlItemPtr_t          item;
+  SmlItemListPtr_t      itemList;
 } *SmlExecPtr_t, SmlExec_t;
 
 

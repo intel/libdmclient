@@ -78,8 +78,11 @@ static Ret_t prv_do_generic_cmd_cb(InstanceID_t id,
                 code = delete_node(internP, itemCell->item);
                 break;
             case SML_PE_REPLACE:
-                code = replace_node(internP, itemCell->item);
-                break;
+                 code = replace_node(internP, itemCell->item);
+                 break;
+            case SML_PE_EXEC:
+                 code = exec_node(internP, itemCell->item);
+                 break;
             default:
                 code = OMADM_SYNCML_ERROR_COMMAND_NOT_IMPLEMENTED;
             }
@@ -498,6 +501,7 @@ SmlCallbacksPtr_t get_callbacks()
         callbacksP->addCmdFunc        = prv_do_generic_cmd_cb;
         callbacksP->alertCmdFunc      = prv_alert_cmd_cb;
         callbacksP->deleteCmdFunc     = prv_do_generic_cmd_cb;
+        callbacksP->execCmdFunc    	  = prv_do_generic_cmd_cb;
         callbacksP->getCmdFunc        = prv_get_cmd_cb;
         callbacksP->statusCmdFunc     = prv_status_cmd_cb;
         callbacksP->replaceCmdFunc    = prv_do_generic_cmd_cb;
@@ -510,7 +514,6 @@ SmlCallbacksPtr_t get_callbacks()
         callbacksP->putCmdFunc     = (smlPutCmdFunc)prv_unimplemented_cb;
         callbacksP->mapCmdFunc     = (smlMapCmdFunc)prv_unimplemented_cb;
         callbacksP->resultsCmdFunc = (smlResultsCmdFunc)prv_unimplemented_cb;
-        callbacksP->execCmdFunc    = (smlExecCmdFunc)prv_unimplemented_cb;
         callbacksP->searchCmdFunc  = (smlSearchCmdFunc)prv_unimplemented_cb;
 
         // Commands ignored

@@ -385,6 +385,41 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
+int dmtree_exec(dmtree_t * handle,
+				const char *uri,
+				const char *data,
+				const char *correlator)
+{
+    DMC_ERR_MANAGE;
+
+    char * target_uri = NULL;
+    omadmtree_node_kind_t node_exists;
+
+    DMC_LOGF("%s called.", __FUNCTION__);
+
+    DMC_FAIL_ERR(!uri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
+
+    DMC_LOGF("deleting %s", uri);
+
+    DMC_FAIL(momgr_validate_uri(handle->MOs, uri, &target_uri, NULL));
+
+    DMC_FAIL(momgr_exists(handle->MOs, target_uri, &node_exists));
+
+    DMC_FAIL_ERR(node_exists == OMADM_NODE_NOT_EXIST, OMADM_SYNCML_ERROR_NOT_FOUND);
+
+    DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_EXECUTE));
+
+    DMC_FAIL(momgr_exec_node(handle->MOs, target_uri, data, correlator));
+
+DMC_ON_ERR:
+
+    if (target_uri) free(target_uri);
+
+    DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
+
+    return DMC_ERR;
+}
+
 int dmtree_add(dmtree_t * handle, dmtree_node_t *node)
 {
     DMC_ERR_MANAGE;

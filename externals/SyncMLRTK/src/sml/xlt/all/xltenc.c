@@ -896,7 +896,7 @@ Ret_t xltEncBlock(XltTagID_t tagId, XltRO_t reqOptFlag, const VoidPtr_t pContent
       // Meta?
       if ((_err = xltEncBlock(TN_META, OPTIONAL, ((SmlExecPtr_t) pContent)->meta, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
       // Item
-      if ((_err = xltEncBlock(TN_ITEM, REQUIRED, ((SmlExecPtr_t) pContent)->item, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
+      if ((_err = xltEncBlock(ITEM_LIST, REQUIRED, ((SmlExecPtr_t) pContent)->itemList, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
       // End tag
       if ((_err = xltGenerateTag(TN_EXEC, TT_END, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
       break;

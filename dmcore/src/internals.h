@@ -155,6 +155,7 @@ int             get_node           (internals_t * internP, SmlItemPtr_t itemP, S
 int             add_node           (internals_t * internP, SmlItemPtr_t itemP);
 int             replace_node       (internals_t * internP, SmlItemPtr_t itemP);
 int             delete_node        (internals_t * internP, SmlItemPtr_t itemP);
+int             exec_node          (internals_t * internP, SmlItemPtr_t itemP);
 int             copy_node          (internals_t * internP, SmlItemPtr_t itemP);
 
 

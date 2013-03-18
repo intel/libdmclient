@@ -47,6 +47,7 @@ int dmtree_get(dmtree_t * handle, dmtree_node_t *node);
 int dmtree_add(dmtree_t * handle, dmtree_node_t *node);
 int dmtree_replace(dmtree_t * handle, dmtree_node_t *node);
 int dmtree_delete(dmtree_t * handle, const char *uri);
+int dmtree_exec(dmtree_t * handle, const char *uri, const char *data, const char *correlator);
 int dmtree_copy(dmtree_t * handle, const char *source_uri, const char *target_uri);
 
 

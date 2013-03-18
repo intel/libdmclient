@@ -199,6 +199,20 @@ int delete_node(internals_t * internP,
     return code;
 }
 
+int exec_node(internals_t * internP,
+              SmlItemPtr_t itemP)
+{
+    int code;
+
+    code = dmtree_exec(internP->dmtreeH,
+                       smlPcdata2String(itemP->target->locURI),
+                       smlPcdata2String(itemP->data),
+                       NULL);
+    PRV_CONVERT_CODE(code);
+
+    return code;
+}
+
 int replace_node(internals_t * internP,
                  SmlItemPtr_t itemP)
 {

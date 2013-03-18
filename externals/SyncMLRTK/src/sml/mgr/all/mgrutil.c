@@ -596,7 +596,7 @@ SML_API void smlFreeExec(SmlExecPtr_t pExec)
 
   smlFreeCredPtr(pExec->cred);
 
-  smlFreeItemPtr(pExec->item);
+  smlFreeItemList(pExec->itemList);
 
   smlLibFree(pExec);
 }
@@ -1156,8 +1156,8 @@ SML_API SmlExecPtr_t smlAllocExec() {
         smlFreeExec(p);
         return NULL;
     }
-    p->item  = smlAllocItem();
-    if (p->item == NULL) {
+    p->itemList  = smlAllocItemList();
+    if (p->itemList == NULL) {
         smlFreeExec(p);
         return NULL;
     }
