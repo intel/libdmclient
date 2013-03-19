@@ -266,7 +266,7 @@ dmclt_err_t omadmclient_session_add_mo(dmclt_session sessionH,
         return DMCLT_ERR_USAGE;
     }
 
-    if (OMADM_SYNCML_ERROR_NONE != momgr_add_plugin(&(internP->dmtreeH->MOs), moP, NULL))
+    if (OMADM_SYNCML_ERROR_NONE != momgr_add_plugin(&(internP->dmtreeH->MOs), moP))
     {
         return DMCLT_ERR_INTERNAL;
     }
@@ -309,6 +309,11 @@ dmclt_err_t omadmclient_session_start(dmclt_session sessionH,
         return DMCLT_ERR_INTERNAL;
     }
     
+    if (OMADM_SYNCML_ERROR_NONE != momgr_check_mandatory_mo(&(internP->dmtreeH->MOs)))
+    {
+    	return DMCLT_ERR_USAGE;
+    }
+
     if (OMADM_SYNCML_ERROR_NONE != get_server_account(internP->dmtreeH->MOs, serverID, &(internP->account)))
     {
         return DMCLT_ERR_INTERNAL;

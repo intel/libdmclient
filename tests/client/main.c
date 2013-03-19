@@ -23,9 +23,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
+#include <dlfcn.h>
+#include <dirent.h>
 #include <stdbool.h>
 #include <omadmclient.h>
 #include <curl/curl.h>
+#include <config.h>
+
+#define MAX_PLUGIN 16
 
 // implemented in test_plugin.c
 omadm_mo_interface_t * test_get_mo_interface();
@@ -248,6 +253,68 @@ long sendPacket(CURL * curlH,
     return status;
 }
 
+void LoadPlugins(dmclt_session session,
+				 void * pluginHandles[MAX_PLUGIN])
+{
+    DIR *folderP;
+    int i;
+
+    i = 0;
+
+    // load plugins from the plugins directory
+    folderP = opendir(MO_INSTALL_DIR);
+    if (folderP != NULL)
+    {
+        struct dirent *fileP;
+
+        while ((fileP = readdir(folderP)) && (i < MAX_PLUGIN))
+        {
+            if (DT_REG == fileP->d_type)
+            {
+                char * filename;
+                void * handle = NULL;
+                omadm_mo_interface_t * moInterfaceP = NULL;
+                omadm_mo_interface_t * (*getMoIfaceF)();
+
+                filename = (char *)malloc(strlen(MO_INSTALL_DIR) + 1 + strlen(fileP->d_name) + 1);
+                if (filename)
+                {
+                    sprintf(filename, "%s", MO_INSTALL_DIR);
+                    strcat(filename, "/");
+                    strcat(filename, fileP->d_name);
+
+					handle = dlopen(filename, RTLD_LAZY);
+					if (handle)
+					{
+						getMoIfaceF = dlsym(handle, "omadm_get_mo_interface");
+						if (getMoIfaceF)
+						{
+							moInterfaceP = getMoIfaceF();
+							if (moInterfaceP && (moInterfaceP->base_uri))
+							{
+								if (DMCLT_ERR_NONE == omadmclient_session_add_mo(session, moInterfaceP))
+								{
+									// store handle
+									pluginHandles[i] = handle;
+									i++;
+									handle = NULL;
+								}
+								else
+								{
+									free(moInterfaceP);
+								}
+							}
+						}
+
+						if (handle) dlclose (handle);
+					}
+					free(filename);
+                }
+            }
+        }
+        closedir(folderP);
+    }
+}
 int main(int argc, char *argv[])
 {
     dmclt_session session;
@@ -262,10 +329,12 @@ int main(int argc, char *argv[])
     char * file = NULL;
     omadm_mo_interface_t * testMoP;
     char * proxyStr;
+    void * pluginHandles[MAX_PLUGIN];
 
     server = NULL;
     file = NULL;
     opterr = 0;
+    memset(pluginHandles, 0, MAX_PLUGIN * sizeof(void*));
 
     while ((c = getopt (argc, argv, "ws:f:")) != -1)
     {
@@ -322,7 +391,7 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Loading test MO failed\r\n");
     }
-    
+
     err = omadmclient_session_start(session,
                                     server?server:"funambol",
                                     1);
@@ -413,6 +482,12 @@ int main(int argc, char *argv[])
         omadmclient_clean_buffer(&buffer);
     }
     omadmclient_session_close(session);
+
+    c = 0;
+   	while ((c < MAX_PLUGIN) && (pluginHandles[c] != 0))
+    {
+        dlclose(pluginHandles[c]);
+    }
 
     // check that we return 0 in case of success
     if (DMCLT_ERR_END == err) err = 0;
