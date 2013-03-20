@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3B5B3A3E-4BCC-468A-B5C0-C8D4F2C479A5}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)\include;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\inc\win;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\inc;$(ProjectDir)\..\externals\libmd5-rfc;$(ProjectDir)\..\externals\SyncMLRTK\src;$(ProjectDir)\..\dmcore\include;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\mgr\inc;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\xlt\inc;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\lib\inc;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\xlt\all;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\wsm\inc;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBDMCLIENT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBDMCLIENT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\dmcore\src\callbacks.c" />
+    <ClCompile Include="..\dmcore\src\codec.c" />
+    <ClCompile Include="..\dmcore\src\credentials.c" />
+    <ClCompile Include="..\dmcore\src\defaultroot.c" />
+    <ClCompile Include="..\dmcore\src\dmtree.c" />
+    <ClCompile Include="..\dmcore\src\log.c" />
+    <ClCompile Include="..\dmcore\src\momgr.c" />
+    <ClCompile Include="..\dmcore\src\omadmclient.c" />
+    <ClCompile Include="..\dmcore\src\package0.c" />
+    <ClCompile Include="..\dmcore\src\sml2tree.c" />
+    <ClCompile Include="..\dmcore\src\uricheck.c" />
+    <ClCompile Include="..\dmcore\src\utils.c" />
+    <ClCompile Include="..\externals\libmd5-rfc\md5.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\lib\all\liblock.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\lib\all\libmem.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\lib\all\libstr.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\lib\all\libutil.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\mgr\all\mgr.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\mgr\all\mgrcmdbuilder.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\mgr\all\mgrcmddispatcher.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\mgr\all\mgrinstancelist.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\mgr\all\mgrinstancemgr.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\mgr\all\mgrutil.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdec.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdecwbxml.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdecxml.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdevinf.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltenc.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltenccom.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltencwbxml.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltencxml.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltmetinf.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xlttags.c" />
+    <ClCompile Include="..\externals\syncmlrtk\src\sml\xlt\all\xltutilstack.c" />
+    <ClCompile Include="source\String.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\externals\syncmlrtk\src\sml\SyncML.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\dmcore\include\error_macros.h" />
+    <ClInclude Include="..\dmcore\include\omadmclient.h" />
+    <ClInclude Include="..\dmcore\include\omadmtree_mo.h" />
+    <ClInclude Include="..\dmcore\include\syncml_error.h" />
+    <ClInclude Include="..\dmcore\src\dmtree.h" />
+    <ClInclude Include="..\dmcore\src\internals.h" />
+    <ClInclude Include="..\dmcore\src\log.h" />
+    <ClInclude Include="..\dmcore\src\momgr.h" />
+    <ClInclude Include="..\externals\libmd5-rfc\md5.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\sml.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\smldef.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\smldevinfdtd.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\smldtd.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\smlerr.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\smlmetinfdtd.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\inc\win\define.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\lib\inc\liblock.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\lib\inc\libmem.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\lib\inc\libstr.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\lib\inc\libutil.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\mgr\inc\mgr.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\mgr\inc\mgrutil.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\wsm\inc\wsm.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdeccom.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdecwbxml.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltdevinf.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltenccom.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltencwbxml.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltencxml.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltmetinf.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xlttags.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xlttagtbl.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\all\xltutilstack.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\inc\xltdec.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\inc\xltenc.h" />
+    <ClInclude Include="..\externals\syncmlrtk\src\syncml_tk_prefix_file.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

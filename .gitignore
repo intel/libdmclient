@@ -29,3 +29,14 @@ missing
 .libs/
 stamp-h1
 INSTALL
+
+windows/Debug/
+windows/Release/
+windows/libdmclient.opensdf
+windows/libdmclient.sdf
+windows/libdmclient.sln
+windows/libdmclient.*.suo
+windows/libdmclient.*.log
+
+
+
