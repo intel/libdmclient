@@ -140,7 +140,7 @@ int decode_package_0(buffer_t pkg0,
     }
 
     field = (header & PRV_SESSION_ID_MASK) >> PRV_SESSION_ID_SHIFT;
-#warning TODO: check if needed
+//TODO: check if needed
     *sessionID = ntohs(field);
 
     field = (header & PRV_LENGTH_ID_MASK) >> PRV_LENGTH_ID_SHIFT;

@@ -253,7 +253,7 @@ static Ret_t prv_alert_cmd_cb(InstanceID_t id,
         code  = OMADM_SYNCML_ERROR_COMMAND_FAILED;
         goto end;
     }
-#warning TODO: check for UTF8
+//TODO: check for UTF8
     answer = (char *) malloc(dmcAlertP->max_resp_len + 1);
     if (NULL == answer)
     {
