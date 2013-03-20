@@ -25,7 +25,6 @@
 
 #include "memory_mo_util.h"
 
-#include "config.h"
 #include "syncml_error.h"
 
 

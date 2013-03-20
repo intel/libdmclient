@@ -30,7 +30,6 @@
 #define INTERNALS_H
 
 #include <stdint.h>
-#include <config.h>
 #include <syncml_tk_prefix_file.h>
 #include <sml.h>
 #include <smldef.h>

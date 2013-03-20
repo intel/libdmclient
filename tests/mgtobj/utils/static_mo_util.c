@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include <syncml_error.h>
-#include "config.h"
 
 #include "static_mo_util.h"
 

@@ -42,8 +42,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "config.h"
-
 #include "error_macros.h"
 #include "log.h"
 

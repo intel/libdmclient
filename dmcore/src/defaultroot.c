@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "omadmtree_mo.h"
 #include "syncml_error.h"
 

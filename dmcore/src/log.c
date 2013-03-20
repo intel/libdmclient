@@ -30,7 +30,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "config.h"
 #include "syncml_error.h"
 #include "log.h"
 

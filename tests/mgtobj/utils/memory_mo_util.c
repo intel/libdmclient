@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include <syncml_error.h>
-#include "config.h"
 
 #include "memory_mo_util.h"
 

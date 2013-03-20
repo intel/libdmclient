@@ -25,8 +25,6 @@
 #include <stdint.h>
 #include <sqlite3.h>
 
-#include "config.h"
-
 #include "dyn_buf.h"
 #include "dmsettings.h"
 #include "error.h"

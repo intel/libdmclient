@@ -23,7 +23,6 @@
 #include <string.h>
 #include <omadmtree_mo.h>
 
-#include "config.h"
 #include "syncml_error.h"
 
 static int prv_testInitFN(void **oData)
