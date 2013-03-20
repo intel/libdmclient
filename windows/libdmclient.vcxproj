@@ -41,6 +41,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)\include;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\inc\win;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\inc;$(ProjectDir)\..\externals\libmd5-rfc;$(ProjectDir)\..\externals\SyncMLRTK\src;$(ProjectDir)\..\dmcore\include;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\mgr\inc;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\xlt\inc;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\lib\inc;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\xlt\all;$(ProjectDir)\..\externals\SyncMLRTK\src\sml\wsm\inc;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -54,6 +55,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
+      <ModuleDefinitionFile>libdmclient.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -69,6 +71,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <ModuleDefinitionFile>libdmclient.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -109,9 +112,6 @@
     <ClCompile Include="source\String.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\externals\syncmlrtk\src\sml\SyncML.def" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\dmcore\include\error_macros.h" />
     <ClInclude Include="..\dmcore\include\omadmclient.h" />
     <ClInclude Include="..\dmcore\include\omadmtree_mo.h" />
@@ -148,6 +148,9 @@
     <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\inc\xltdec.h" />
     <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\inc\xltenc.h" />
     <ClInclude Include="..\externals\syncmlrtk\src\syncml_tk_prefix_file.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="libdmclient.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

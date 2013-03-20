@@ -122,11 +122,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\externals\syncmlrtk\src\sml\SyncML.def">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\dmcore\include\error_macros.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -235,5 +230,10 @@
     <ClInclude Include="..\externals\syncmlrtk\src\sml\xlt\inc\xltenc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="libdmclient.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

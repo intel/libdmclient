@@ -1,0 +1,14 @@
+LIBRARY libdmclient
+EXPORTS
+	omadmclient_session_init
+	omadmclient_session_close
+	omadmclient_set_UI_callback
+	omadmclient_session_add_mo
+	omadmclient_getUriList
+	omadmclient_session_start
+	omadmclient_session_start_on_alert
+	omadmclient_get_next_packet
+	omadmclient_process_reply
+	omadmclient_add_generic_alert
+	omadmclient_clean_buffer
+
