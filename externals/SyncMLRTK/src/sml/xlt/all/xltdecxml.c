@@ -1229,6 +1229,7 @@ Boolean_t isPcdata(XltTagID_t tagid)
     case TN_PROTO:
     case TN_DATA:
     case TN_META:
+    case TN_CORRELATOR:
     case TN_NUMBEROFCHANGES:
     /* SyncML DS 1.2, Synthesis/luz 2005-08-24 */
     case TN_FILTERTYPE:

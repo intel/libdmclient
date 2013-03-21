@@ -80,9 +80,6 @@ static Ret_t prv_do_generic_cmd_cb(InstanceID_t id,
             case SML_PE_REPLACE:
                  code = replace_node(internP, itemCell->item);
                  break;
-            case SML_PE_EXEC:
-                 code = exec_node(internP, itemCell->item);
-                 break;
             default:
                 code = OMADM_SYNCML_ERROR_COMMAND_NOT_IMPLEMENTED;
             }
@@ -383,6 +380,53 @@ static Ret_t prv_get_cmd_cb(InstanceID_t id,
     return SML_ERR_OK;
 }
 
+static Ret_t prv_exec_cmd_cb(InstanceID_t id,
+                             VoidPtr_t userData,
+                             SmlExecPtr_t execP)
+{
+    internals_t * internP = (internals_t *)userData;
+    SmlStatusPtr_t statusP;
+    SmlItemListPtr_t itemCell;
+
+    if (internP->sequence
+      && internP->seq_code != OMADM_SYNCML_ERROR_NOT_MODIFIED
+      && internP->seq_code != OMADM_SYNCML_ERROR_SUCCESS)
+    {
+        // do not treat this command
+        return SML_ERR_OK;
+    }
+
+    if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->srv_auth)
+    {
+        statusP = create_status(internP, internP->srv_auth, (SmlGenericCmdPtr_t)execP);
+
+        add_element(internP, (basicElement_t *)statusP);
+        return SML_ERR_OK;
+    }
+
+    itemCell = execP->itemList;
+    while (itemCell)
+    {
+        int code;
+
+        if (internP->sequence && internP->seq_code == OMADM_SYNCML_ERROR_NOT_MODIFIED)
+        {
+            code = OMADM_SYNCML_ERROR_NOT_EXECUTED;
+        }
+        else
+        {
+            code = exec_node(internP, itemCell->item, execP->correlator);
+        }
+        statusP = create_status(internP, code, (SmlGenericCmdPtr_t)execP);
+        add_target_ref(statusP, itemCell->item->target);
+        add_element(internP, (basicElement_t *)statusP);
+
+        itemCell = itemCell->next;
+    }
+
+    return SML_ERR_OK;
+}
+
 static Ret_t prv_status_cmd_cb(InstanceID_t id,
                                VoidPtr_t userData,
                                SmlStatusPtr_t statusP)
@@ -501,7 +545,7 @@ SmlCallbacksPtr_t get_callbacks()
         callbacksP->addCmdFunc        = prv_do_generic_cmd_cb;
         callbacksP->alertCmdFunc      = prv_alert_cmd_cb;
         callbacksP->deleteCmdFunc     = prv_do_generic_cmd_cb;
-        callbacksP->execCmdFunc    	  = prv_do_generic_cmd_cb;
+        callbacksP->execCmdFunc    	  = prv_exec_cmd_cb;
         callbacksP->getCmdFunc        = prv_get_cmd_cb;
         callbacksP->statusCmdFunc     = prv_status_cmd_cb;
         callbacksP->replaceCmdFunc    = prv_do_generic_cmd_cb;

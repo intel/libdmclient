@@ -35,7 +35,7 @@ static int prv_testIsNodeFN(const char *iURI,
 			                omadmtree_node_kind_t *oNodeType,
 				            void *iData)
 {
-	*oNodeType = (strcmp(iURI, "./test") == 0) ? OMADM_NODE_IS_INTERIOR : OMADM_NODE_NOT_EXIST;
+	*oNodeType = ((strcmp(iURI, "./test") == 0) || (strcmp(iURI, "./test/execute") == 0)) ? OMADM_NODE_IS_INTERIOR : OMADM_NODE_NOT_EXIST;
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
@@ -50,6 +50,13 @@ static int prv_testGetACLFN(const char *iURI,
 	        return OMADM_SYNCML_ERROR_NONE;
         return OMADM_SYNCML_ERROR_DEVICE_FULL;
     }
+	else if (!strcmp(iURI, "./test/execute"))
+	{
+	    *oValue = strdup("Exec=*");
+	    if (*oValue)
+	        return OMADM_SYNCML_ERROR_NONE;
+        return OMADM_SYNCML_ERROR_DEVICE_FULL;
+    }
     else
     {
         *oValue = NULL;
@@ -57,6 +64,42 @@ static int prv_testGetACLFN(const char *iURI,
     }
 }
 
+static int prv_testGetFN(dmtree_node_t * nodeP,
+						 void *iData)
+{
+	if (!strcmp(nodeP->uri, "./test"))
+	{
+		nodeP->format = strdup("node");
+		if (!nodeP->format)
+		{
+			return OMADM_SYNCML_ERROR_DEVICE_FULL;
+		}
+		nodeP->data_buffer = strdup("execute");
+		if (!nodeP->data_buffer)
+		{
+			free(nodeP->format);
+			return OMADM_SYNCML_ERROR_DEVICE_FULL;
+		}
+		nodeP->data_size = strlen(nodeP->data_buffer);
+	}
+    else
+    {
+        return OMADM_SYNCML_ERROR_NOT_FOUND;
+    }
+
+    return OMADM_SYNCML_ERROR_NONE;
+}
+
+static int prv_testExecFN(const char * iURI,
+						  const char * cmdData,
+						  const char * correlator,
+						  void * data)
+{
+	if (strcmp(iURI, "./test/execute") != 0)
+        return OMADM_SYNCML_ERROR_NOT_FOUND;
+
+	return OMADM_SYNCML_ERROR_NONE;
+}
 
 omadm_mo_interface_t * test_get_mo_interface()
 {
@@ -68,7 +111,9 @@ omadm_mo_interface_t * test_get_mo_interface()
 		retVal->base_uri = strdup("./test");
 		retVal->initFunc = prv_testInitFN;
 		retVal->isNodeFunc = prv_testIsNodeFN;
+		retVal->getFunc = prv_testGetFN;
 		retVal->getACLFunc = prv_testGetACLFN;
+		retVal->execFunc = prv_testExecFN;
 	}
 
 	return retVal;

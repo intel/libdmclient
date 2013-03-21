@@ -1110,6 +1110,10 @@ buildExec(XltDecoderPtr_t pDecoder, VoidPtr_t *ppElem)
                 rc = buildPCData(pDecoder, (VoidPtr_t)&pExec->meta);
                 break;
 
+            case TN_CORRELATOR:
+                rc = buildPCData(pDecoder, (VoidPtr_t)&pExec->correlator);
+                break;
+
                 /* child tags */
             case TN_CRED:
                 rc = buildCred(pDecoder, (VoidPtr_t)&pExec->cred);

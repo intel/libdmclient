@@ -200,14 +200,15 @@ int delete_node(internals_t * internP,
 }
 
 int exec_node(internals_t * internP,
-              SmlItemPtr_t itemP)
+              SmlItemPtr_t itemP,
+              SmlPcdataPtr_t correlatorP)
 {
     int code;
 
     code = dmtree_exec(internP->dmtreeH,
                        smlPcdata2String(itemP->target->locURI),
                        smlPcdata2String(itemP->data),
-                       NULL);
+                       smlPcdata2String(correlatorP));
     PRV_CONVERT_CODE(code);
 
     return code;
