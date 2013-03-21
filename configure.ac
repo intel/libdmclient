@@ -50,7 +50,6 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset])
 
-CFLAGS="-ggdb"
 if test "x${CFLAGS}" = "x"; then
    CFLAGS="-O2"
 fi
