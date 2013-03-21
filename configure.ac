@@ -3,7 +3,6 @@
 
 AC_PREREQ([2.65])
 AC_INIT([dmclient], [0.1.0], [david.navarro@intel.com])
-AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign])
 LT_PREREQ([2.2])
 LT_INIT
@@ -19,12 +18,25 @@ AM_PROG_CC_C_O
 AC_ARG_ENABLE([logging], AS_HELP_STRING([--enable-tests], [Build test client and plugins]))
 AC_ARG_ENABLE([tests], AS_HELP_STRING([--enable-tests], [Build test client and plugins]))
 
+# set plugins directory
+if test "${prefix}" = "NONE"; then
+    prefix=${ac_default_prefix}
+fi
+if test "${exec_prefix}" = "NONE"; then
+    exec_prefix=${prefix}
+fi
+libdir=${exec_prefix}/lib
+
 # Checks for libraries.
 PKG_PROG_PKG_CONFIG(0.16)
-AC_CHECK_LIB(dl, dlopen)
 AS_IF([test "x$enable_tests" = "xyes"], [
+    AC_CONFIG_HEADERS([config.h])
+    AC_CHECK_LIB(dl, dlopen)
     PKG_CHECK_MODULES([LIBCURL], [libcurl])
     PKG_CHECK_MODULES([SQLITE3], [sqlite3])
+    mo_install_dir=${exec_prefix}/bin/plugins
+    AC_SUBST([MO_INSTALL_DIR], [${mo_install_dir}])
+    AC_DEFINE_UNQUOTED([MO_INSTALL_DIR], ["${mo_install_dir}"], [management objects installation directory])
 ])
 
 # Checks for header files.
@@ -38,6 +50,7 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset])
 
+CFLAGS="-ggdb"
 if test "x${CFLAGS}" = "x"; then
    CFLAGS="-O2"
 fi
@@ -46,19 +59,6 @@ CFLAGS+=" -fPIC"
 if test "x${logging}" = xyes; then
    AC_DEFINE([DMC_LOGGING], 1, [logging enabled])
 fi
-
-# set plugins directory
-if test "${prefix}" = "NONE"; then
-    prefix=${ac_default_prefix}
-fi
-if test "${exec_prefix}" = "NONE"; then
-    exec_prefix=${prefix}
-fi
-libdir=${exec_prefix}/lib
-mo_install_dir=${exec_prefix}/lib/${PACKAGE}/plugins
-AC_SUBST([MO_INSTALL_DIR], [${mo_install_dir}])
-AC_DEFINE_UNQUOTED([MO_INSTALL_DIR], ["${mo_install_dir}"], [management objects installation directory])
-
 
 AM_CONDITIONAL([BUILD_TESTS], [test "x${enable_tests}" = xyes])
 
