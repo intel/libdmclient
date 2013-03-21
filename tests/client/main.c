@@ -315,6 +315,7 @@ void LoadPlugins(dmclt_session session,
         closedir(folderP);
     }
 }
+
 int main(int argc, char *argv[])
 {
     dmclt_session session;
@@ -391,6 +392,8 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Loading test MO failed\r\n");
     }
+
+    LoadPlugins(session, pluginHandles);
 
     err = omadmclient_session_start(session,
                                     server?server:"funambol",
@@ -487,6 +490,7 @@ int main(int argc, char *argv[])
    	while ((c < MAX_PLUGIN) && (pluginHandles[c] != 0))
     {
         dlclose(pluginHandles[c]);
+        c++;
     }
 
     // check that we return 0 in case of success
