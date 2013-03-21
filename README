@@ -33,6 +33,7 @@ The DMclient application is platform specific. Its role is to open the communica
 A DM Client algorithm is:
 
     omadmclient_session_init()
+    omadmclient_session_add_mo()
     omadmclient_session_open()
     while (packet = omadmclient_get_next_packet())
     {
@@ -44,7 +45,7 @@ A DM Client algorithm is:
 
 One of omadmclient_session_init() parameters is a callback called when there is some UI to display.
 
-The MOs are plugins. They are loaded by the DM client using the omadmclient_session_add_mo() API. They can also be shared libraries, one lib per MO. In this case they are loaded at runtime during the DM session opening.
+The MOs are plugins. They are loaded by the DM client using the omadmclient_session_add_mo() API.
 
 The MO interface contains 9 APIs apart from the classic open and close:
    - isNode() to test the existence of a node and determine if it is a leaf or an interior node.
@@ -75,33 +76,36 @@ Source Layout
  |    +- libmd5-rfc     (the libmd5-rfc available at http://sourceforge.net/projects/libmd5-rfc/)
  |
  +- tests
-      |
-      +- client         (a command-line test OMA DM client)
-      |
-      +- mgtobj         (test MOs for the dmclient library)
-           |
-           +- DevDetail (contains hard-coded values)
-           |
-           +- DevInfo   (contains hard-coded values)
-           |
-           +- DmAcc     (contains hard-coded values)
-           |
-           +- Inbox     (empty MO)
-           |
-           +- Storage   (stores added nodes in a SQL DB)
-           |
-           +- utils     (utility functions for hard-coded nodes)
+ |    |
+ |    +- client         (a command-line test OMA DM client)
+ |    |
+ |    +- mgtobj         (test MOs for the dmclient library)
+ |    |    |
+ |    |    +- DevDetail (contains hard-coded values)
+ |    |    |
+ |    |    +- DevInfo   (contains hard-coded values)
+ |    |    |
+ |    |    +- DmAcc     (contains hard-coded values)
+ |    |    |
+ |    |    +- Inbox     (empty MO)
+ |    |    |
+ |    |    +- Memory    (stores added nodes in memory)
+ |    |    |
+ |    |    +- Storage   (stores added nodes in a SQL DB)
+ |    |    |
+ |    |    +- utils     (utility functions for hard-coded nodes)
+ |    |
+ |    +- windows        (test client and plugins for Windows)
+ |
+ +- windows             (build system for Windows)
 
 
-
-Compiling
----------
+Compiling on Linux
+------------------
 
 libdmclient requires some packages:
   - autoconf automake libtool gcc make
       for the build system
-  - libxml2-devel libwbxml-devel
-      for the SyncML parsing
 
 Two other packages are optionnal:
   - libcurl-devel
@@ -120,16 +124,23 @@ Specific configure options are:
       build the test client and MOs. No by default.
 
 
-Install
--------
+Install: libdmclient.so is installed in ${prefix}/lib/dmclient
 
-libdmclient.so is installed in ${prefix}/lib/dmclient
-MOs plugin libraries must be installed in ${prefix}/lib/dmclient/plugins
+
+Compiling on Windows
+--------------------
+
+You will need Visual Studio. The free (as in beer) Express version is enough.
+
+Open the VS project libdmclient.vcxproj in the cloned repository windows folder. Build your solution. The DLL will be under windows/Debug or windows/Release depending on your configuration.
+
+These VS projects were created using Visual Studio 2012. If you are using a different version, you may need to change the Platform Toolset setting. Open the Properties dialog for libdmclient project. The setting is under Configuration Properties/General.
 
 
 Testing
 -------
-If configure was run with the option '--enable-tests', 'make install' will build and install some test MOs. The command-line dmclient application is ${prefix}/bin/testdmclient.
+On Linux if configure was run with the option '--enable-tests', 'make install' will build and install some test MOs. The command-line dmclient application is ${prefix}/bin/testdmclient.
+On Windows a test console application and some plugins can be found under tests/windows. To build them, open the VS project testdmclient.vcxproj. The build output is in the folder as libdmclient.dll
 
 Usage: testdmclient [-w] [-f FILE | -s SERVERID]
   -w	use WBXML
