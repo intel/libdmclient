@@ -332,6 +332,8 @@ int main(int argc, char *argv[])
     char * proxyStr;
     void * pluginHandles[MAX_PLUGIN];
 
+//    dmclt_item_t item;
+
     server = NULL;
     file = NULL;
     opterr = 0;
@@ -404,6 +406,22 @@ int main(int argc, char *argv[])
         return err;
     }
     
+/*
+    memset(&item, 0, sizeof(dmclt_item_t));
+    item.data = "200";
+    item.source = "./test/execute";
+    item.type = "urn:test";
+    item.format = "text/plain";
+
+    err = omadmclient_add_generic_alert(session,
+                                        "test",
+                                        &item);
+    if (err != DMCLT_ERR_NONE)
+    {
+        fprintf(stderr, "Adding generic alert failed: %d\r\n", err);
+        return err;
+    }
+*/
     if (!file)
     {
         curlH = curl_easy_init();

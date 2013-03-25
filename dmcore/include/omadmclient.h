@@ -58,6 +58,7 @@ typedef void * dmclt_session;
 typedef struct
 {
     char * source;
+    char * target;
     char * type;
     char * format;
     char * data;
@@ -207,11 +208,13 @@ dmclt_err_t omadmclient_process_reply(dmclt_session sessionH, dmclt_buffer_t * p
  * @brief Add a generic alert to the next packet to be sent to the server
  *
  * @param sessionH session handle
- * @param itemP item to add in the generic alert
+ * @param correlator correlator for the generic alert. Ignored if NULL.
+ * @param itemP item to add in the generic alert. NULL fields in itemP are ignored in the
+ * <Item> element added to the <Alert>.
  *
  * @returns DMCLT_ERR_NONE if successful or one of DMCLT_ERR_*
  */
-dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH, dmclt_item_t * itemP);
+dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH, char * correlator, dmclt_item_t * itemP);
 
 /*!
  * @brief Frees internal data of a dmclt_buffer_t.

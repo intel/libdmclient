@@ -302,6 +302,7 @@ typedef struct sml_alert_s {
   Flag_t                flags;      // NoResp
   SmlCredPtr_t          cred;       // opt.
   SmlPcdataPtr_t        data;       // opt.
+  SmlPcdataPtr_t        correlator; // opt.
   SmlItemListPtr_t      itemList;
 } *SmlAlertPtr_t, SmlAlert_t;
 

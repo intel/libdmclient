@@ -565,6 +565,7 @@ SML_API void smlFreeAlert(SmlAlertPtr_t pAlert)
 
   smlFreePcdata(pAlert->cmdID);
   smlFreePcdata(pAlert->data);
+  smlFreePcdata(pAlert->correlator);
 
   smlFreeCredPtr(pAlert->cred);
 

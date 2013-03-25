@@ -483,6 +483,7 @@ dmclt_err_t omadmclient_process_reply(dmclt_session sessionH,
 }
 
 dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH,
+										  char * correlator,
                                           dmclt_item_t * itemP)
 {
     internals_t * internP = (internals_t *)sessionH;
@@ -500,6 +501,21 @@ dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH,
     }
     
     alertP->data = smlString2Pcdata("1226");
+    if (NULL == alertP->data)
+    {
+        smlFreeAlert(alertP);
+        return DMCLT_ERR_MEMORY;
+    }
+
+    if (correlator)
+    {
+        alertP->correlator = smlString2Pcdata(correlator);
+        if (NULL == alertP->correlator)
+        {
+            smlFreeAlert(alertP);
+            return DMCLT_ERR_MEMORY;
+        }
+    }
 
     if (itemP->source)
     {
@@ -512,6 +528,17 @@ dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH,
         alertP->itemList->item->source->locURI = smlString2Pcdata(itemP->source);
     }
     
+    if (itemP->target)
+    {
+        alertP->itemList->item->target = smlAllocTarget();
+        if (NULL == alertP->itemList->item->target)
+        {
+            smlFreeAlert(alertP);
+            return DMCLT_ERR_MEMORY;
+        }
+        alertP->itemList->item->target->locURI = smlString2Pcdata(itemP->target);
+    }
+
     alertP->itemList->item->meta = convert_to_meta(itemP->format, itemP->type);
     alertP->itemList->item->data = smlString2Pcdata(itemP->data);
     if (NULL == alertP->itemList->item->meta || NULL == alertP->itemList->item->data)
@@ -519,6 +546,7 @@ dmclt_err_t omadmclient_add_generic_alert(dmclt_session sessionH,
         smlFreeAlert(alertP);
         return DMCLT_ERR_MEMORY;
     }
+
     add_element(internP, (basicElement_t *)alertP);
 
     return DMCLT_ERR_NONE;

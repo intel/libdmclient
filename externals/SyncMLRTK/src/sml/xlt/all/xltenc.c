@@ -829,6 +829,8 @@ Ret_t xltEncBlock(XltTagID_t tagId, XltRO_t reqOptFlag, const VoidPtr_t pContent
       if ((_err = xltEncBlock(TN_NORESP, OPTIONAL, &((SmlAlertPtr_t) pContent)->flags, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
       // Cred?
       if ((_err = xltEncBlock(TN_CRED, OPTIONAL, ((SmlAlertPtr_t) pContent)->cred, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
+      // Correlator?
+      if ((_err = xltEncBlock(TN_CORRELATOR, OPTIONAL, ((SmlAlertPtr_t) pContent)->correlator, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
       // Data?
       if ((_err = xltEncBlock(TN_DATA, OPTIONAL, ((SmlAlertPtr_t) pContent)->data, enc, pBufMgr, SML_EXT_UNDEFINED)) != SML_ERR_OK) return _err;
       // Item*
