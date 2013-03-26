@@ -32,6 +32,8 @@
 
 #define MAX_PLUGIN 16
 
+dmclt_session g_session = NULL;
+
 // implemented in test_plugin.c
 omadm_mo_interface_t * test_get_mo_interface();
 
@@ -316,9 +318,13 @@ void LoadPlugins(dmclt_session session,
     }
 }
 
+dmclt_session get_dm_session()
+{
+    return g_session;
+}
+
 int main(int argc, char *argv[])
 {
-    dmclt_session session;
     dmclt_buffer_t buffer;
     dmclt_buffer_t reply;
     int c;
@@ -331,8 +337,6 @@ int main(int argc, char *argv[])
     omadm_mo_interface_t * testMoP;
     char * proxyStr;
     void * pluginHandles[MAX_PLUGIN];
-
-//    dmclt_item_t item;
 
     server = NULL;
     file = NULL;
@@ -366,13 +370,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    session = omadmclient_session_init(isWbxml);
-    if (session == NULL)
+    g_session = omadmclient_session_init(isWbxml);
+    if (g_session == NULL)
     {
         fprintf(stderr, "Initialization failed\r\n");
         return 1;
     }
-    err = omadmclient_set_UI_callback(session, uiCallback, NULL);
+    err = omadmclient_set_UI_callback(g_session, uiCallback, NULL);
     if (err != DMCLT_ERR_NONE)
     {
         fprintf(stderr, "Initialization failed: %d\r\n", err);
@@ -382,7 +386,7 @@ int main(int argc, char *argv[])
     testMoP = test_get_mo_interface();
     if (testMoP)
     {
-        err = omadmclient_session_add_mo(session, testMoP);
+        err = omadmclient_session_add_mo(g_session, testMoP);
         if (err != DMCLT_ERR_NONE)
         {
             fprintf(stderr, "Adding test MO failed: %d\r\n", err);
@@ -395,9 +399,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Loading test MO failed\r\n");
     }
 
-    LoadPlugins(session, pluginHandles);
+    LoadPlugins(g_session, pluginHandles);
 
-    err = omadmclient_session_start(session,
+    err = omadmclient_session_start(g_session,
                                     server?server:"funambol",
                                     1);
     if (err != DMCLT_ERR_NONE)
@@ -406,29 +410,13 @@ int main(int argc, char *argv[])
         return err;
     }
     
-/*
-    memset(&item, 0, sizeof(dmclt_item_t));
-    item.data = "200";
-    item.source = "./test/execute";
-    item.type = "urn:test";
-    item.format = "text/plain";
-
-    err = omadmclient_add_generic_alert(session,
-                                        "test",
-                                        &item);
-    if (err != DMCLT_ERR_NONE)
-    {
-        fprintf(stderr, "Adding generic alert failed: %d\r\n", err);
-        return err;
-    }
-*/
     if (!file)
     {
         curlH = curl_easy_init();
 
         do
         {
-            err = omadmclient_get_next_packet(session, &buffer);
+            err = omadmclient_get_next_packet(g_session, &buffer);
             if (DMCLT_ERR_NONE == err)
             {
                 output_buffer(stderr, isWbxml, buffer);
@@ -451,7 +439,7 @@ int main(int argc, char *argv[])
                         fprintf(stderr, "\r\n\n");
                         fflush(stderr);
                     }
-                    err = omadmclient_process_reply(session, &reply);
+                    err = omadmclient_process_reply(g_session, &reply);
                     omadmclient_clean_buffer(&reply);
                 }
             }
@@ -483,17 +471,17 @@ int main(int argc, char *argv[])
         fclose(fd);
 
         // HACK for test: override status
-        ((hack_internals_t *)session)->srv_auth = 212;
-        ((hack_internals_t *)session)->clt_auth = 212;
+        ((hack_internals_t *)g_session)->srv_auth = 212;
+        ((hack_internals_t *)g_session)->clt_auth = 212;
 
-        err = omadmclient_process_reply(session, &reply);
+        err = omadmclient_process_reply(g_session, &reply);
         omadmclient_clean_buffer(&reply);
         if (err != DMCLT_ERR_NONE)
         {
             fprintf(stderr, "SyncML parsing failed.\r\n", file);
             return 1;
         }
-        err = omadmclient_get_next_packet(session, &buffer);
+        err = omadmclient_get_next_packet(g_session, &buffer);
         if (DMCLT_ERR_NONE != err)
         {
             fprintf(stderr, "SyncML generation failed.\r\n", file);
@@ -502,7 +490,7 @@ int main(int argc, char *argv[])
         output_buffer(stdout, isWbxml, buffer);
         omadmclient_clean_buffer(&buffer);
     }
-    omadmclient_session_close(session);
+    omadmclient_session_close(g_session);
 
     c = 0;
    	while ((c < MAX_PLUGIN) && (pluginHandles[c] != 0))

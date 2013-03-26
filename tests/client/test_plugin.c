@@ -21,13 +21,18 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <omadmclient.h>
 #include <omadmtree_mo.h>
 
 #include "syncml_error.h"
 
+// defined in main.c
+dmclt_session get_dm_session();
+
+
 static int prv_testInitFN(void **oData)
 {
-    *oData = NULL;
+    *oData = get_dm_session();
 	return OMADM_SYNCML_ERROR_NONE;
 }
 
@@ -95,8 +100,24 @@ static int prv_testExecFN(const char * iURI,
 						  const char * correlator,
 						  void * data)
 {
+    dmclt_item_t item;
+
 	if (strcmp(iURI, "./test/execute") != 0)
         return OMADM_SYNCML_ERROR_NOT_FOUND;
+
+
+    memset(&item, 0, sizeof(dmclt_item_t));
+    item.data = "200";
+    item.source = "./test/execute";
+    item.type = "urn:test";
+    item.format = "text/plain";
+
+    if (DMCLT_ERR_NONE != omadmclient_add_generic_alert((dmclt_session)data,
+                                                        correlator,
+                                                        &item))
+    {
+        return OMADM_SYNCML_ERROR_NOT_EXECUTED;
+    }
 
 	return OMADM_SYNCML_ERROR_NONE;
 }
