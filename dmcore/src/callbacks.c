@@ -501,20 +501,6 @@ static Ret_t prv_status_cmd_cb(InstanceID_t id,
     return SML_ERR_OK;
 }
 
-static Ret_t prv_unimplemented_cb(InstanceID_t id,
-                                  VoidPtr_t userData,
-                                  SmlGenericCmdPtr_t pContent)
-{
-    internals_t * internP = (internals_t *)userData;
-    SmlStatusPtr_t statusP;
-
-    statusP = create_status(internP, OMADM_SYNCML_ERROR_COMMAND_NOT_IMPLEMENTED, pContent);
-
-    add_element(internP, (basicElement_t *)statusP);
-
-    return SML_ERR_OK;
-}
-
 static Ret_t prv_handle_error_cb(InstanceID_t id,
                                  VoidPtr_t userData)
 {
@@ -552,13 +538,6 @@ SmlCallbacksPtr_t get_callbacks()
         callbacksP->copyCmdFunc       = prv_do_generic_cmd_cb;
         callbacksP->handleErrorFunc   = prv_handle_error_cb;
         callbacksP->transmitChunkFunc = prv_transmit_chunk_cb;
-
-        // Commands not implemented
-        callbacksP->startSyncFunc  = (smlStartSyncFunc)prv_unimplemented_cb;
-        callbacksP->putCmdFunc     = (smlPutCmdFunc)prv_unimplemented_cb;
-        callbacksP->mapCmdFunc     = (smlMapCmdFunc)prv_unimplemented_cb;
-        callbacksP->resultsCmdFunc = (smlResultsCmdFunc)prv_unimplemented_cb;
-        callbacksP->searchCmdFunc  = (smlSearchCmdFunc)prv_unimplemented_cb;
 
         // Commands ignored
         callbacksP->endSyncFunc    = NULL;

@@ -71,24 +71,24 @@
 /* do we need Metainformation DTD parsing ? */
 #define __USE_METINF__
 /* do we use Device Info DTD ? */
-#define __USE_DEVINF__
+//#define __USE_DEVINF__
 
 /* which of the following optional commands should be included ? */
 
-#define ADD_SEND
-#define ATOMIC_SEND
+//#define ADD_SEND
+//#define ATOMIC_SEND
 #define ATOMIC_RECEIVE
-#define COPY_SEND
+//#define COPY_SEND
 #define COPY_RECEIVE
-#define EXEC_SEND
+//#define EXEC_SEND
 #define EXEC_RECEIVE
-#define GET_SEND
-#define MAP_RECEIVE
-#define MAPITEM_RECEIVE
-#define RESULT_RECEIVE
-#define SEARCH_SEND
-#define SEARCH_RECEIVE
-#define SEQUENCE_SEND
+//#define GET_SEND
+//#define MAP_RECEIVE
+//#define MAPITEM_RECEIVE
+//#define RESULT_RECEIVE
+//#define SEARCH_SEND
+//#define SEARCH_RECEIVE
+//#define SEQUENCE_SEND
 #define SEQUENCE_RECEIVE
 
 
