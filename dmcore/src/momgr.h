@@ -58,30 +58,32 @@ typedef struct
     uint16_t max_depth;
     uint16_t max_total_len;
     uint16_t max_segment_len;
+    char * last_uri;
+    dmtree_plugin_t * last_plugin;
 } mo_mgr_t;
 
 
-int momgr_init(mo_mgr_t * iMgrP);
+mo_mgr_t * momgr_init();
 void momgr_free(mo_mgr_t * iMgr);
 int momgr_check_mandatory_mo(mo_mgr_t * iMgrP);
 
 int momgr_add_plugin(mo_mgr_t * iMgr, omadm_mo_interface_t *iPlugin);
 
-int momgr_exists(const mo_mgr_t iMgr, const char *iUri, omadmtree_node_kind_t *oExists);
+int momgr_exists(mo_mgr_t * iMgr, const char *iUri, omadmtree_node_kind_t *oExists);
 
-int momgr_get_value(const mo_mgr_t iMgr, dmtree_node_t * nodeP);
-int momgr_set_value(const mo_mgr_t iMgr, const dmtree_node_t * nodeP);
+int momgr_get_value(mo_mgr_t * iMgr, dmtree_node_t * nodeP);
+int momgr_set_value(mo_mgr_t * iMgr, const dmtree_node_t * nodeP);
 
-int momgr_get_ACL(const mo_mgr_t iMgr, const char *iUri, char **oACL);
-int momgr_set_ACL(const mo_mgr_t iMgr, const char *iUri, const char *iACL);
+int momgr_get_ACL(mo_mgr_t * iMgr, const char *iUri, char **oACL);
+int momgr_set_ACL(mo_mgr_t * iMgr, const char *iUri, const char *iACL);
 
-int momgr_rename_node(const mo_mgr_t iMgr, const char *iFrom, const char *iTo);
-int momgr_delete_node(const mo_mgr_t iMgr, const char *iUri);
-int momgr_exec_node(const mo_mgr_t iMgr, const char *iUri, const char *iData, const char *iCorrelator);
+int momgr_rename_node(mo_mgr_t * iMgr, const char *iFrom, const char *iTo);
+int momgr_delete_node(mo_mgr_t * iMgr, const char *iUri);
+int momgr_exec_node(mo_mgr_t * iMgr, const char *iUri, const char *iData, const char *iCorrelator);
 
-int momgr_validate_uri(const mo_mgr_t iMgr, const char *uri, char ** oNodeURI, char ** oPropId);
+int momgr_validate_uri(mo_mgr_t * iMgr, const char *uri, char ** oNodeURI, char ** oPropId);
 
-int momgr_find_subtree(const mo_mgr_t iMgr, const char * iUri, const char * iUrn, const char * iCriteriaName, const char * iCriteriaValue, char ** oUri);
-int momgr_list_uri(const mo_mgr_t iMgr, const char * iUrn, char *** oUri);
+int momgr_find_subtree(mo_mgr_t * iMgr, const char * iUri, const char * iUrn, const char * iCriteriaName, const char * iCriteriaValue, char ** oUri);
+int momgr_list_uri(mo_mgr_t * iMgr, const char * iUrn, char *** oUri);
 
 #endif

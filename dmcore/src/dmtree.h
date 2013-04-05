@@ -34,7 +34,7 @@
 
 typedef struct
 {
-    mo_mgr_t MOs;
+    mo_mgr_t * MOs;
     char *server_id;
 } dmtree_t;
 

@@ -194,16 +194,26 @@ static mo_dir_t * prv_findMoDir(mo_dir_t * origin,
     return result;
 }
 
-static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
+static dmtree_plugin_t * prv_findPlugin(mo_mgr_t *iMgr,
                                         const char *iURI)
 {
     char * uriCopy = NULL;
     char * subUri;
     mo_dir_t * dirP;
 
+    if (iMgr->last_uri)
+    {
+        if (!strcmp(iURI, iMgr->last_uri))
+        {
+            return iMgr->last_plugin;
+        }
+        free (iMgr->last_uri);
+        iMgr->last_uri = NULL;
+    }
+
     if (!strcmp(iURI, "."))
     {
-        return iMgr.root->plugin;
+        return iMgr->root->plugin;
     }
 
     uriCopy = strdup(iURI);
@@ -227,7 +237,7 @@ static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
         }
     }
 
-    dirP = prv_findMoDir(iMgr.root, subUri, false);
+    dirP = prv_findMoDir(iMgr->root, subUri, false);
     free(uriCopy);
 
     while (NULL != dirP && NULL == dirP->plugin)
@@ -237,6 +247,9 @@ static dmtree_plugin_t * prv_findPlugin(const mo_mgr_t iMgr,
 
     if (NULL != dirP)
     {
+        // no need to check return of strdup. Failure will be tested on next call.
+        iMgr->last_uri = strdup(iURI);
+        iMgr->last_plugin = dirP->plugin;
         return dirP->plugin;
     }
 
@@ -428,46 +441,52 @@ static void prv_getChildrenUrl(mo_dir_t * dirP,
     }
 }
 
-int momgr_init(mo_mgr_t * iMgrP)
+mo_mgr_t * momgr_init()
 {
-    int error = OMADM_SYNCML_ERROR_NONE;
+    mo_mgr_t * mgrP = NULL;
 
-    if(!iMgrP)
-        return OMADM_SYNCML_ERROR_SESSION_INTERNAL;
+    mgrP = (mo_mgr_t *)malloc(sizeof(mo_mgr_t));
+    if (NULL == mgrP) return NULL;
 
-    memset(iMgrP, 0, sizeof(mo_mgr_t));
+    memset(mgrP, 0, sizeof(mo_mgr_t));
 
     // set the root plugin
-    iMgrP->root = (mo_dir_t *) malloc(sizeof(mo_dir_t));
-    if (NULL == iMgrP->root) return OMADM_SYNCML_ERROR_DEVICE_FULL;
-    memset(iMgrP->root, 0, sizeof(mo_dir_t));
-    iMgrP->root->name = strdup(".");
-
-    iMgrP->root->plugin = (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t));
-    if (NULL == iMgrP->root->plugin)
+    mgrP->root = (mo_dir_t *) malloc(sizeof(mo_dir_t));
+    if (NULL == mgrP->root)
     {
-        free(iMgrP->root);
-        return OMADM_SYNCML_ERROR_DEVICE_FULL;
+        momgr_free(mgrP);
+        return NULL;
     }
-    memset(iMgrP->root->plugin, 0, sizeof(dmtree_plugin_t));
-
-    iMgrP->root->plugin->interface = getDefaultRootPlugin();
-    iMgrP->root->plugin->container = iMgrP->root;
-
-    if (OMADM_SYNCML_ERROR_NONE != error)
+    memset(mgrP->root, 0, sizeof(mo_dir_t));
+    mgrP->root->name = strdup(".");
+    if (NULL == mgrP->root->name)
     {
-        momgr_free(iMgrP);
+        momgr_free(mgrP);
+        return NULL;
     }
-    return error;
+
+    mgrP->root->plugin = (dmtree_plugin_t *) malloc(sizeof(dmtree_plugin_t));
+    if (NULL == mgrP->root->plugin)
+    {
+        momgr_free(mgrP);
+        return NULL;
+    }
+    memset(mgrP->root->plugin, 0, sizeof(dmtree_plugin_t));
+
+    mgrP->root->plugin->interface = getDefaultRootPlugin();
+    mgrP->root->plugin->container = mgrP->root;
+
+    return mgrP;
 }
 
 void momgr_free(mo_mgr_t * iMgrP)
 {
-    if(iMgrP->root)
+    if (iMgrP->root)
     {
         prv_freeMoDir(iMgrP->root);
-        iMgrP->root = NULL;
     }
+    if (iMgrP->last_uri) free(iMgrP->last_uri);
+    free(iMgrP);
 }
 
 int momgr_check_mandatory_mo(mo_mgr_t * iMgrP)
@@ -484,14 +503,14 @@ int momgr_check_mandatory_mo(mo_mgr_t * iMgrP)
     }
     strArray_free(urlList);
 
-    pluginP = prv_findPlugin(*iMgrP, "./DevInfo");
+    pluginP = prv_findPlugin(iMgrP, "./DevInfo");
     if (NULL == pluginP)
     {
         // missing DevInfo MO
         return OMADM_SYNCML_ERROR_COMMAND_FAILED;
     }
 
-    pluginP = prv_findPlugin(*iMgrP, "./DevDetail");
+    pluginP = prv_findPlugin(iMgrP, "./DevDetail");
     if (NULL == pluginP)
     {
         // missing DevDetail MO
@@ -578,7 +597,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_exists(const mo_mgr_t iMgr,
+int momgr_exists(mo_mgr_t * iMgr,
                  const char *iURI,
                  omadmtree_node_kind_t * oExists)
 {
@@ -605,7 +624,7 @@ int momgr_exists(const mo_mgr_t iMgr,
         {
             subUri += 2;
         }
-        dirP = prv_findMoDir(iMgr.root, subUri, true);
+        dirP = prv_findMoDir(iMgr->root, subUri, true);
 
         if (dirP)
         {
@@ -624,7 +643,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_get_value(const mo_mgr_t iMgr,
+int momgr_get_value(mo_mgr_t * iMgr,
                     dmtree_node_t * nodeP)
 {
     DMC_ERR_MANAGE;
@@ -654,7 +673,7 @@ int momgr_get_value(const mo_mgr_t iMgr,
         {
             subUri += 2;
         }
-        dirP = prv_findMoDir(iMgr.root, subUri, false);
+        dirP = prv_findMoDir(iMgr->root, subUri, false);
 
         if (dirP)
         {
@@ -693,7 +712,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_set_value(const mo_mgr_t iMgr,
+int momgr_set_value(mo_mgr_t * iMgr,
                     const dmtree_node_t * nodeP)
 {
     DMC_ERR_MANAGE;
@@ -718,7 +737,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_get_ACL(const mo_mgr_t iMgr,
+int momgr_get_ACL(mo_mgr_t *iMgr,
                   const char *iURI,
                   char **oACL)
 {
@@ -747,7 +766,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_set_ACL(const mo_mgr_t iMgr,
+int momgr_set_ACL(mo_mgr_t *iMgr,
                   const char *iURI,
                   const char *iACL)
 {
@@ -776,7 +795,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_rename_node(const mo_mgr_t iMgr,
+int momgr_rename_node(mo_mgr_t *iMgr,
                       const char *iURI,
                       const char *iNewName)
 {
@@ -797,7 +816,7 @@ int momgr_rename_node(const mo_mgr_t iMgr,
 
     // uri_validate_path() will check for NULL
     nameCopy = strdup(iNewName);
-    DMC_FAIL(uri_validate_path(nameCopy, 1, iMgr.max_segment_len));
+    DMC_FAIL(uri_validate_path(nameCopy, 1, iMgr->max_segment_len));
     DMC_FAIL(plugin->interface->renameFunc(iURI, iNewName, plugin->data));
 
 DMC_ON_ERR:
@@ -808,7 +827,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_delete_node(const mo_mgr_t iMgr,
+int momgr_delete_node(mo_mgr_t *iMgr,
                       const char *iURI)
 {
     DMC_ERR_MANAGE;
@@ -833,7 +852,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_exec_node(const mo_mgr_t iMgr,
+int momgr_exec_node(mo_mgr_t *iMgr,
                     const char *iURI,
                     const char *iData,
                     const char *iCorrelator)
@@ -860,14 +879,14 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_validate_uri(const mo_mgr_t iMgr,
+int momgr_validate_uri(mo_mgr_t * iMgr,
                        const char * uri,
                        char ** oNodeURI,
                        char ** oPropId)
 {
-    return uri_validate(iMgr.max_total_len,
-                        iMgr.max_depth,
-                        iMgr.max_segment_len,
+    return uri_validate(iMgr->max_total_len,
+                        iMgr->max_depth,
+                        iMgr->max_segment_len,
                         uri,
                         oNodeURI,
                         oPropId);
@@ -875,7 +894,7 @@ int momgr_validate_uri(const mo_mgr_t iMgr,
 
 // For DM 1.3 we'll have to extend this function for the case were multiple urls
 // are found. For now we request the criteria and we return the first match.
-int momgr_find_subtree(const mo_mgr_t iMgr,
+int momgr_find_subtree(mo_mgr_t * iMgr,
                        const char * iUri,
                        const char * iUrn,
                        const char * iCriteriaName,
@@ -904,11 +923,11 @@ int momgr_find_subtree(const mo_mgr_t iMgr,
             subUri += 2;
         }
 
-        DMC_FAIL_NULL(dirP, prv_findMoDir(iMgr.root, subUri, false), OMADM_SYNCML_ERROR_NOT_FOUND);
+        DMC_FAIL_NULL(dirP, prv_findMoDir(iMgr->root, subUri, false), OMADM_SYNCML_ERROR_NOT_FOUND);
     }
     else
     {
-        dirP = iMgr.root;
+        dirP = iMgr->root;
     }
 
     if (NULL != iUrn)
@@ -952,7 +971,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-int momgr_list_uri(const mo_mgr_t iMgr,
+int momgr_list_uri(mo_mgr_t *iMgr,
                    const char * iUrn,
                    char *** oUri)
 {
@@ -961,7 +980,7 @@ int momgr_list_uri(const mo_mgr_t iMgr,
     DMC_FAIL_ERR(NULL == iUrn, OMADM_SYNCML_ERROR_COMMAND_FAILED);
     DMC_FAIL_ERR(NULL == oUri, OMADM_SYNCML_ERROR_COMMAND_FAILED);
 
-    prv_findUrn(iMgr.root, iUrn, oUri);
+    prv_findUrn(iMgr->root, iUrn, oUri);
 
     DMC_FAIL_ERR(NULL == *oUri, OMADM_SYNCML_ERROR_NOT_FOUND);
 

@@ -204,8 +204,8 @@ int          check_credentials   (SmlCredPtr_t credP, authDesc_t * authP);
 SmlChalPtr_t get_challenge       (authDesc_t * authP);
 authType_t   auth_string_as_type (char * string);
 char *       auth_type_as_string (authType_t type);
-int          get_server_account  (const mo_mgr_t iMgr, char * serverID, accountDesc_t ** accountP);
-void         store_nonce         (const mo_mgr_t iMgr, const accountDesc_t * accountP, bool server);
+int          get_server_account  (mo_mgr_t * iMgr, char * serverID, accountDesc_t ** accountP);
+void         store_nonce         (mo_mgr_t * iMgr, const accountDesc_t * accountP, bool server);
 
 // implemented in package0.c
 int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags, int * body_offset);

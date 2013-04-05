@@ -311,7 +311,7 @@ static authType_t auth_value_as_type(char * string)
     return AUTH_TYPE_UNKNOWN;
 }
 
-static int prv_fill_credentials(const mo_mgr_t iMgr,
+static int prv_fill_credentials(mo_mgr_t * iMgr,
                                 char * uri,
                                 authDesc_t * authP)
 {
@@ -391,7 +391,7 @@ static int prv_fill_credentials(const mo_mgr_t iMgr,
     return code;
 }
 
-int get_server_account(const mo_mgr_t iMgr,
+int get_server_account(mo_mgr_t * iMgr,
                        char * serverID,
                        accountDesc_t ** accountP)
 {
@@ -473,7 +473,7 @@ DMC_ON_ERR:
     return DMC_ERR;
 }
 
-void store_nonce(const mo_mgr_t iMgr,
+void store_nonce(mo_mgr_t * iMgr,
                  const accountDesc_t * accountP,
                  bool server)
 {

@@ -603,7 +603,8 @@ dmc_log_open("/tmp/testlog");
 
     memset(retval, 0, sizeof(*retval));
 
-    DMC_FAIL(momgr_init(&(retval->MOs)));
+    DMC_FAIL_NULL(retval->MOs, momgr_init(),
+            OMADM_SYNCML_ERROR_DEVICE_FULL);
 
     *handleP = retval;
 
@@ -641,7 +642,7 @@ void dmtree_close(dmtree_t * handle)
 
     if (handle)
     {
-        momgr_free(&(handle->MOs));
+        momgr_free(handle->MOs);
         if (handle->server_id) free(handle->server_id);
         free(handle);
     }
