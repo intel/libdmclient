@@ -88,7 +88,8 @@ static SmlSyncHdrPtr_t prvGetHeader(internals_t * internP)
         set_pcdata_int(headerP->msgID, internP->message_id);
         set_pcdata_string(headerP->target->locURI, internP->account->server_uri);
         set_pcdata_string(headerP->source->locURI, internP->account->id);
-        if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->clt_auth)
+        if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->clt_auth
+         && OMADM_SYNCML_ERROR_SUCCESS != internP->clt_auth)
         {
             headerP->cred = get_credentials(internP->account->toServerCred);
         }
