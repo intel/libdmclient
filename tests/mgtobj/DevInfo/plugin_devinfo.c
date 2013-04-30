@@ -34,12 +34,20 @@
 
 static static_node_t gDevInfoNodes[] =
 {
-    {PRV_BASE_URI, PRV_URN, OMADM_NODE_IS_INTERIOR, "Get=*", "DevId/Man/Mod/DmV/Lang"},
+    {PRV_BASE_URI, PRV_URN, OMADM_NODE_IS_INTERIOR, "Get=*", "DevId/Man/Mod/DmV/Lang/Bearer/Ext"},
     {PRV_BASE_URI"/DevId", NULL, OMADM_NODE_IS_LEAF, NULL, "DMCtest"},
     {PRV_BASE_URI"/Man", NULL, OMADM_NODE_IS_LEAF, NULL, "test manufacturer"},
     {PRV_BASE_URI"/Mod", NULL, OMADM_NODE_IS_LEAF, NULL, "test model"},
     {PRV_BASE_URI"/DmV", NULL, OMADM_NODE_IS_LEAF, NULL, "1.0"},
     {PRV_BASE_URI"/Lang", NULL, OMADM_NODE_IS_LEAF, NULL, "test language"},
+    {PRV_BASE_URI"/Ext", NULL, OMADM_NODE_IS_INTERIOR, NULL, "Intel/other"},
+    {PRV_BASE_URI"/Ext/Intel", NULL, OMADM_NODE_IS_INTERIOR, NULL, "test1/test2"},
+    {PRV_BASE_URI"/Ext/Intel/test1", NULL, OMADM_NODE_IS_LEAF, NULL, "data of test1"},
+    {PRV_BASE_URI"/Ext/Intel/test2", NULL, OMADM_NODE_IS_LEAF, NULL, "data of test2"},
+    {PRV_BASE_URI"/Ext/other", NULL, OMADM_NODE_IS_INTERIOR, NULL, "test3"},
+    {PRV_BASE_URI"/Ext/other/test3", NULL, OMADM_NODE_IS_LEAF, NULL, "data of test3"},
+    {PRV_BASE_URI"/Bearer", NULL, OMADM_NODE_IS_INTERIOR, NULL, "test"},
+    {PRV_BASE_URI"/Bearer/test", NULL, OMADM_NODE_IS_LEAF, NULL, "test bearer"},
 
     {NULL, NULL, OMADM_NODE_NOT_EXIST, NULL},
 };

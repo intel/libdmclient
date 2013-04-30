@@ -366,6 +366,57 @@ char ** strArray_add(const char ** array,
     return strArray_concat(array, tmp);
 }
 
+char ** strArray__buildChildList(const char * iBaseUri,
+                                 const char * iChildList)
+{
+    char ** result = NULL;
+    int nb_child = 0;
+    char * childName;
+    char * listCopy = NULL;
+
+    listCopy = strdup(iChildList);
+    if (NULL == listCopy) return NULL;
+
+    childName = listCopy;
+    while(childName && *childName)
+    {
+        nb_child++;
+        childName = strchr(childName, '/');
+        if (childName) childName += 1;
+    }
+    if (0 == nb_child) return NULL;
+
+    result = (char**)malloc((nb_child + 1) * sizeof(char*));
+    memset(result, 0, (nb_child + 1) * sizeof(char*));
+    if (result)
+    {
+        nb_child = 0;
+        childName = listCopy;
+        while(childName && *childName)
+        {
+            char * slashStr;
+
+            slashStr = strchr(childName, '/');
+            if (slashStr)
+            {
+                *slashStr = 0;
+                slashStr++;
+            }
+
+            result[nb_child] = str_cat_3(iBaseUri, "/", childName);
+            if (NULL == result[nb_child])
+            {
+                strArray_free(result);
+                return NULL;
+            }
+            nb_child++;
+            childName = slashStr;
+        }
+    }
+
+    return result;
+}
+
 void set_new_uri(internals_t * internP,
                  char * uri)
 {

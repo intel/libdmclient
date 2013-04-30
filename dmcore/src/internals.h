@@ -163,9 +163,10 @@ char * str_cat_2 (const char * first, const char * second);
 char * str_cat_3 (const char * first, const char * second, const char * third);
 char * str_cat_5 (const char * first, const char * second, const char * third, const char * fourth, const char* fifth);
 
-char ** strArray_concat (const char ** first, const char ** second);
-void    strArray_free   (char ** array);
-char ** strArray_add    (const char ** array, const char * newStr);
+char ** strArray_concat         (const char ** first, const char ** second);
+void    strArray_free           (char ** array);
+char ** strArray_add            (const char ** array, const char * newStr);
+char ** strArray__buildChildList(const char * iBaseUri, const char * iChildList);
 
 void   set_pcdata_string (SmlPcdataPtr_t dataP, char * string);
 void   set_pcdata_int    (SmlPcdataPtr_t dataP, int value);

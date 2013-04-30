@@ -362,57 +362,6 @@ static void prv_findUrn(mo_dir_t * dirP,
     }
 }
 
-static char ** prv_buildChildList(const char * iBaseUri,
-                                  const char * iChildList)
-{
-    char ** result = NULL;
-    int nb_child = 0;
-    char * childName;
-    char * listCopy = NULL;
-
-    listCopy = strdup(iChildList);
-    if (NULL == listCopy) return NULL;
-
-    childName = listCopy;
-    while(childName && *childName)
-    {
-        nb_child++;
-        childName = strchr(childName, '/');
-        if (childName) childName += 1;
-    }
-    if (0 == nb_child) return NULL;
-
-    result = (char**)malloc((nb_child + 1) * sizeof(char*));
-    memset(result, 0, (nb_child + 1) * sizeof(char*));
-    if (result)
-    {
-        nb_child = 0;
-        childName = listCopy;
-        while(childName && *childName)
-        {
-            char * slashStr;
-
-            slashStr = strchr(childName, '/');
-            if (slashStr)
-            {
-                *slashStr = 0;
-                slashStr++;
-            }
-
-            result[nb_child] = str_cat_3(iBaseUri, "/", childName);
-            if (NULL == result[nb_child])
-            {
-                strArray_free(result);
-                return NULL;
-            }
-            nb_child++;
-            childName = slashStr;
-        }
-    }
-
-    return result;
-}
-
 static void prv_getChildrenUrl(mo_dir_t * dirP,
                                const char * baseUri,
                                char *** listP)
@@ -433,7 +382,7 @@ static void prv_getChildrenUrl(mo_dir_t * dirP,
             {
                 if (0 != node.data_size)
                 {
-                    *listP = prv_buildChildList(baseUri, node.data_buffer);
+                    *listP = strArray__buildChildList(baseUri, node.data_buffer);
                     dmtree_node_clean(&node, false);
                 }
             }

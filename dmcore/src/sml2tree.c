@@ -78,6 +78,24 @@ static int prv_get(internals_t * internP,
     return code;
 }
 
+static int prv_add_item_to_list(SmlItemPtr_t itemP,
+                                SmlItemListPtr_t * listP)
+{
+    SmlItemListPtr_t newListP;
+
+    newListP = (SmlItemListPtr_t) malloc(sizeof(SmlItemList_t));
+    if (NULL == newListP)
+    {
+        return OMADM_SYNCML_ERROR_DEVICE_FULL;
+    }
+
+    newListP->item = itemP;
+    newListP->next = *listP;
+    *listP = newListP;
+
+    return OMADM_SYNCML_ERROR_SUCCESS;
+}
+
 static int prv_get_to_list(internals_t * internP,
                            const char * uri,
                            SmlItemListPtr_t * listP)
@@ -92,17 +110,7 @@ static int prv_get_to_list(internals_t * internP,
 
         if (OMADM_SYNCML_ERROR_SUCCESS == code)
         {
-            SmlItemListPtr_t newListP;
-
-            newListP = (SmlItemListPtr_t) malloc(sizeof(SmlItemList_t));
-            if (newListP)
-            {
-                newListP->item = itemP;
-                newListP->next = *listP;
-                *listP = newListP;
-
-                code = OMADM_SYNCML_ERROR_SUCCESS;
-            }
+            code = prv_add_item_to_list(itemP, listP);
         }
         if (OMADM_SYNCML_ERROR_SUCCESS != code)
         {
@@ -111,6 +119,62 @@ static int prv_get_to_list(internals_t * internP,
     }
 
     return code;
+}
+
+static void prv_get_tree_to_list(internals_t * internP,
+                                 const char * uri,
+                                 SmlItemListPtr_t * listP)
+{
+    int code = OMADM_SYNCML_ERROR_COMMAND_FAILED;
+    dmtree_node_t node;
+
+    memset(&node, 0, sizeof(dmtree_node_t));
+
+    node.uri = strdup(uri);
+    if (NULL == node.uri)
+    {
+        return;
+    }
+    if (OMADM_SYNCML_ERROR_NONE == dmtree_get(internP->dmtreeH, &node))
+    {
+        SmlItemPtr_t itemP;
+
+        itemP = smlAllocItem();
+        if (itemP)
+        {
+            code = prv_fill_item(itemP, node);
+            if (OMADM_SYNCML_ERROR_SUCCESS == code)
+            {
+                code = prv_add_item_to_list(itemP, listP);
+            }
+            if (OMADM_SYNCML_ERROR_SUCCESS != code)
+            {
+                smlFreeItemPtr(itemP);
+            }
+        }
+
+        if (!strcmp(node.format, "node")
+         && 0 != node.data_size)
+        {
+            char ** childList;
+            int i = 0;
+
+            childList = strArray__buildChildList(uri, node.data_buffer);
+            if (NULL != childList)
+            {
+                while (NULL != childList[i])
+                {
+                    prv_get_tree_to_list(internP,
+                                         childList[i],
+                                         listP);
+                    i++;
+                }
+            }
+            strArray_free(childList);
+        }
+    }
+
+    dmtree_node_clean(&node, true);
 }
 
 SmlReplacePtr_t get_device_info(internals_t * internP)
@@ -123,6 +187,7 @@ SmlReplacePtr_t get_device_info(internals_t * internP)
         goto error;
     }
 
+    // Mandatory nodes
     if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/Mod", &listP))
         goto error;
     if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/Man", &listP))
@@ -133,6 +198,10 @@ SmlReplacePtr_t get_device_info(internals_t * internP)
         goto error;
     if (OMADM_SYNCML_ERROR_SUCCESS != prv_get_to_list(internP, "./DevInfo/DmV", &listP))
         goto error;
+
+    // Optional nodes
+    prv_get_tree_to_list(internP, "./DevInfo/Bearer", &listP);
+    prv_get_tree_to_list(internP, "./DevInfo/Ext", &listP);
 
     replaceP = smlAllocReplace();
     if (replaceP)
