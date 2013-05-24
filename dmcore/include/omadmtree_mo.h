@@ -50,7 +50,7 @@ typedef enum
 {
     OMADM_NODE_NOT_EXIST,
     OMADM_NODE_IS_INTERIOR,
-    OMADM_NODE_IS_LEAF,
+    OMADM_NODE_IS_LEAF
 } omadmtree_node_kind_t;
 
 typedef struct
