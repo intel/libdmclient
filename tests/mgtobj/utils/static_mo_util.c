@@ -101,12 +101,12 @@ int static_mo_get(dmtree_node_t * nodeP,
     if (nodes[i].value)
     {
         nodeP->data_buffer = strdup(nodes[i].value);
-	if (!nodeP->data_buffer)
-	{
-	    err = OMADM_SYNCML_ERROR_DEVICE_FULL;
+        if (!nodeP->data_buffer)
+        {
+            err = OMADM_SYNCML_ERROR_DEVICE_FULL;
             goto on_error;
         }
-        nodeP->data_size = strlen(nodes[i].value) + 1;
+        nodeP->data_size = strlen(nodes[i].value);
     }
 
     return OMADM_SYNCML_ERROR_NONE;
