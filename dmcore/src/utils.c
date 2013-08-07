@@ -367,15 +367,18 @@ char ** strArray_add(const char ** array,
 }
 
 char ** strArray_buildChildList(const char * iBaseUri,
-                                const char * iChildList)
+                                const char * iChildList,
+                                unsigned int iChildListLength)
 {
     char ** result = NULL;
     int nb_child = 0;
     char * childName;
     char * listCopy = NULL;
 
-    listCopy = strdup(iChildList);
+    listCopy = (char *) malloc(iChildListLength + 1);
     if (NULL == listCopy) return NULL;
+    memcpy(listCopy, iChildList, iChildListLength);
+    listCopy[iChildListLength] = 0;
 
     childName = listCopy;
     while(childName && *childName)
@@ -887,6 +890,20 @@ void free_dmclt_alert(dmclt_ui_t * alertP)
         }
         free(alertP);
     }
+}
+
+char * dmtree_node_as_string(dmtree_node_t * node)
+{
+    char * result;
+
+    result = (char *)malloc(node->data_size + 1);
+    if (NULL != result)
+    {
+        memcpy(result, node->data_buffer, node->data_size);
+        result[node->data_size] = 0;
+    }
+
+    return result;
 }
 
 void dmtree_node_clean(dmtree_node_t *node,

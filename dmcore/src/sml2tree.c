@@ -45,11 +45,19 @@ static int prv_fill_item(SmlItemPtr_t itemP,
     itemP->source->locURI = smlString2Pcdata(node.uri);
     if (node.data_buffer)
     {
-        itemP->data = smlString2Pcdata((char *)(node.data_buffer));
-    }
-    else
-    {
-        itemP->data = smlString2Pcdata("");
+        itemP->data = smlAllocPcdata();
+        if (!itemP->data)
+        {
+            return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+        }
+        itemP->data->content = malloc(node.data_size);
+        if (!itemP->data->content)
+        {
+            return OMADM_SYNCML_ERROR_COMMAND_FAILED;
+        }
+        memcpy(itemP->data->content, node.data_buffer, node.data_size);
+        itemP->data->contentType = SML_PCDATA_OPAQUE;
+        itemP->data->length = node.data_size;
     }
     itemP->meta = convert_to_meta(node.format, node.type);
 
@@ -159,7 +167,7 @@ static void prv_get_tree_to_list(internals_t * internP,
             char ** childList;
             int i = 0;
 
-            childList = strArray_buildChildList(uri, node.data_buffer);
+            childList = strArray_buildChildList(uri, node.data_buffer, node.data_size);
             if (NULL != childList)
             {
                 while (NULL != childList[i])
@@ -244,10 +252,6 @@ int add_node(internals_t * internP,
     {
         node.data_buffer = itemP->data->content;
     }
-    else
-    {
-        node.data_buffer = strdup("");
-    }
 
     code = dmtree_add(internP->dmtreeH, &node);
     PRV_CONVERT_CODE(code);
@@ -296,10 +300,6 @@ int replace_node(internals_t * internP,
     if (node.data_size)
     {
         node.data_buffer = itemP->data->content;
-    }
-    else
-    {
-        node.data_buffer = strdup("");
     }
 
     code = dmtree_replace(internP->dmtreeH, &node);

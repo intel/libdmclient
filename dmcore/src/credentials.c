@@ -49,6 +49,14 @@
 #define VALUE_TYPE_SAFEWORD "SAFEWORD"
 #define VALUE_TYPE_DIGIPASS "DIGIPASS"
 
+#define VALUE_TYPE_BASIC_LEN    5
+#define VALUE_TYPE_DIGEST_LEN   6
+#define VALUE_TYPE_HMAC_LEN     4
+#define VALUE_TYPE_X509_LEN     4
+#define VALUE_TYPE_SECURID_LEN  7
+#define VALUE_TYPE_SAFEWORD_LEN 8
+#define VALUE_TYPE_DIGIPASS_LEN 8
+
 #define DMACC_MO_URN    "urn:oma:mo:oma-dm-dmacc:1.0"
 
 
@@ -291,21 +299,22 @@ char * auth_type_as_string(authType_t type)
     }
 }
 
-static authType_t auth_value_as_type(char * string)
+static authType_t auth_value_as_type(char * string,
+                                     unsigned int length)
 {
-    if (!strcmp(string, VALUE_TYPE_BASIC))
+    if (length == VALUE_TYPE_BASIC_LEN && !strncmp(string, VALUE_TYPE_BASIC, length))
         return AUTH_TYPE_BASIC;
-    if (!strcmp(string, VALUE_TYPE_DIGEST))
+    if (length == VALUE_TYPE_DIGEST_LEN && !strncmp(string, VALUE_TYPE_DIGEST, length))
         return AUTH_TYPE_DIGEST;
-    if (!strcmp(string, VALUE_TYPE_HMAC))
+    if (length == VALUE_TYPE_HMAC_LEN && !strncmp(string, VALUE_TYPE_HMAC, length))
         return AUTH_TYPE_HMAC;
-    if (!strcmp(string, VALUE_TYPE_X509))
+    if (length == VALUE_TYPE_X509_LEN && !strncmp(string, VALUE_TYPE_X509, length))
         return AUTH_TYPE_X509;
-    if (!strcmp(string, VALUE_TYPE_SECURID))
+    if (length == VALUE_TYPE_SECURID_LEN && !strncmp(string, VALUE_TYPE_SECURID, length))
         return AUTH_TYPE_SECURID;
-    if (!strcmp(string, VALUE_TYPE_SAFEWORD))
+    if (length == VALUE_TYPE_SAFEWORD_LEN && !strncmp(string, VALUE_TYPE_SAFEWORD, length))
         return AUTH_TYPE_SAFEWORD;
-    if (!strcmp(string, VALUE_TYPE_DIGIPASS))
+    if (length == VALUE_TYPE_DIGIPASS_LEN && !strncmp(string, VALUE_TYPE_DIGIPASS, length))
         return AUTH_TYPE_DIGIPASS;
 
     return AUTH_TYPE_UNKNOWN;
@@ -325,7 +334,7 @@ static int prv_fill_credentials(mo_mgr_t * iMgr,
     code = momgr_get_value(iMgr, &node);
     if (OMADM_SYNCML_ERROR_NONE == code)
     {
-        authP->type = auth_value_as_type(node.data_buffer);
+        authP->type = auth_value_as_type(node.data_buffer, node.data_size);
     }
     else if (OMADM_SYNCML_ERROR_NOT_FOUND != code)
     {
@@ -339,28 +348,26 @@ static int prv_fill_credentials(mo_mgr_t * iMgr,
     code = momgr_get_value(iMgr, &node);
     if (OMADM_SYNCML_ERROR_NONE == code)
     {
-        authP->name = node.data_buffer;
+        authP->name = dmtree_node_as_string(&node);
     }
     else if (OMADM_SYNCML_ERROR_NOT_FOUND != code)
     {
-        dmtree_node_clean(&node, true);
         return code;
     }
-    dmtree_node_clean(&node, false);
+    dmtree_node_clean(&node, true);
 
     node.uri = str_cat_2(uri, "/AAuthSecret");
     if (!node.uri) return OMADM_SYNCML_ERROR_DEVICE_FULL;
     code = momgr_get_value(iMgr, &node);
     if (OMADM_SYNCML_ERROR_NONE == code)
     {
-        authP->secret = node.data_buffer;
+        authP->secret = dmtree_node_as_string(&node);
     }
     else if (OMADM_SYNCML_ERROR_NOT_FOUND != code)
     {
-        dmtree_node_clean(&node, true);
         return code;
     }
-    dmtree_node_clean(&node, false);
+    dmtree_node_clean(&node, true);
 
     node.uri = str_cat_2(uri, "/AAuthData");
     if (!node.uri) return OMADM_SYNCML_ERROR_DEVICE_FULL;
@@ -415,8 +422,8 @@ int get_server_account(mo_mgr_t * iMgr,
 
     DMC_FAIL_NULL(node.uri, strdup("./DevInfo/DevId"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     DMC_FAIL(momgr_get_value(iMgr, &node));
-    (*accountP)->id = node.data_buffer;
-    dmtree_node_clean(&node, false);
+    (*accountP)->id = dmtree_node_as_string(&node);
+    dmtree_node_clean(&node, true);
 
     // TODO handle IPv4 and IPv6 cases
     DMC_FAIL_NULL(uri, str_cat_2((*accountP)->dmtree_uri, "/AppAddr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
@@ -425,8 +432,8 @@ int get_server_account(mo_mgr_t * iMgr,
     uri = NULL;
     DMC_FAIL_NULL(node.uri, str_cat_2(subUri, "/Addr"), OMADM_SYNCML_ERROR_DEVICE_FULL);
     DMC_FAIL(momgr_get_value(iMgr, &node));
-    (*accountP)->server_uri = node.data_buffer;
-    dmtree_node_clean(&node, false);
+    (*accountP)->server_uri = dmtree_node_as_string(&node);
+    dmtree_node_clean(&node, true);
     free(subUri);
     subUri = NULL;
 

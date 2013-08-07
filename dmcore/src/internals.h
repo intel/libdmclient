@@ -166,7 +166,9 @@ char * str_cat_5 (const char * first, const char * second, const char * third, c
 char ** strArray_concat         (const char ** first, const char ** second);
 void    strArray_free           (char ** array);
 char ** strArray_add            (const char ** array, const char * newStr);
-char ** strArray_buildChildList (const char * iBaseUri, const char * iChildList);
+char ** strArray_buildChildList (const char * iBaseUri, const char * iChildList, unsigned int iChildListLength);
+
+char * dmtree_node_as_string (dmtree_node_t * node);
 
 void   set_pcdata_string (SmlPcdataPtr_t dataP, char * string);
 void   set_pcdata_int    (SmlPcdataPtr_t dataP, int value);

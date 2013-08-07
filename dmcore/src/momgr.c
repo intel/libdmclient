@@ -59,6 +59,36 @@
 // defined in defaultroot.c
 omadm_mo_interface_t * getDefaultRootPlugin();
 
+static int prv_get_number(char * string,
+                          unsigned int length)
+{
+    int result = 0;
+    int mul = 0;
+    int i = 0;
+
+    while (i < length)
+    {
+        if ('0' <= string[i] && string[i] <= '9')
+        {
+            if (0 == mul)
+            {
+                mul = 10;
+            }
+            else
+            {
+                result *= mul;
+            }
+            result += string[i] - '0';
+        }
+        else
+        {
+            return -1;
+        }
+        i++;
+    }
+
+    return result;
+}
 
 static int prv_get_short(const dmtree_plugin_t *plugin,
                          char * iURI,
@@ -73,12 +103,18 @@ static int prv_get_short(const dmtree_plugin_t *plugin,
     error = plugin->interface->getFunc(&node, plugin->data);
     if (OMADM_SYNCML_ERROR_NONE == error)
     {
-        if (1 != sscanf(node.data_buffer, "%hu", resultP))
+        int number;
+
+        number = prv_get_number(node.data_buffer, node.data_size);
+        if (number < 0 || number > 0xFFFF)
         {
             error = OMADM_SYNCML_ERROR_SESSION_INTERNAL;
         }
-        free(node.data_buffer);
+        *resultP = (uint16_t)number;
     }
+    // do not free iURI
+    node.uri = NULL;
+    dmtree_node_clean(&node, true);
 
     return error;
 }
@@ -382,7 +418,7 @@ static void prv_getChildrenUrl(mo_dir_t * dirP,
             {
                 if (0 != node.data_size)
                 {
-                    *listP = strArray_buildChildList(baseUri, node.data_buffer);
+                    *listP = strArray_buildChildList(baseUri, node.data_buffer, node.data_size);
                     dmtree_node_clean(&node, false);
                 }
             }
@@ -649,7 +685,7 @@ int momgr_get_value(mo_mgr_t * iMgr,
             }
             if (NULL != dirP->children && NULL != nodeP->data_buffer)
             {
-                nodeP->data_size = strlen(nodeP->data_buffer) + 1;
+                nodeP->data_size = strlen(nodeP->data_buffer);
             }
         }
     }
@@ -895,7 +931,8 @@ int momgr_find_subtree(mo_mgr_t * iMgr,
     {
         DMC_FAIL_NULL(node.uri, str_cat_3(urlList[i], "/", iCriteriaName), OMADM_SYNCML_ERROR_DEVICE_FULL);
         DMC_FAIL(momgr_get_value(iMgr, &node));
-        if (!strcmp(node.data_buffer, iCriteriaValue))
+        if (strlen(iCriteriaValue) == node.data_size
+         && !strncmp(node.data_buffer, iCriteriaValue, node.data_size))
         {
             found = true;
         }
