@@ -159,7 +159,7 @@ static void prv_get_tree_to_list(internals_t * internP,
             char ** childList;
             int i = 0;
 
-            childList = strArray__buildChildList(uri, node.data_buffer);
+            childList = strArray_buildChildList(uri, node.data_buffer);
             if (NULL != childList)
             {
                 while (NULL != childList[i])

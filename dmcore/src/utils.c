@@ -366,8 +366,8 @@ char ** strArray_add(const char ** array,
     return strArray_concat(array, tmp);
 }
 
-char ** strArray__buildChildList(const char * iBaseUri,
-                                 const char * iChildList)
+char ** strArray_buildChildList(const char * iBaseUri,
+                                const char * iChildList)
 {
     char ** result = NULL;
     int nb_child = 0;

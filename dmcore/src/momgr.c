@@ -382,7 +382,7 @@ static void prv_getChildrenUrl(mo_dir_t * dirP,
             {
                 if (0 != node.data_size)
                 {
-                    *listP = strArray__buildChildList(baseUri, node.data_buffer);
+                    *listP = strArray_buildChildList(baseUri, node.data_buffer);
                     dmtree_node_clean(&node, false);
                 }
             }
