@@ -66,7 +66,7 @@ static uint8_t prv_revert_b64(uint8_t value)
     }
     if (value >= '0' && value <= '9')
     {
-        return (52 + value - 'A');
+        return (52 + value - '0');
     }
     switch (value)
     {
