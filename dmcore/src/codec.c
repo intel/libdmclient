@@ -167,9 +167,14 @@ void decode_b64(char * data,
     if (data_len % 4) return;
 
     resultP->len = (data_len >> 2) * 3;
-
     resultP->buffer = (unsigned char *) malloc(resultP->len);
     if (NULL == resultP->buffer) return;
+
+    // remove padding
+    while (data[data_len - 1] == PRV_B64_PADDING)
+    {
+        data_len--;
+    }
 
     memset(resultP->buffer, 0, resultP->len);
 
@@ -180,6 +185,43 @@ void decode_b64(char * data,
         prv_decode_block(data + data_index, resultP->buffer + result_index);
         data_index += 4;
         result_index += 3;
+    }
+    switch(data_index - data_len)
+    {
+    case 0:
+        break;
+    case 2:
+        {
+            uint8_t tmp[2];
+
+            tmp[0] = prv_revert_b64(data[data_len-2]);
+            tmp[1] = prv_revert_b64(data[data_len-1]);
+
+            resultP->buffer[result_index - 3] = (tmp[0] << 2) | (tmp[1] >> 4);
+            resultP->buffer[result_index - 2] = (tmp[1] << 4);
+            resultP->len -= 2;
+        }
+        break;
+    case 3:
+        {
+            uint8_t tmp[3];
+
+            tmp[0] = prv_revert_b64(data[data_len-3]);
+            tmp[1] = prv_revert_b64(data[data_len-2]);
+            tmp[2] = prv_revert_b64(data[data_len-1]);
+
+            resultP->buffer[result_index - 3] = (tmp[0] << 2) | (tmp[1] >> 4);
+            resultP->buffer[result_index - 2] = (tmp[1] << 4) | (tmp[2] >> 2);
+            resultP->buffer[result_index - 1] = (tmp[2] << 6) | tmp[3];
+            resultP->len -= 1;
+       }
+        break;
+    default:
+        // error
+        free(resultP->buffer);
+        resultP->buffer = NULL;
+        resultP->len = 0;
+        break;
     }
 }
 
