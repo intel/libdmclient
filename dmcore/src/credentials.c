@@ -485,8 +485,12 @@ void store_nonce(mo_mgr_t * iMgr,
                  bool server)
 {
     char * subUri = NULL;
+    char * searchUri;
 
-    if (OMADM_SYNCML_ERROR_NONE == momgr_find_subtree(iMgr, accountP->dmtree_uri, NULL, "AAuthLevel", server?"CLCRED":"SRVCRED", &subUri))
+    searchUri = str_cat_2(accountP->dmtree_uri, "/AppAuth");
+    if (searchUri == NULL) return;
+
+    if (OMADM_SYNCML_ERROR_NONE == momgr_find_subtree(iMgr, searchUri, NULL, "AAuthLevel", server?"CLCRED":"SRVCRED", &subUri))
     {
         dmtree_node_t node;
 
@@ -501,4 +505,5 @@ void store_nonce(mo_mgr_t * iMgr,
         }
         free(subUri);
     }
+    free(searchUri);
 }
