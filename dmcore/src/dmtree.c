@@ -526,7 +526,7 @@ int dmtree_replace(dmtree_t * handle, dmtree_node_t *node)
         if (!strcmp(prop_id, OMADM_NODE_PROPERTY_NAME))
         {
             DMC_FAIL(prv_check_node_acl_rights(handle, target_uri, OMADM_COMMAND_REPLACE));
-            DMC_FAIL_ERR(strstr(node->data_buffer, "/"), OMADM_SYNCML_ERROR_COMMAND_FAILED);
+            DMC_FAIL_ERR(NULL != strstr(node->data_buffer, "/"), OMADM_SYNCML_ERROR_COMMAND_FAILED);
             DMC_FAIL(momgr_rename_node(handle->MOs, target_uri, node->data_buffer));
         }
         else if (!strcmp(prop_id, OMADM_NODE_PROPERTY_ACL))

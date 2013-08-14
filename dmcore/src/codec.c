@@ -212,7 +212,7 @@ void decode_b64(char * data,
 
             resultP->buffer[result_index - 3] = (tmp[0] << 2) | (tmp[1] >> 4);
             resultP->buffer[result_index - 2] = (tmp[1] << 4) | (tmp[2] >> 2);
-            resultP->buffer[result_index - 1] = (tmp[2] << 6) | tmp[3];
+            resultP->buffer[result_index - 1] = (tmp[2] << 6);
             resultP->len -= 1;
        }
         break;

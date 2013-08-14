@@ -64,7 +64,7 @@ static int prv_get_number(char * string,
 {
     int result = 0;
     int mul = 0;
-    int i = 0;
+    unsigned int i = 0;
 
     while (i < length)
     {
