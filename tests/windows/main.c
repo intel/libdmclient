@@ -27,7 +27,7 @@
 #define _IMPORTING 1
 #include <omadmclient.h>
 #include <ctype.h>
-//#include <curl/curl.h>
+#include <curl/curl.h>
 
 // implemented in test_plugin.c
 omadm_mo_interface_t * test_get_mo_interface();
@@ -120,6 +120,7 @@ void output_buffer(FILE * fd, bool isWbxml, dmclt_buffer_t buffer)
     fflush(fd);
 }
 
+/*
 long sendPacket(char * type,
                 dmclt_buffer_t * packet,
                 dmclt_buffer_t * reply)
@@ -129,7 +130,64 @@ long sendPacket(char * type,
     memset(reply, 0, sizeof(dmclt_buffer_t));
 
     return status;
+}*/
+static size_t storeReplyCallback(void * contents,
+	size_t size,
+	size_t nmemb,
+	void * userp)
+{
+	size_t total = size * nmemb;
+	dmclt_buffer_t * reply = (dmclt_buffer_t *) userp;
+
+	reply->data = (unsigned char *) realloc(reply->data, reply->length + total);
+	if (reply->data == NULL)
+	{
+		fprintf(stderr, "Not enough memory\r\n");
+		exit(EXIT_FAILURE);
+	}
+
+	memcpy(&(reply->data[reply->length]), contents, total);
+	reply->length += total;
+
+	return total;
 }
+
+long sendPacket(CURL * curlH,
+	char * type,
+	dmclt_buffer_t * packet,
+	dmclt_buffer_t * reply)
+{
+	struct curl_slist * headerList = NULL;
+	long status = 503;
+
+	memset(reply, 0, sizeof(dmclt_buffer_t));
+	if (NULL == curlH)
+	{
+		return status;
+	}
+
+	curl_easy_setopt(curlH, CURLOPT_URL, packet->uri);
+	curl_easy_setopt(curlH, CURLOPT_POST, 1);
+	headerList = curl_slist_append(headerList, type);
+	curl_easy_setopt(curlH, CURLOPT_HTTPHEADER, headerList);
+	curl_easy_setopt(curlH, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) (packet->length));
+	curl_easy_setopt(curlH, CURLOPT_COPYPOSTFIELDS, (void *) (packet->data));
+
+	curl_easy_setopt(curlH, CURLOPT_WRITEFUNCTION, storeReplyCallback);
+	curl_easy_setopt(curlH, CURLOPT_WRITEDATA, (void *) reply);
+
+	if (CURLE_OK == curl_easy_perform(curlH))
+	{
+		if (CURLE_OK != curl_easy_getinfo(curlH, CURLINFO_RESPONSE_CODE, &status))
+		{
+			status = 503;
+		}
+	}
+	curl_slist_free_all(headerList);
+
+	return status;
+}
+
 
 int uiCallback(void * userData,
                const dmclt_ui_t * alertData,
@@ -203,6 +261,7 @@ int main(int argc, char *argv[])
     char * server = NULL;
     omadm_mo_interface_t * iMoP;
     char * proxyStr;
+	CURL *curlH;
 
     server = NULL;
 
@@ -305,13 +364,15 @@ int main(int argc, char *argv[])
         return err;
     }
     
+	curlH = curl_easy_init();
+
     do
     {
         err = omadmclient_get_next_packet(session, &buffer);
         if (DMCLT_ERR_NONE == err)
         {
             output_buffer(stderr, isWbxml, buffer);
-            status = sendPacket(isWbxml?"Content-Type: application/vnd.syncml+wbxml":"Content-Type: application/vnd.syncml+xml", &buffer, &reply);
+            status = sendPacket(curlH,isWbxml?"Content-Type: application/vnd.syncml+wbxml":"Content-Type: application/vnd.syncml+xml", &buffer, &reply);
             fprintf(stderr, "Reply from \"%s\": %d\r\n\n", buffer.uri, status);
 
             omadmclient_clean_buffer(&buffer);
@@ -335,7 +396,7 @@ int main(int argc, char *argv[])
             }
         }
     } while (DMCLT_ERR_NONE == err && 200 == status);
-
+	curl_easy_cleanup(curlH);
 	omadmclient_session_close(session);
 
     // check that we return 0 in case of success
