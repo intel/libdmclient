@@ -63,9 +63,12 @@ typedef enum
 
 typedef struct
 {
-    char *          uri;
-    long            length;
-    unsigned char * data;
+    char *           uri;
+    dmclt_authType_t auth_type;
+    long             auth_data_length;
+    unsigned char *  auth_data;
+    long             length;
+    unsigned char *  data;
 } dmclt_buffer_t;
 
 typedef void * dmclt_session;

@@ -420,6 +420,27 @@ int main(int argc, char *argv[])
             if (DMCLT_ERR_NONE == err)
             {
                 output_buffer(stderr, isWbxml, buffer);
+                switch (buffer.auth_type)
+                {
+                case DMCLT_AUTH_TYPE_HTTP_BASIC:
+                case DMCLT_AUTH_TYPE_HTTP_DIGEST:
+                    // establish HTTPS session
+                    break;
+                case DMCLT_AUTH_TYPE_BASIC:
+                case DMCLT_AUTH_TYPE_DIGEST:
+                    // do nothing
+                    break;
+                case DMCLT_AUTH_TYPE_HMAC:
+                    // compute HMAC of the message and add it to the transport header
+                    break;
+                case DMCLT_AUTH_TYPE_X509:
+                case DMCLT_AUTH_TYPE_SECURID:
+                case DMCLT_AUTH_TYPE_SAFEWORD:
+                case DMCLT_AUTH_TYPE_DIGIPASS:
+                case DMCLT_AUTH_TYPE_TRANSPORT:
+                default:
+                    break;
+                }
                 status = sendPacket(curlH, isWbxml?"Content-Type: application/vnd.syncml+wbxml":"Content-Type: application/vnd.syncml+xml", &buffer, &reply);
                 fprintf(stderr, "Reply from \"%s\": %d\r\n\n", buffer.uri, status);
 

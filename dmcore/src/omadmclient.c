@@ -452,6 +452,31 @@ dmclt_err_t omadmclient_get_next_packet(dmclt_session sessionH,
         packetP->length = size;
         packetP->uri = strdup(internP->account->server_uri);
         PRV_CHECK_SML_CALL(smlUnlockReadBuffer(internP->smlH, size));
+
+        // export authentication data for non OMA-DM level authentication types
+        packetP->auth_type = internP->account->toServerCred->type;
+        if (0 != internP->account->toServerCred->data.len)
+        {
+            switch (packetP->auth_type)
+            {
+            case DMCLT_AUTH_TYPE_BASIC:
+            case DMCLT_AUTH_TYPE_DIGEST:
+                // do nothing, authentication is handled in the DM packet
+                break;
+            default:
+                packetP->auth_data = (unsigned char*)malloc(internP->account->toServerCred->data.len);
+                if (NULL == packetP->auth_data)
+                {
+                    omadmclient_clean_buffer(packetP);
+                    status = DMCLT_ERR_MEMORY;
+                }
+                else
+                {
+                    memcpy(packetP->auth_data, internP->account->toServerCred->data.buffer, internP->account->toServerCred->data.len);
+                    packetP->auth_data_length = internP->account->toServerCred->data.len;
+                }
+            }
+        }
     }
 
     return status;
@@ -564,6 +589,10 @@ void omadmclient_clean_buffer(dmclt_buffer_t * packetP)
         if (packetP->data)
         {
             free(packetP->data);
+        }
+        if (packetP->auth_data)
+        {
+            free(packetP->auth_data);
         }
         memset(packetP, 0, sizeof(dmclt_buffer_t));
     }
