@@ -480,11 +480,11 @@ static Ret_t prv_status_cmd_cb(InstanceID_t id,
         internP->clt_auth = code;
         if (statusP->chal)
         {
-            authType_t type;
+            dmclt_authType_t type;
             buffer_t newNonce;
 
             type = get_from_chal_meta(statusP->chal->meta, &newNonce);
-            if (type != AUTH_TYPE_UNKNOWN)
+            if (type != DMCLT_AUTH_TYPE_UNKNOWN)
             {
                 internP->account->toServerCred->type = type;
                 if (internP->account->toServerCred->data.buffer) free(internP->account->toServerCred->data.buffer);

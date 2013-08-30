@@ -58,21 +58,6 @@
 
 typedef enum
 {
-    AUTH_TYPE_UNKNOWN = 0,
-    AUTH_TYPE_HTTP_BASIC,
-    AUTH_TYPE_HTTP_DIGEST,
-    AUTH_TYPE_BASIC,
-    AUTH_TYPE_DIGEST,
-    AUTH_TYPE_HMAC,
-    AUTH_TYPE_X509,
-    AUTH_TYPE_SECURID,
-    AUTH_TYPE_SAFEWORD,
-    AUTH_TYPE_DIGIPASS,
-    AUTH_TYPE_TRANSPORT
-} authType_t;
-
-typedef enum
-{
     STATE_UNKNOWN = 0,
     STATE_SERVER_INIT,
     STATE_CLIENT_INIT,
@@ -87,10 +72,10 @@ typedef struct
 
 typedef struct
 {
-    authType_t      type;
-    char *          name;
-    char *          secret;
-    buffer_t        data;
+    dmclt_authType_t type;
+    char *           name;
+    char *           secret;
+    buffer_t         data;
 } authDesc_t;
 
 typedef struct
@@ -181,10 +166,10 @@ SmlStatusPtr_t create_status  (internals_t * internP, int code, SmlGenericCmdPtr
 void           add_target_ref (SmlStatusPtr_t statusP, SmlTargetPtr_t target);
 void           add_source_ref (SmlStatusPtr_t statusP, SmlSourcePtr_t source);
 
-authType_t     get_from_chal_meta (SmlPcdataPtr_t metaP, buffer_t * nonceP);
-SmlPcdataPtr_t create_chal_meta   (authType_t type, buffer_t * nonceP);
-void           extract_from_meta  (SmlPcdataPtr_t metaP, char ** formatP, char ** typeP);
-SmlPcdataPtr_t convert_to_meta    (char * format, char * type);
+dmclt_authType_t get_from_chal_meta (SmlPcdataPtr_t metaP, buffer_t * nonceP);
+SmlPcdataPtr_t   create_chal_meta   (dmclt_authType_t type, buffer_t * nonceP);
+void             extract_from_meta  (SmlPcdataPtr_t metaP, char ** formatP, char ** typeP);
+SmlPcdataPtr_t   convert_to_meta    (char * format, char * type);
 
 void         add_element       (internals_t * internP, basicElement_t * elemP);
 void         free_element_list (elemCell_t * listP);
@@ -202,13 +187,13 @@ SmlCallbacksPtr_t get_callbacks();
 
 
 // implemented in credantials.c
-SmlCredPtr_t get_credentials     (authDesc_t * authP);
-int          check_credentials   (SmlCredPtr_t credP, authDesc_t * authP);
-SmlChalPtr_t get_challenge       (authDesc_t * authP);
-authType_t   auth_string_as_type (char * string);
-char *       auth_type_as_string (authType_t type);
-int          get_server_account  (mo_mgr_t * iMgr, char * serverID, accountDesc_t ** accountP);
-void         store_nonce         (mo_mgr_t * iMgr, const accountDesc_t * accountP, bool server);
+SmlCredPtr_t     get_credentials     (authDesc_t * authP);
+int              check_credentials   (SmlCredPtr_t credP, authDesc_t * authP);
+SmlChalPtr_t     get_challenge       (authDesc_t * authP);
+dmclt_authType_t auth_string_as_type (char * string);
+char *           auth_type_as_string (dmclt_authType_t type);
+int              get_server_account  (mo_mgr_t * iMgr, char * serverID, accountDesc_t ** accountP);
+void             store_nonce         (mo_mgr_t * iMgr, const accountDesc_t * accountP, bool server);
 
 // implemented in package0.c
 int decode_package_0   (buffer_t pkg0, char ** serverID, int * sessionID, char * flags, int * body_offset);

@@ -90,14 +90,14 @@ void extract_from_meta(SmlPcdataPtr_t metaP,
     }
 }
 
-authType_t get_from_chal_meta(SmlPcdataPtr_t metaP,
-                              buffer_t * nonceP)
+dmclt_authType_t get_from_chal_meta(SmlPcdataPtr_t metaP,
+                                    buffer_t * nonceP)
 {
-    authType_t type;
+    dmclt_authType_t type;
     SmlMetInfMetInfPtr_t metInfP;
     char * item;
 
-    type = AUTH_TYPE_UNKNOWN;
+    type = DMCLT_AUTH_TYPE_UNKNOWN;
     if (nonceP)
     {
         nonceP->buffer = NULL;
@@ -132,7 +132,7 @@ authType_t get_from_chal_meta(SmlPcdataPtr_t metaP,
     return type;
 }
 
-SmlPcdataPtr_t create_chal_meta(authType_t type,
+SmlPcdataPtr_t create_chal_meta(dmclt_authType_t type,
                                 buffer_t * nonceP)
 {
     SmlMetInfMetInfPtr_t metInfP;

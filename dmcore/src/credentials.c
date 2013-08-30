@@ -109,7 +109,7 @@ SmlCredPtr_t get_credentials(authDesc_t * authP)
 
     switch (authP->type)
     {
-    case AUTH_TYPE_BASIC:
+    case DMCLT_AUTH_TYPE_BASIC:
         {
             char * digest;
 
@@ -125,7 +125,7 @@ SmlCredPtr_t get_credentials(authDesc_t * authP)
             free(digest);
         }
         break;
-    case AUTH_TYPE_DIGEST:
+    case DMCLT_AUTH_TYPE_DIGEST:
         {
             char * digest;
 
@@ -156,7 +156,7 @@ int check_credentials(SmlCredPtr_t credP,
                       authDesc_t * authP)
 {
     int status = OMADM_SYNCML_ERROR_INVALID_CREDENTIALS;
-    authType_t credType;
+    dmclt_authType_t credType;
     char * data = smlPcdata2String(credP->data);
 
     if (!data) goto error; //smlPcdata2String() returns null only in case of allocation error
@@ -165,9 +165,9 @@ int check_credentials(SmlCredPtr_t credP,
 
     switch (authP->type)
     {
-    case AUTH_TYPE_BASIC:
+    case DMCLT_AUTH_TYPE_BASIC:
         {
-            if (credType == AUTH_TYPE_BASIC)
+            if (credType == DMCLT_AUTH_TYPE_BASIC)
             {
                 char * digest = prv_get_digest_basic(authP);
                 if (!strcmp(digest, data))
@@ -177,9 +177,9 @@ int check_credentials(SmlCredPtr_t credP,
             }
         }
         break;
-    case AUTH_TYPE_DIGEST:
+    case DMCLT_AUTH_TYPE_DIGEST:
         {
-            if (credType == AUTH_TYPE_DIGEST)
+            if (credType == DMCLT_AUTH_TYPE_DIGEST)
             {
                 char * digest = prv_get_digest_md5(authP);
                 if (!strcmp(digest, data))
@@ -207,10 +207,10 @@ SmlChalPtr_t get_challenge(authDesc_t * authP)
 
     switch (authP->type)
     {
-    case AUTH_TYPE_BASIC:
+    case DMCLT_AUTH_TYPE_BASIC:
         metaP = create_chal_meta(authP->type, NULL);
         break;
-    case AUTH_TYPE_DIGEST:
+    case DMCLT_AUTH_TYPE_DIGEST:
         {
             int nonce;
             
@@ -249,75 +249,75 @@ SmlChalPtr_t get_challenge(authDesc_t * authP)
     return chalP;
 }
 
-authType_t auth_string_as_type(char * string)
+dmclt_authType_t auth_string_as_type(char * string)
 {
     if (!strcmp(string, META_TYPE_BASIC))
-        return AUTH_TYPE_BASIC;
+        return DMCLT_AUTH_TYPE_BASIC;
     if (!strcmp(string, META_TYPE_DIGEST))
-        return AUTH_TYPE_DIGEST;
+        return DMCLT_AUTH_TYPE_DIGEST;
     if (!strcmp(string, META_TYPE_HMAC))
-        return AUTH_TYPE_HMAC;
+        return DMCLT_AUTH_TYPE_HMAC;
     if (!strcmp(string, META_TYPE_X509))
-        return AUTH_TYPE_X509;
+        return DMCLT_AUTH_TYPE_X509;
     if (!strcmp(string, META_TYPE_SECURID))
-        return AUTH_TYPE_SECURID;
+        return DMCLT_AUTH_TYPE_SECURID;
     if (!strcmp(string, META_TYPE_SAFEWORD))
-        return AUTH_TYPE_SAFEWORD;
+        return DMCLT_AUTH_TYPE_SAFEWORD;
     if (!strcmp(string, META_TYPE_DIGIPASS))
-        return AUTH_TYPE_DIGIPASS;
+        return DMCLT_AUTH_TYPE_DIGIPASS;
 
-    return AUTH_TYPE_UNKNOWN;
+    return DMCLT_AUTH_TYPE_UNKNOWN;
 }
 
-char * auth_type_as_string(authType_t type)
+char * auth_type_as_string(dmclt_authType_t type)
 {
     switch (type)
     {
-    case AUTH_TYPE_HTTP_BASIC:
+    case DMCLT_AUTH_TYPE_HTTP_BASIC:
         return "";
-    case AUTH_TYPE_HTTP_DIGEST:
+    case DMCLT_AUTH_TYPE_HTTP_DIGEST:
         return "";
-    case AUTH_TYPE_BASIC:
+    case DMCLT_AUTH_TYPE_BASIC:
         return META_TYPE_BASIC;
-    case AUTH_TYPE_DIGEST:
+    case DMCLT_AUTH_TYPE_DIGEST:
         return META_TYPE_DIGEST;
-    case AUTH_TYPE_HMAC:
+    case DMCLT_AUTH_TYPE_HMAC:
         return META_TYPE_HMAC;
-    case AUTH_TYPE_X509:
+    case DMCLT_AUTH_TYPE_X509:
         return META_TYPE_X509;
-    case AUTH_TYPE_SECURID:
+    case DMCLT_AUTH_TYPE_SECURID:
         return META_TYPE_SECURID;
-    case AUTH_TYPE_SAFEWORD:
+    case DMCLT_AUTH_TYPE_SAFEWORD:
         return META_TYPE_SAFEWORD;
-    case AUTH_TYPE_DIGIPASS:
+    case DMCLT_AUTH_TYPE_DIGIPASS:
         return META_TYPE_DIGIPASS;
-    case AUTH_TYPE_TRANSPORT:
+    case DMCLT_AUTH_TYPE_TRANSPORT:
         return "";
-    case AUTH_TYPE_UNKNOWN:
+    case DMCLT_AUTH_TYPE_UNKNOWN:
     default:
         return "";
     }
 }
 
-static authType_t auth_value_as_type(char * string,
-                                     unsigned int length)
+static dmclt_authType_t auth_value_as_type(char * string,
+                                           unsigned int length)
 {
     if (length == VALUE_TYPE_BASIC_LEN && !strncmp(string, VALUE_TYPE_BASIC, length))
-        return AUTH_TYPE_BASIC;
+        return DMCLT_AUTH_TYPE_BASIC;
     if (length == VALUE_TYPE_DIGEST_LEN && !strncmp(string, VALUE_TYPE_DIGEST, length))
-        return AUTH_TYPE_DIGEST;
+        return DMCLT_AUTH_TYPE_DIGEST;
     if (length == VALUE_TYPE_HMAC_LEN && !strncmp(string, VALUE_TYPE_HMAC, length))
-        return AUTH_TYPE_HMAC;
+        return DMCLT_AUTH_TYPE_HMAC;
     if (length == VALUE_TYPE_X509_LEN && !strncmp(string, VALUE_TYPE_X509, length))
-        return AUTH_TYPE_X509;
+        return DMCLT_AUTH_TYPE_X509;
     if (length == VALUE_TYPE_SECURID_LEN && !strncmp(string, VALUE_TYPE_SECURID, length))
-        return AUTH_TYPE_SECURID;
+        return DMCLT_AUTH_TYPE_SECURID;
     if (length == VALUE_TYPE_SAFEWORD_LEN && !strncmp(string, VALUE_TYPE_SAFEWORD, length))
-        return AUTH_TYPE_SAFEWORD;
+        return DMCLT_AUTH_TYPE_SAFEWORD;
     if (length == VALUE_TYPE_DIGIPASS_LEN && !strncmp(string, VALUE_TYPE_DIGIPASS, length))
-        return AUTH_TYPE_DIGIPASS;
+        return DMCLT_AUTH_TYPE_DIGIPASS;
 
-    return AUTH_TYPE_UNKNOWN;
+    return DMCLT_AUTH_TYPE_UNKNOWN;
 }
 
 static int prv_fill_credentials(mo_mgr_t * iMgr,

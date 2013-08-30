@@ -46,6 +46,21 @@ typedef enum
     DMCLT_ERR_USAGE
 } dmclt_err_t;
 
+typedef enum
+{
+    DMCLT_AUTH_TYPE_UNKNOWN = 0,
+    DMCLT_AUTH_TYPE_HTTP_BASIC,
+    DMCLT_AUTH_TYPE_HTTP_DIGEST,
+    DMCLT_AUTH_TYPE_BASIC,
+    DMCLT_AUTH_TYPE_DIGEST,
+    DMCLT_AUTH_TYPE_HMAC,
+    DMCLT_AUTH_TYPE_X509,
+    DMCLT_AUTH_TYPE_SECURID,
+    DMCLT_AUTH_TYPE_SAFEWORD,
+    DMCLT_AUTH_TYPE_DIGIPASS,
+    DMCLT_AUTH_TYPE_TRANSPORT
+} dmclt_authType_t;
+
 typedef struct
 {
     char *          uri;
