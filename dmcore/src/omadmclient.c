@@ -85,7 +85,6 @@ static SmlSyncHdrPtr_t prvGetHeader(internals_t * internP)
         set_pcdata_string(headerP->proto, "DM/1.2");
         set_pcdata_hex(headerP->sessionID, internP->session_id);
         set_pcdata_int(headerP->msgID, internP->message_id);
-        set_pcdata_int(headerP->msgID, internP->message_id);
         set_pcdata_string(headerP->target->locURI, internP->account->server_uri);
         set_pcdata_string(headerP->source->locURI, internP->account->id);
         if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->clt_auth
@@ -132,6 +131,8 @@ static int prvComposeMessage(internals_t * internP)
     syncHdrP = prvGetHeader(internP);
 
     result = smlStartMessageExt(internP->smlH, syncHdrP, SML_VERS_1_2);
+
+    smlFreeSyncHdr(syncHdrP);
 
     cell = internP->elem_first;
     while(cell && result == SML_ERR_OK)
@@ -201,7 +202,6 @@ dmclt_session * omadmclient_session_init(bool useWbxml)
 {
     internals_t *        internP;
     SmlInstanceOptions_t options;
-    SmlCallbacksPtr_t    callbacksP;
 
     internP = (internals_t *)malloc(sizeof(internals_t));
     if (!internP)
@@ -222,9 +222,9 @@ dmclt_session * omadmclient_session_init(bool useWbxml)
     }
     options.workspaceSize= PRV_MAX_WORKSPACE_SIZE;
 
-    callbacksP = get_callbacks();
+    internP->sml_callbacks = get_callbacks();
 
-    if (SML_ERR_OK != smlInitInstance(callbacksP, &options, NULL, &(internP->smlH)))
+    if (SML_ERR_OK != smlInitInstance(internP->sml_callbacks, &options, NULL, &(internP->smlH)))
     {
         omadmclient_session_close((void**)internP);
         free(internP);
@@ -396,6 +396,10 @@ void omadmclient_session_close(dmclt_session sessionH)
     {
         smlTerminateInstance(internP->smlH);
     }
+    if (internP->sml_callbacks)
+    {
+    	free(internP->sml_callbacks);
+    }
     if (internP->elem_first)
     {
         free_element_list(internP->elem_first);
@@ -415,6 +419,7 @@ void omadmclient_session_close(dmclt_session sessionH)
         if (internP->account->dmtree_uri) free(internP->account->dmtree_uri);
         prvFreeAuth(internP->account->toServerCred);
         prvFreeAuth(internP->account->toClientCred);
+        free(internP->account);
     }
     memset(internP, 0, sizeof(internals_t));
 }

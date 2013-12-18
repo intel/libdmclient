@@ -495,6 +495,7 @@ DMC_ON_ERR:
     if (parent_acl) free(parent_acl);
     if (new_acl) free(new_acl);
     if (tmp_str) free(tmp_str);
+    if (target_uri) free(target_uri);
 
     DMC_LOGF("%s finished with error %d",__FUNCTION__, DMC_ERR);
 

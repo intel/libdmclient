@@ -417,6 +417,7 @@ char ** strArray_buildChildList(const char * iBaseUri,
         }
     }
 
+    free(listCopy);
     return result;
 }
 
@@ -523,6 +524,7 @@ elemCell_t * retrieve_element(internals_t * internP,
             if (elemId)
             {
                 notFound = strcmp(elemId, cmdRef);
+                free(elemId);
             }
         }
         if (notFound)
@@ -822,6 +824,7 @@ dmclt_ui_t * get_ui_from_sml(SmlAlertPtr_t smlAlertP)
     if (NULL == itemCell->item) goto end;
     dataStr = smlPcdata2String(itemCell->item->data);
     prv_fill_alert_options(alertP, dataStr);
+    if (dataStr) free(dataStr);
 
     // second item contains display message
     itemCell = itemCell->next;
@@ -870,6 +873,8 @@ end:
         free_dmclt_alert(alertP);
         alertP = NULL;
     }
+    if (dataStr) free(dataStr);
+
     return alertP;
 }
 

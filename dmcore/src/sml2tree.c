@@ -42,6 +42,7 @@ static int prv_fill_item(SmlItemPtr_t itemP,
     {
         return OMADM_SYNCML_ERROR_COMMAND_FAILED;
     }
+    smlFreePcdata(itemP->source->locURI);
     itemP->source->locURI = smlString2Pcdata(node.uri);
     if (node.data_buffer)
     {
@@ -80,8 +81,8 @@ static int prv_get(internals_t * internP,
         if (OMADM_SYNCML_ERROR_NONE == code)
         {
             code = prv_fill_item(resultP, node);
-            dmtree_node_clean(&node, true);
         }
+        dmtree_node_clean(&node, true);
     }
     return code;
 }
@@ -214,6 +215,7 @@ SmlReplacePtr_t get_device_info(internals_t * internP)
     replaceP = smlAllocReplace();
     if (replaceP)
     {
+    	smlFreeItemList(replaceP->itemList);
         replaceP->itemList = listP;
         listP = NULL;
     }
@@ -235,6 +237,7 @@ int get_node(internals_t * internP,
 
     code = prv_get(internP, uri, resultP);
 
+    free(uri);
     return code;
 }
 
@@ -265,10 +268,15 @@ int delete_node(internals_t * internP,
                 SmlItemPtr_t itemP)
 {
     int code;
+    char * uri;
 
-    code = dmtree_delete(internP->dmtreeH, smlPcdata2String(itemP->target->locURI));
+    uri = smlPcdata2String(itemP->target->locURI);
+    if (!uri) return OMADM_SYNCML_ERROR_NOT_FOUND;
+
+    code = dmtree_delete(internP->dmtreeH, uri);
     PRV_CONVERT_CODE(code);
 
+    free(uri);
     return code;
 }
 
@@ -277,13 +285,25 @@ int exec_node(internals_t * internP,
               SmlPcdataPtr_t correlatorP)
 {
     int code;
+    char * uri;
+    char * data;
+    char * correlator;
+
+    uri = smlPcdata2String(itemP->target->locURI);
+    if (!uri) return OMADM_SYNCML_ERROR_NOT_FOUND;
+
+    data = smlPcdata2String(itemP->data);
+    correlator = smlPcdata2String(correlatorP);
 
     code = dmtree_exec(internP->dmtreeH,
-                       smlPcdata2String(itemP->target->locURI),
-                       smlPcdata2String(itemP->data),
-                       smlPcdata2String(correlatorP));
+                       uri,
+                       data,
+                       correlator);
     PRV_CONVERT_CODE(code);
 
+    free(uri);
+    if (data != NULL) free(data);
+    if (correlator != NULL) free(correlator);
     return code;
 }
 

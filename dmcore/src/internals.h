@@ -102,23 +102,24 @@ typedef struct
 
 typedef struct
 {
-    InstanceID_t     smlH;
-    dmtree_t *       dmtreeH;
-    accountDesc_t *  account;
-    int              session_id;
-    int              message_id;
-    int              command_id;
-    elemCell_t *     elem_first;
-    elemCell_t *     elem_last;
-    elemCell_t *     old_elem;
-    char *           reply_ref;
-    int              srv_auth;
-    int              clt_auth;
-    dmclt_callback_t alert_cb;
-    void *           cb_data;
-    SmlSequencePtr_t sequence;
-    int              seq_code;
-    State_t          state;
+    InstanceID_t      smlH;
+    SmlCallbacksPtr_t sml_callbacks;
+    dmtree_t *        dmtreeH;
+    accountDesc_t *   account;
+    int               session_id;
+    int               message_id;
+    int               command_id;
+    elemCell_t *      elem_first;
+    elemCell_t *      elem_last;
+    elemCell_t *      old_elem;
+    char *            reply_ref;
+    int               srv_auth;
+    int               clt_auth;
+    dmclt_callback_t  alert_cb;
+    void *            cb_data;
+    SmlSequencePtr_t  sequence;
+    int               seq_code;
+    State_t           state;
 } internals_t;
 
 

@@ -140,9 +140,13 @@ static void prv_freeMoDir(mo_dir_t * origin)
     child = origin->children;
     while (NULL != child)
     {
-        child->parent = NULL;
-        prv_freeMoDir(child);
+    	mo_dir_t * targetP;
+
+    	targetP = child;
         child = child->next;
+
+        targetP->parent = NULL;
+        prv_freeMoDir(targetP);
     }
     if (NULL != origin->plugin)
     {
@@ -419,9 +423,9 @@ static void prv_getChildrenUrl(mo_dir_t * dirP,
                 if (0 != node.data_size)
                 {
                     *listP = strArray_buildChildList(baseUri, node.data_buffer, node.data_size);
-                    dmtree_node_clean(&node, false);
                 }
             }
+            dmtree_node_clean(&node, true);
         }
     }
 }

@@ -46,7 +46,7 @@ static char s_b64_alphabet[64] =
 static void prv_encode_block(uint8_t input[3],
                              char output[4])
 {
-    memset(output, 0, sizeof(output));
+    memset(output, 0, 4);
 
     output[0] = s_b64_alphabet[input[0] >> 2];
     output[1] = s_b64_alphabet[((input[0] & 0x03) << 4) | (input[1] >> 4)];
@@ -85,7 +85,7 @@ static void prv_decode_block(char input[4],
     uint8_t tmp[4];
     int i;
 
-    memset(output, 0, sizeof(output));
+    memset(output, 0, 3);
 
     for (i = 0; i < 4 ; i++)
     {

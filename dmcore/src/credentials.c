@@ -170,9 +170,13 @@ int check_credentials(SmlCredPtr_t credP,
             if (credType == DMCLT_AUTH_TYPE_BASIC)
             {
                 char * digest = prv_get_digest_basic(authP);
-                if (!strcmp(digest, data))
+                if (digest)
                 {
-                    status = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+					if (!strcmp(digest, data))
+					{
+						status = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+					}
+					free(digest);
                 }
             }
         }
@@ -182,10 +186,14 @@ int check_credentials(SmlCredPtr_t credP,
             if (credType == DMCLT_AUTH_TYPE_DIGEST)
             {
                 char * digest = prv_get_digest_md5(authP);
-                if (!strcmp(digest, data))
-                {
-                    status = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
-                }
+                if (digest)
+				{
+					if (!strcmp(digest, data))
+					{
+						status = OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED;
+					}
+					free(digest);
+				}
             }
         }
         break;

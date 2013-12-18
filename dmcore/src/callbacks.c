@@ -44,7 +44,8 @@ static Ret_t prv_do_generic_cmd_cb(InstanceID_t id,
       && internP->seq_code != OMADM_SYNCML_ERROR_SUCCESS)
     {
         // do not treat this command
-        return SML_ERR_OK;
+    	smlFreeGeneric(cmdP);
+		return SML_ERR_OK;
     }
 
     if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->srv_auth)
@@ -52,6 +53,7 @@ static Ret_t prv_do_generic_cmd_cb(InstanceID_t id,
         statusP = create_status(internP, internP->srv_auth, cmdP);
 
         add_element(internP, (basicElement_t *)statusP);
+        smlFreeGeneric(cmdP);
         return SML_ERR_OK;
     }
 
@@ -91,6 +93,7 @@ static Ret_t prv_do_generic_cmd_cb(InstanceID_t id,
         itemCell = itemCell->next;
     }
 
+    smlFreeGeneric(cmdP);
     return SML_ERR_OK;
 }
 
@@ -133,6 +136,7 @@ static Ret_t prv_start_message_cb(InstanceID_t id,
 
     add_element(internP, (basicElement_t *)statusP);
 
+    smlFreeSyncHdr(headerP);
     return SML_ERR_OK;
 }
 
@@ -155,10 +159,11 @@ static Ret_t prv_start_atomic_cb(InstanceID_t id,
         statusP = create_status(internP, internP->srv_auth, (SmlGenericCmdPtr_t)atomicP);
 
         add_element(internP, (basicElement_t *)statusP);
+        smlFreeAtomic(atomicP);
         return SML_ERR_OK;
     }
 
-
+    smlFreeAtomic(atomicP);
     return SML_ERR_OK;
 }
 
@@ -184,6 +189,7 @@ static Ret_t prv_start_sequence_cb(InstanceID_t id,
         internP->seq_code = internP->srv_auth;
     }
 
+    smlFreeAtomic((SmlAtomicPtr_t)sequenceP);
     return SML_ERR_OK;
 }
 
@@ -228,6 +234,7 @@ static Ret_t prv_alert_cmd_cb(InstanceID_t id,
             break;
         default:
             // do not treat this command
+            smlFreeAlert(alertP);
             return SML_ERR_OK;
         }
     }
@@ -285,6 +292,7 @@ end:
     if (answer) free(answer);
     if (dmcAlertP) free_dmclt_alert(dmcAlertP);
 
+    smlFreeAlert(alertP);
     return SML_ERR_OK;
 }
 
@@ -303,7 +311,8 @@ static Ret_t prv_get_cmd_cb(InstanceID_t id,
       && internP->seq_code != OMADM_SYNCML_ERROR_SUCCESS)
     {
         // do not treat this command
-        return SML_ERR_OK;
+    	smlFreeGetPut((SmlPutPtr_t)getP);
+    	return SML_ERR_OK;
     }
 
     if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->srv_auth)
@@ -311,7 +320,8 @@ static Ret_t prv_get_cmd_cb(InstanceID_t id,
         statusP = create_status(internP, internP->srv_auth, (SmlGenericCmdPtr_t)getP);
 
         add_element(internP, (basicElement_t *)statusP);
-        return SML_ERR_OK;
+    	smlFreeGetPut((SmlPutPtr_t)getP);
+    	return SML_ERR_OK;
     }
 
     resultP = smlAllocResults();
@@ -377,7 +387,8 @@ static Ret_t prv_get_cmd_cb(InstanceID_t id,
         smlFreeResults(resultP);
     }
 
-    return SML_ERR_OK;
+	smlFreeGetPut((SmlPutPtr_t)getP);
+	return SML_ERR_OK;
 }
 
 static Ret_t prv_exec_cmd_cb(InstanceID_t id,
@@ -393,7 +404,8 @@ static Ret_t prv_exec_cmd_cb(InstanceID_t id,
       && internP->seq_code != OMADM_SYNCML_ERROR_SUCCESS)
     {
         // do not treat this command
-        return SML_ERR_OK;
+    	smlFreeExec(execP);
+    	return SML_ERR_OK;
     }
 
     if (OMADM_SYNCML_ERROR_AUTHENTICATION_ACCEPTED != internP->srv_auth)
@@ -401,7 +413,8 @@ static Ret_t prv_exec_cmd_cb(InstanceID_t id,
         statusP = create_status(internP, internP->srv_auth, (SmlGenericCmdPtr_t)execP);
 
         add_element(internP, (basicElement_t *)statusP);
-        return SML_ERR_OK;
+    	smlFreeExec(execP);
+    	return SML_ERR_OK;
     }
 
     itemCell = execP->itemList;
@@ -424,7 +437,8 @@ static Ret_t prv_exec_cmd_cb(InstanceID_t id,
         itemCell = itemCell->next;
     }
 
-    return SML_ERR_OK;
+	smlFreeExec(execP);
+	return SML_ERR_OK;
 }
 
 static Ret_t prv_status_cmd_cb(InstanceID_t id,
@@ -443,6 +457,7 @@ static Ret_t prv_status_cmd_cb(InstanceID_t id,
     if (!msgRef)
     {
         free(cmdRef);
+        smlFreeStatus(statusP);
         return SML_ERR_WRONG_PARAM;
     }
 
@@ -497,6 +512,7 @@ static Ret_t prv_status_cmd_cb(InstanceID_t id,
 
     free(cmdRef);
     free(msgRef);
+    smlFreeStatus(statusP);
 
     return SML_ERR_OK;
 }
