@@ -808,7 +808,7 @@ error:
 dmclt_ui_t * get_ui_from_sml(SmlAlertPtr_t smlAlertP)
 {
     dmclt_ui_t * alertP;
-    char * dataStr;
+    char * dataStr = NULL;
     SmlItemListPtr_t itemCell;
 
     if (!smlAlertP || !smlAlertP->data) return NULL;
