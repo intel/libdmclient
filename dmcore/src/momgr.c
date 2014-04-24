@@ -674,7 +674,11 @@ int momgr_get_value(mo_mgr_t * iMgr,
                 if (NULL == nodeP->data_buffer)
                 {
                     DMC_ERR = OMADM_SYNCML_ERROR_NONE;
-                    DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                    // nodeP->formet is either nil or already set to "node"
+                    if (nodeP->format == NULL)
+                    {
+                        DMC_FAIL_NULL(nodeP->format, strdup("node"), OMADM_SYNCML_ERROR_DEVICE_FULL);
+                    }
                     DMC_FAIL_NULL(nodeP->data_buffer, strdup(child->name), OMADM_SYNCML_ERROR_DEVICE_FULL);
                 }
                 else
